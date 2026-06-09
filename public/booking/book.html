@@ -15,6 +15,28 @@
   </header>
 
   <main>
+    <!-- Step 0: serviceability gate -->
+    <div class="card" id="areaCard">
+      <h2>Where are you?</h2>
+      <p class="muted">Let's check we deliver to your area.</p>
+      <label for="area">Your area</label>
+      <select id="area"></select>
+      <div style="margin-top:14px;">
+        <button class="btn" id="areaContinue">Continue</button>
+      </div>
+      <!-- out-of-area waitlist (hidden until "not listed") -->
+      <div id="waitlist" style="display:none; margin-top:18px;">
+        <p class="muted">We're not in your area just yet — leave your email and we'll let you know when we are.</p>
+        <label for="leadEmail">Email</label>
+        <input type="text" id="leadEmail" placeholder="you@example.com" />
+        <div style="margin-top:12px;">
+          <button class="btn ghost" id="leadSubmit">Join the waitlist</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Booking form (revealed once an area is confirmed) -->
+    <div id="bookingForm" style="display:none;">
     <div class="card">
       <h2>Book your bins</h2>
       <p class="muted">Choose how many of each you need. Pricing is per bin, per month.</p>
@@ -32,6 +54,9 @@
       <label for="deliveryDate">Delivery date for empty bins</label>
       <input type="date" id="deliveryDate" />
 
+      <label>Delivery window</label>
+      <div id="slotList" class="muted">Pick a date to see available windows.</div>
+
       <label for="name">Name</label>
       <input type="text" id="name" placeholder="Your name" />
 
@@ -48,6 +73,7 @@
         <button class="btn" id="submitBtn">Create booking</button>
       </div>
     </div>
+    </div><!-- /#bookingForm -->
   </main>
   <div id="toast"></div>
   <script src="book.js"></script>

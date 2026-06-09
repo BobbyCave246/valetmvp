@@ -121,7 +121,7 @@ async function loadQueue() {
         <div class="row">
           <div>
             <div><strong>${b.customer?.name || 'Unknown'}</strong> · ${b.bin_count} bins <span class="muted">(${sku})</span> ${assignBadge}</div>
-            <div class="muted">Delivery date: ${b.delivery_date} · ref <code>${b.id}</code></div>
+            <div class="muted">Delivery: ${b.delivery_date}${b.delivery_slot ? ' · ' + SLOT_LABEL_SHORT[b.delivery_slot] : ''} · ref <code>${b.id}</code></div>
             <div class="summary" style="margin-top:6px;">${b.summary.text}</div>
           </div>
           <div class="next-action"></div>
@@ -344,6 +344,8 @@ const JOB_LABEL = {
   deliver_back: 'Deliver bins back',
 };
 
+const SLOT_LABEL_SHORT = { am: 'AM (8–12)', pm: 'PM (12–5)' };
+
 const TODAY = new Date().toISOString().slice(0, 10);
 
 function jobCard(j, isDone) {
@@ -360,7 +362,7 @@ function jobCard(j, isDone) {
       <div class="row">
         <div>
           <div><strong>${JOB_LABEL[j.type] || j.type}</strong> <span class="status-pill">${j.status}</span> ${todayPill}</div>
-          <div class="muted">date ${j.scheduled_date || '—'} · ${(j.bin_ids || []).length} bins</div>
+          <div class="muted">date ${j.scheduled_date || '—'}${j.scheduled_slot ? ' · ' + SLOT_LABEL_SHORT[j.scheduled_slot] : ''} · ${(j.bin_ids || []).length} bins</div>
           ${picklist}
         </div>
         <div></div>

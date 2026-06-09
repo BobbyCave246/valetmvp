@@ -195,9 +195,11 @@ function renderBooking(booking) {
   const sku = Object.entries(booking.sku_breakdown || {}).map(([k, v]) => `${v} ${k}`).join(', ');
   const head = document.createElement('div');
   head.className = 'card';
+  const SLOT_LABELS = { am: 'Morning (8am–12pm)', pm: 'Afternoon (12–5pm)' };
+  const window = booking.delivery_slot ? ` · ${SLOT_LABELS[booking.delivery_slot] || booking.delivery_slot}` : '';
   head.innerHTML = `
     <h2>Booking <code>${booking.id}</code></h2>
-    <div class="muted">${booking.bin_count} bins (${sku}) · delivery ${booking.delivery_date}</div>
+    <div class="muted">${booking.bin_count} bins (${sku}) · delivery ${booking.delivery_date}${window}</div>
     <div class="muted" style="margin-top:6px;"><strong>${booking.summary.text}</strong></div>`;
   box.appendChild(head);
 

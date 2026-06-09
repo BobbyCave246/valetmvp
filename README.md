@@ -34,8 +34,21 @@ The app needs a `DATABASE_URL` pointing at a Postgres database. With Supabase:
 4. On Vercel, set `DATABASE_URL` as a Project Environment Variable.
 
 The schema is **created automatically** on first boot (idempotent
-`CREATE TABLE IF NOT EXISTS`), and the demo data is **auto-seeded** when the
-tables are empty — no manual migration step.
+`CREATE TABLE IF NOT EXISTS` + `ADD COLUMN IF NOT EXISTS`), and the demo data is
+**auto-seeded** when the tables are empty — no manual migration step.
+
+## Booking configuration (env)
+
+The booking flow has a serviceability gate and delivery time-windows, configured
+via env vars (sensible defaults ship for the demo):
+
+| Var | Default | Purpose |
+|---|---|---|
+| `COVERAGE_AREAS` | placeholder Barbados towns | **Set this** — comma-separated list of the areas you serve (the booking dropdown). Out-of-area visitors join an email waitlist instead of booking. |
+| `SLOT_CAPACITY` | `4` | Max empty-bin deliveries per window per day (so routes can be batched). |
+| `LEAD_DAYS` | `1` | Minimum lead time — earliest bookable delivery date (default = tomorrow). |
+
+Windows are Morning (8am–12pm) / Afternoon (12–5pm).
 
 ## Run it
 

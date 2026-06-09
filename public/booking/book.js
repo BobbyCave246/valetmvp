@@ -1,4 +1,5 @@
-// Booking form: per-SKU steppers, running monthly price, submit → /api/bookings.
+// Booking form: serviceability gate → per-SKU steppers + price → date + window
+// → contact → submit. Submits area + delivery window to /api/bookings.
 
 const SKUS = [
   { key: 'bin', label: 'Standard bin', price: 15, desc: '80 L tote — books, clothes, kitchenware' },
@@ -7,6 +8,8 @@ const SKUS = [
 ];
 
 const counts = { bin: 0, wardrobe: 0, odd: 0 };
+let chosenArea = null;
+let chosenSlot = null;
 
 const $ = (s) => document.querySelector(s);
 
@@ -17,6 +20,60 @@ function toast(msg, isErr = false) {
   setTimeout(() => (t.className = ''), 2600);
 }
 
+async function api(method, path, body) {
+  const r = await fetch(`/api${path}`, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : {},
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+}
+
+// ---- serviceability gate ----------------------------------------------------
+const OTHER = '__other__';
+
+async function loadAreas() {
+  const { areas } = await api('GET', '/serviceability');
+  const sel = $('#area');
+  sel.innerHTML =
+    '<option value="" disabled selected>Select your area…</option>' +
+    areas.map((a) => `<option value="${a}">${a}</option>`).join('') +
+    `<option value="${OTHER}">My area isn't listed</option>`;
+}
+
+$('#area').addEventListener('change', () => {
+  $('#waitlist').style.display = $('#area').value === OTHER ? 'block' : 'none';
+});
+
+$('#areaContinue').addEventListener('click', () => {
+  const v = $('#area').value;
+  if (!v) return toast('Pick your area', true);
+  if (v === OTHER) {
+    $('#waitlist').style.display = 'block';
+    return;
+  }
+  chosenArea = v;
+  $('#areaCard').querySelector('h2').textContent = `Delivering to ${v} ✓`;
+  $('#waitlist').style.display = 'none';
+  $('#bookingForm').style.display = 'block';
+  $('#bookingForm').scrollIntoView({ behavior: 'smooth' });
+});
+
+$('#leadSubmit').addEventListener('click', async () => {
+  const email = $('#leadEmail').value.trim();
+  if (!email) return toast('Enter your email', true);
+  try {
+    await api('POST', '/leads', { email, area: $('#area').value === OTHER ? null : $('#area').value });
+    toast("Thanks — we'll be in touch when we reach you");
+    $('#leadEmail').value = '';
+  } catch (e) {
+    toast(e.message, true);
+  }
+});
+
+// ---- items ------------------------------------------------------------------
 function renderSkus() {
   const box = $('#skuList');
   box.innerHTML = '';
@@ -51,37 +108,79 @@ function updateTotal() {
   $('#total').textContent = `£${total}`;
 }
 
+// ---- delivery date + window -------------------------------------------------
+async function loadSlots() {
+  const date = $('#deliveryDate').value;
+  const box = $('#slotList');
+  chosenSlot = null;
+  if (!date) {
+    box.className = 'muted';
+    box.textContent = 'Pick a date to see available windows.';
+    return;
+  }
+  try {
+    const { slots } = await api('GET', `/availability?date=${encodeURIComponent(date)}`);
+    box.className = 'slot-list';
+    box.innerHTML = '';
+    slots.forEach((s) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'slot-chip' + (s.available ? '' : ' full');
+      chip.disabled = !s.available;
+      chip.textContent = s.available ? s.label : `${s.label} — Full`;
+      chip.addEventListener('click', () => {
+        chosenSlot = s.key;
+        box.querySelectorAll('.slot-chip').forEach((c) => c.classList.remove('selected'));
+        chip.classList.add('selected');
+      });
+      box.appendChild(chip);
+    });
+  } catch (e) {
+    box.className = 'muted';
+    box.textContent = e.message;
+  }
+}
+
+$('#deliveryDate').addEventListener('change', loadSlots);
+
+// ---- submit -----------------------------------------------------------------
 $('#submitBtn').addEventListener('click', async () => {
   const skuBreakdown = {};
   for (const k of Object.keys(counts)) if (counts[k] > 0) skuBreakdown[k] = counts[k];
+
+  if (!chosenArea) return toast('Confirm your area first', true);
+  if (Object.keys(skuBreakdown).length === 0) return toast('Add at least one bin', true);
+  if (!$('#deliveryDate').value) return toast('Pick a delivery date', true);
+  if (!chosenSlot) return toast('Pick a delivery window', true);
 
   const payload = {
     name: $('#name').value.trim(),
     phone: $('#phone').value.trim(),
     email: $('#email').value.trim(),
     address: $('#address').value.trim(),
+    area: chosenArea,
     deliveryDate: $('#deliveryDate').value,
+    deliverySlot: chosenSlot,
     skuBreakdown,
   };
-
-  if (Object.keys(skuBreakdown).length === 0) return toast('Add at least one bin', true);
-  if (!payload.name || !payload.phone || !payload.deliveryDate) {
-    return toast('Name, phone and delivery date are required', true);
+  if (!payload.name || !payload.phone) {
+    return toast('Name and phone are required', true);
   }
 
   try {
-    const r = await fetch('/api/bookings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Failed');
+    const data = await api('POST', '/bookings', payload);
     location.href = `booking.html?ref=${encodeURIComponent(data.booking.id)}&new=1`;
   } catch (e) {
     toast(e.message, true);
   }
 });
 
+// ---- boot -------------------------------------------------------------------
+// Earliest selectable date = tomorrow (server enforces the real lead time).
+const tomorrow = new Date();
+tomorrow.setDate(tomorrow.getDate() + 1);
+$('#deliveryDate').min = tomorrow.toISOString().slice(0, 10);
+
+loadAreas().catch((e) => toast(e.message, true));
 renderSkus();
 updateTotal();

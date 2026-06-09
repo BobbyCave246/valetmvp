@@ -92,6 +92,17 @@ CREATE TABLE IF NOT EXISTS movements (
   job_id       TEXT REFERENCES jobs(id),
   ts           TEXT
 );
+CREATE TABLE IF NOT EXISTS leads (
+  id          TEXT PRIMARY KEY,
+  email       TEXT,
+  area        TEXT,
+  created_at  TEXT
+);
+
+-- Additive migrations (idempotent) for booking time-windows + serviceability.
+ALTER TABLE bookings  ADD COLUMN IF NOT EXISTS delivery_slot  TEXT;
+ALTER TABLE jobs      ADD COLUMN IF NOT EXISTS scheduled_slot TEXT;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS postcode       TEXT;
 `;
 
 // Run once on startup (idempotent). app.js awaits this before serving.
@@ -106,12 +117,13 @@ export async function createCustomer({
   phone = null,
   email = null,
   address = null,
+  postcode = null,
   sitelinkTenantId = null,
 }) {
   const id = newId('cust');
   const rows = await sql`
-    INSERT INTO customers (id, sitelink_tenant_id, name, phone, email, address, created_at)
-    VALUES (${id}, ${sitelinkTenantId}, ${name}, ${phone}, ${email}, ${address}, ${nowISO()})
+    INSERT INTO customers (id, sitelink_tenant_id, name, phone, email, address, postcode, created_at)
+    VALUES (${id}, ${sitelinkTenantId}, ${name}, ${phone}, ${email}, ${address}, ${postcode}, ${nowISO()})
     RETURNING *`;
   return rows[0];
 }
@@ -182,11 +194,17 @@ export async function setLocationOccupied(id, occupied, client = sql) {
 
 // ----- bookings --------------------------------------------------------------
 
-export async function createBooking({ customerId = null, binCount = null, skuBreakdown, deliveryDate = null }) {
+export async function createBooking({
+  customerId = null,
+  binCount = null,
+  skuBreakdown,
+  deliveryDate = null,
+  deliverySlot = null,
+}) {
   const id = newId('book');
   const rows = await sql`
-    INSERT INTO bookings (id, customer_id, bin_count, sku_breakdown, status, delivery_date, created_at)
-    VALUES (${id}, ${customerId}, ${binCount}, ${JSON.stringify(skuBreakdown || {})}, ${'New'}, ${deliveryDate}, ${nowISO()})
+    INSERT INTO bookings (id, customer_id, bin_count, sku_breakdown, status, delivery_date, delivery_slot, created_at)
+    VALUES (${id}, ${customerId}, ${binCount}, ${JSON.stringify(skuBreakdown || {})}, ${'New'}, ${deliveryDate}, ${deliverySlot}, ${nowISO()})
     RETURNING *`;
   return rows[0];
 }
@@ -210,11 +228,35 @@ export async function findBookingByPhone(phone) {
 
 // ----- jobs ------------------------------------------------------------------
 
-export async function createJob({ bookingId = null, type = null, scheduledDate = null, binIds = [] }) {
+export async function createJob({
+  bookingId = null,
+  type = null,
+  scheduledDate = null,
+  scheduledSlot = null,
+  binIds = [],
+}) {
   const id = newId('job');
   const rows = await sql`
-    INSERT INTO jobs (id, booking_id, type, status, scheduled_date, bin_ids)
-    VALUES (${id}, ${bookingId}, ${type}, ${'Scheduled'}, ${scheduledDate}, ${JSON.stringify(binIds)})
+    INSERT INTO jobs (id, booking_id, type, status, scheduled_date, scheduled_slot, bin_ids)
+    VALUES (${id}, ${bookingId}, ${type}, ${'Scheduled'}, ${scheduledDate}, ${scheduledSlot}, ${JSON.stringify(binIds)})
+    RETURNING *`;
+  return rows[0];
+}
+
+// How many empty-bin deliveries are already booked for a date + window
+// (for per-slot capacity checks).
+export async function countDeliveriesForSlot(date, slot) {
+  const rows = await sql`
+    SELECT COUNT(*)::int AS n FROM jobs
+    WHERE type = 'deliver_empty' AND scheduled_date = ${date} AND scheduled_slot = ${slot}`;
+  return rows[0].n;
+}
+
+export async function createLead({ email = null, area = null }) {
+  const id = newId('lead');
+  const rows = await sql`
+    INSERT INTO leads (id, email, area, created_at)
+    VALUES (${id}, ${email}, ${area}, ${nowISO()})
     RETURNING *`;
   return rows[0];
 }

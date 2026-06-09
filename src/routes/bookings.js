@@ -17,19 +17,38 @@ import {
   listJobs,
   setJobBinIds,
   setJobScheduledDate,
+  countDeliveriesForSlot,
 } from '../db.js';
 import { transitionBin, STATUS } from '../transitions.js';
 import { deriveBookingSummary, deriveNextAction } from '../summary.js';
+import { isCovered } from '../coverage.js';
+import { validateDateSlot, SLOT_CAPACITY } from '../slots.js';
 
 const router = Router();
 
 // POST /api/bookings — create customer (if new) + booking + a deliver_empty job.
 router.post('/', async (req, res) => {
-  const { name, phone, email, address, skuBreakdown = {}, deliveryDate } = req.body || {};
+  const {
+    name,
+    phone,
+    email,
+    address,
+    area,
+    skuBreakdown = {},
+    deliveryDate,
+    deliverySlot,
+  } = req.body || {};
 
-  if (!name || !phone || !deliveryDate) {
-    return res.status(400).json({ error: 'name, phone and deliveryDate are required' });
+  if (!name || !phone) {
+    return res.status(400).json({ error: 'name and phone are required' });
   }
+  // Serviceability gate.
+  if (!isCovered(area)) {
+    return res.status(409).json({ error: "We don't cover that area yet" });
+  }
+  // Delivery date + window (lead time / valid slot).
+  const slotErr = validateDateSlot(deliveryDate, deliverySlot);
+  if (slotErr) return res.status(400).json({ error: slotErr });
 
   const binCount = Object.values(skuBreakdown).reduce((a, b) => a + Number(b || 0), 0);
   if (binCount < 1) {
@@ -37,10 +56,15 @@ router.post('/', async (req, res) => {
   }
 
   try {
+    // Per-window capacity (so routes can be batched).
+    if ((await countDeliveriesForSlot(deliveryDate, deliverySlot)) >= SLOT_CAPACITY) {
+      return res.status(409).json({ error: 'That delivery window is full — please pick another' });
+    }
+
     // Reuse an existing customer (matched by phone) or create a new one.
     let customer = await findCustomerByPhone(phone);
     if (!customer) {
-      customer = await createCustomer({ name, phone, email, address });
+      customer = await createCustomer({ name, phone, email, address, postcode: area });
     }
 
     const booking = await createBooking({
@@ -48,14 +72,16 @@ router.post('/', async (req, res) => {
       binCount,
       skuBreakdown,
       deliveryDate,
+      deliverySlot,
     });
 
-    // A deliver_empty job is scheduled for the requested delivery date. Bins are
+    // A deliver_empty job is scheduled for the requested date + window. Bins are
     // assigned later by the admin, so bin_ids starts empty.
     const job = await createJob({
       bookingId: booking.id,
       type: 'deliver_empty',
       scheduledDate: deliveryDate,
+      scheduledSlot: deliverySlot,
       binIds: [],
     });
 

@@ -15,6 +15,7 @@ import binsRouter from './routes/bins.js';
 import locationsRouter from './routes/locations.js';
 import adminRouter from './routes/admin.js';
 import statsRouter from './routes/stats.js';
+import intakeRouter from './routes/intake.js';
 import { ensureSchema } from './db.js';
 import { seedIfEmpty } from './seed.js';
 
@@ -47,6 +48,7 @@ app.use('/api/bins', binsRouter);
 app.use('/api/locations', locationsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/stats', statsRouter);
+app.use('/api', intakeRouter); // /serviceability, /availability, /leads
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
