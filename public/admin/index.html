@@ -23,6 +23,8 @@
     <button data-tab="explorer">Bin explorer</button>
   </nav>
 
+  <div id="statsBar"></div>
+
   <main>
     <!-- QUEUE -->
     <section class="tab active" id="tab-queue">
@@ -69,12 +71,16 @@
         <h3 style="margin-top:0;font-size:15px;">Put-away (scan bin → scan location)</h3>
         <label>Bin barcode</label>
         <input type="text" id="storeBin" placeholder="BIN1001" />
-        <label>Location — type or click a free slot</label>
+        <label>Location — type or click a free slot below</label>
         <input type="text" id="storeLoc" placeholder="A-01-1-01" />
-        <div id="freeLocations" style="margin-top:6px;"></div>
         <div style="margin-top:14px;">
           <button class="btn green" id="storeSubmit">Store bin</button>
         </div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;font-size:15px;">Rack map</h3>
+        <div class="muted" style="margin-bottom:10px;">Green = free (click to select) · filled = occupied.</div>
+        <div id="rackMap"></div>
       </div>
       <div class="card">
         <h3 style="margin-top:0;font-size:15px;">Scan-out (pull from rack)</h3>
@@ -100,6 +106,7 @@
   </main>
 
   <div id="toast"></div>
+  <script src="/shared/barcode.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

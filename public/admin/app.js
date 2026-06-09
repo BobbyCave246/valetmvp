@@ -71,8 +71,35 @@ $('#resetBtn').addEventListener('click', async () => {
   if (!confirm('Wipe all data and re-seed the demo?')) return;
   await api.post('/admin/reset');
   toast('Demo reset to seed data');
+  loadStats();
   refreshTab(document.querySelector('nav button.active').dataset.tab);
 });
+
+// ---- dashboard stats bar ----------------------------------------------------
+async function loadStats() {
+  try {
+    const s = await api.get('/stats');
+    const bs = s.bins.byStatus;
+    const inTransit = (bs['In transit (inbound)'] || 0) + (bs['In transit (outbound)'] || 0);
+    const withCustomer =
+      (bs['Out for filling'] || 0) + (bs['Returned to customer'] || 0);
+    const tiles = [
+      ['Bins', s.bins.total],
+      ['Stored', bs['Stored'] || 0],
+      ['Out for filling', bs['Out for filling'] || 0],
+      ['In transit', inTransit],
+      ['With customer', withCustomer],
+      ['Rack', `${s.locations.occupied}/${s.locations.total} · ${s.locations.occupancyPct}%`],
+      ['Bookings', s.bookings.total],
+      ['Jobs scheduled', s.jobs.scheduled],
+    ];
+    $('#statsBar').innerHTML = tiles
+      .map(([label, val]) => `<div class="stat"><div class="stat-val">${val}</div><div class="stat-label">${label}</div></div>`)
+      .join('');
+  } catch {
+    /* stats are non-critical; ignore transient failures */
+  }
+}
 
 // ---- queue ------------------------------------------------------------------
 async function loadQueue() {
@@ -347,18 +374,43 @@ async function loadWarehouse() {
     $(field).value = pendingWarehouse.binBarcode;
     pendingWarehouse = null;
   }
+  renderRackMap();
+}
 
-  const free = await api.get('/locations/free');
-  const box = $('#freeLocations');
-  if (free.length === 0) {
-    box.innerHTML = '<span class="muted">No free locations.</span>';
-    return;
+// Visual rack map: a tile per slot, grouped by aisle (parsed from the
+// aisle-bay-level-position barcode, e.g. A-01-1-01). Free slots are clickable.
+async function renderRackMap() {
+  const locations = await api.get('/locations');
+  const map = $('#rackMap');
+  map.innerHTML = '';
+
+  const byAisle = {};
+  for (const loc of locations) {
+    const aisle = (loc.barcode.split('-')[0]) || '?';
+    (byAisle[aisle] ||= []).push(loc);
   }
-  box.innerHTML = '';
-  free.forEach((loc) => {
-    const chip = el(`<span class="chip">${loc.barcode}</span>`);
-    chip.addEventListener('click', () => ($('#storeLoc').value = loc.barcode));
-    box.appendChild(chip);
+
+  Object.keys(byAisle).sort().forEach((aisle) => {
+    map.appendChild(el(`<div class="aisle-head">Aisle ${aisle}</div>`));
+    const grid = el('<div class="rack-grid"></div>');
+    byAisle[aisle].forEach((loc) => {
+      const occ = !!loc.occupied;
+      const slot = el(`
+        <div class="slot ${occ ? 'occ' : 'free'}">
+          <div class="slot-code">${loc.barcode}</div>
+          ${occ ? `<div class="slot-occupant">${loc.bin_barcode || 'occupied'}</div>` : '<div class="slot-free">free</div>'}
+          <div class="slot-bc">${window.Barcode ? Barcode.svg(loc.barcode, { height: 22, moduleWidth: 1 }) : ''}</div>
+        </div>`);
+      if (!occ) {
+        slot.addEventListener('click', () => {
+          $('#storeLoc').value = loc.barcode;
+          map.querySelectorAll('.slot.sel').forEach((s) => s.classList.remove('sel'));
+          slot.classList.add('sel');
+        });
+      }
+      grid.appendChild(slot);
+    });
+    map.appendChild(grid);
   });
 }
 
@@ -416,8 +468,10 @@ async function searchBin() {
         : bin.photo_ref
         ? '<div class="muted">📷 photo on file</div>'
         : '';
+    const barcode = window.Barcode ? Barcode.svg(bin.barcode, { height: 40, moduleWidth: 2 }) : '';
     box.innerHTML = `
       <div><strong>${bin.barcode}</strong> · ${bin.sku_type} · current: <span class="summary">${bin.status || 'unassigned'}</span></div>
+      <div class="bc-block">${barcode}</div>
       ${photo}
       <ul class="timeline" style="margin-top:10px;">${rows || '<li class="muted">No movements yet.</li>'}</ul>`;
   } catch (e) {
@@ -431,10 +485,12 @@ async function searchBin() {
 // clobbers an in-progress chip selection or scan input.
 setInterval(() => {
   if (document.hidden) return;
+  loadStats(); // the stats bar is always visible, so refresh it every tick
   const tab = activeTab();
   if (tab === 'queue') loadQueue();
   if (tab === 'jobs') loadJobs();
 }, 4000);
 
 // ---- boot -------------------------------------------------------------------
+loadStats();
 loadQueue();

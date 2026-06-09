@@ -14,6 +14,7 @@ import jobsRouter from './routes/jobs.js';
 import binsRouter from './routes/bins.js';
 import locationsRouter from './routes/locations.js';
 import adminRouter from './routes/admin.js';
+import statsRouter from './routes/stats.js';
 import { seedIfEmpty } from './seed.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -34,6 +35,7 @@ app.use('/api/jobs', jobsRouter);
 app.use('/api/bins', binsRouter);
 app.use('/api/locations', locationsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/stats', statsRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
@@ -43,6 +45,7 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 const publicDir = join(__dirname, '..', 'public');
 app.use('/booking', express.static(join(publicDir, 'booking')));
 app.use('/admin', express.static(join(publicDir, 'admin')));
+app.use('/shared', express.static(join(publicDir, 'shared')));
 
 // Root → landing page of the public booking site.
 app.get('/', (_req, res) => res.redirect('/booking/'));

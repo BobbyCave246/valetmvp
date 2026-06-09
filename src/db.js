@@ -110,6 +110,18 @@ export function listFreeLocations() {
     .all();
 }
 
+// All slots with their current occupant's barcode (null if free).
+export function listLocations() {
+  return db
+    .prepare(
+      `SELECT l.*, b.barcode AS bin_barcode
+       FROM locations l
+       LEFT JOIN bins b ON b.location_id = l.id
+       ORDER BY l.barcode`
+    )
+    .all();
+}
+
 export function setLocationOccupied(id, occupied) {
   db.prepare('UPDATE locations SET occupied = ? WHERE id = ?').run(occupied ? 1 : 0, id);
 }
@@ -200,6 +212,14 @@ export function listMovementsForBin(binId) {
 
 export function countBins() {
   return db.prepare('SELECT COUNT(*) AS n FROM bins').get().n;
+}
+
+// Bin counts grouped by status; null status reported as 'unassigned'.
+export function countBinsByStatus() {
+  const rows = db.prepare('SELECT status, COUNT(*) AS n FROM bins GROUP BY status').all();
+  const out = {};
+  for (const r of rows) out[r.status ?? 'unassigned'] = r.n;
+  return out;
 }
 
 export function wipeAll() {

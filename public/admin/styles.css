@@ -137,3 +137,35 @@ code { font-family: ui-monospace, monospace; color: var(--accent); }
 
 /* live indicator */
 .live-dot { color: var(--accent-2); font-size: 12px; }
+
+/* dashboard stats bar */
+#statsBar {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  padding: 12px 22px; background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.stat {
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+  padding: 8px 14px; min-width: 92px;
+}
+.stat-val { font-size: 20px; font-weight: 700; color: var(--accent); }
+.stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+/* rack map */
+.aisle-head { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 10px 0 6px; }
+.rack-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+.slot {
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 120px;
+  background: var(--panel-2);
+}
+.slot.free { border-color: var(--accent-2); cursor: pointer; }
+.slot.free:hover { background: #16331f; }
+.slot.sel { outline: 2px solid var(--accent); }
+.slot.occ { background: #2a1f2e; border-color: #6b3b52; }
+.slot-code { font-family: ui-monospace, monospace; font-size: 13px; }
+.slot-occupant { font-weight: 700; color: var(--warn); margin-top: 2px; font-family: ui-monospace, monospace; }
+.slot-free { color: var(--accent-2); font-size: 12px; margin-top: 2px; }
+.slot-bc { margin-top: 6px; background: #fff; border-radius: 4px; padding: 2px; display: inline-block; }
+
+/* barcode blocks */
+.bc-block { background: #fff; border-radius: 6px; padding: 6px; display: inline-block; margin: 8px 0; }
+svg.barcode { display: block; }

@@ -38,6 +38,65 @@ const STATUS_COPY = {
   'Returned / closed': 'Closed',
 };
 
+// ---- journey tracker (item C) -----------------------------------------------
+const JOURNEY = ['Booked', 'Out for filling', 'Stored', 'On its way back', 'Back with you'];
+
+// Maps a bin status to its journey step index (and whether the lifecycle closed).
+function journeyPosition(status) {
+  switch (status) {
+    case 'Assigned': return { idx: 0, closed: false };
+    case 'Out for filling': return { idx: 1, closed: false };
+    case 'In transit (inbound)': return { idx: 2, closed: false };
+    case 'Stored': return { idx: 2, closed: false };
+    case 'Retrieval requested': return { idx: 3, closed: false };
+    case 'In transit (outbound)': return { idx: 3, closed: false };
+    case 'Returned to customer': return { idx: 4, closed: false };
+    case 'Returned / closed': return { idx: 4, closed: true };
+    default: return { idx: -1, closed: false };
+  }
+}
+
+function journeyTracker(bin) {
+  const { idx, closed } = journeyPosition(bin.status);
+  const track = document.createElement('div');
+  track.className = 'journey';
+  track.innerHTML = JOURNEY.map((label, i) => {
+    let state = i < idx ? 'done' : i === idx ? 'current' : 'upcoming';
+    if (closed) state = 'done';
+    return `<div class="jstep ${state}"><span class="jdot"></span><span class="jlabel">${label}</span></div>`;
+  }).join('');
+  if (closed) track.innerHTML += '<div class="jclosed">✓ Closed</div>';
+  return track;
+}
+
+// ---- chain of custody (item E) ----------------------------------------------
+function custodyDetails(bin) {
+  const details = el('<details class="custody"><summary>Track this bin</summary><div class="custody-body muted">Loading…</div></details>');
+  let loaded = false;
+  details.addEventListener('toggle', async () => {
+    if (!details.open || loaded) return;
+    loaded = true;
+    const body = details.querySelector('.custody-body');
+    try {
+      const { movements } = await api('GET', `/bins/${bin.barcode}/movements`);
+      if (!movements.length) {
+        body.innerHTML = '<span class="muted">No movements yet.</span>';
+        return;
+      }
+      body.classList.remove('muted');
+      body.innerHTML = `<ul class="timeline">${movements
+        .map((m) => `<li>
+            <div>${STATUS_COPY[m.to_status] || m.to_status}${m.location ? ` <span class="muted">@ ${m.location.barcode}</span>` : ''}</div>
+            <div class="ts">${new Date(m.ts).toLocaleString()}</div>
+          </li>`)
+        .join('')}</ul>`;
+    } catch (e) {
+      body.textContent = e.message;
+    }
+  });
+  return details;
+}
+
 function binActions(bin) {
   const wrap = document.createElement('div');
   wrap.className = 'flex';
@@ -151,22 +210,32 @@ function renderBooking(booking) {
   } else {
     booking.bins.forEach((bin) => {
       const hasThumb = bin.photo_ref && bin.photo_ref.startsWith('data:');
+      const block = document.createElement('div');
+      block.className = 'bin-block';
+
       const row = document.createElement('div');
       row.className = 'bin-row';
-      const left = document.createElement('div');
-      left.innerHTML = `<strong>${bin.barcode}</strong> <span class="muted">${bin.sku_type}</span>
-        <div class="muted">${STATUS_COPY[bin.status] || bin.status || 'pending'}${bin.photo_ref && !hasThumb ? ' · 📷 photo on file' : ''}</div>
-        ${hasThumb ? `<img class="thumb" src="${bin.photo_ref}" alt="contents photo" />` : ''}`;
-      const right = document.createElement('div');
-      right.innerHTML = `<span class="pill">${bin.status || 'pending'}</span>`;
-      row.appendChild(left);
-      row.appendChild(right);
-      binsCard.appendChild(row);
+      const barcode = window.Barcode ? Barcode.svg(bin.barcode, { height: 28, moduleWidth: 1 }) : '';
+      row.innerHTML = `
+        <div>
+          <strong>${bin.barcode}</strong> <span class="muted">${bin.sku_type}</span>
+          <div class="muted">${STATUS_COPY[bin.status] || bin.status || 'pending'}${bin.photo_ref && !hasThumb ? ' · 📷 photo on file' : ''}</div>
+          <div class="bc-block">${barcode}</div>
+          ${hasThumb ? `<img class="thumb" src="${bin.photo_ref}" alt="contents photo" />` : ''}
+        </div>
+        <div><span class="pill">${bin.status || 'pending'}</span></div>`;
+      block.appendChild(row);
+
+      block.appendChild(journeyTracker(bin));
+
       const actions = binActions(bin);
       if (actions.children.length) {
-        actions.style.marginTop = '4px';
-        binsCard.appendChild(actions);
+        actions.style.marginTop = '8px';
+        block.appendChild(actions);
       }
+
+      block.appendChild(custodyDetails(bin));
+      binsCard.appendChild(block);
     });
   }
   box.appendChild(binsCard);
@@ -252,6 +321,8 @@ setInterval(() => {
   if (!currentRef || document.hidden) return;
   const active = document.activeElement;
   if (active && $('#result')?.contains(active)) return;
+  // Don't yank a chain-of-custody panel closed mid-read.
+  if ($('#result')?.querySelector('details.custody[open]')) return;
   reloadCurrent();
 }, 4000);
 
