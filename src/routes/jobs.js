@@ -3,7 +3,8 @@
 
 import { Router } from 'express';
 import { listJobs, getJob, getBooking, setJobStatus, getBin } from '../db.js';
-import { transitionBin, JOB_DONE_TARGET } from '../transitions.js';
+import { transitionBin, isLegalTransition, JOB_DONE_TARGET } from '../transitions.js';
+import { safeParse } from '../util.js';
 
 const router = Router();
 
@@ -48,6 +49,21 @@ router.post('/:id/done', async (req, res) => {
   }
 
   try {
+    // Pre-validate EVERY bin before advancing ANY, so a mid-loop failure can't
+    // leave some bins advanced with the job still Scheduled (an unrecoverable
+    // wedge — retries would fail on the already-advanced bins).
+    const bins = await Promise.all(binIds.map((id) => getBin(id)));
+    for (const bin of bins) {
+      if (!bin) {
+        return res.status(409).json({ error: 'Job references a bin that no longer exists' });
+      }
+      if (!isLegalTransition(bin.status, target)) {
+        return res.status(409).json({
+          error: `Bin ${bin.barcode} is "${bin.status ?? 'unassigned'}" and cannot move to "${target}" — job out of sync`,
+        });
+      }
+    }
+
     const advanced = [];
     for (const binId of binIds) {
       advanced.push(await transitionBin(binId, target, { actor: 'admin', jobId: job.id }));
@@ -58,13 +74,5 @@ router.post('/:id/done', async (req, res) => {
     res.status(err.status || 500).json({ error: err.message });
   }
 });
-
-function safeParse(json) {
-  try {
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
-}
 
 export default router;

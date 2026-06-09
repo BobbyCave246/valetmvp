@@ -47,8 +47,14 @@ via env vars (sensible defaults ship for the demo):
 | `COVERAGE_AREAS` | placeholder Barbados towns | **Set this** — comma-separated list of the areas you serve (the booking dropdown). Out-of-area visitors join an email waitlist instead of booking. |
 | `SLOT_CAPACITY` | `4` | Max empty-bin deliveries per window per day (so routes can be batched). |
 | `LEAD_DAYS` | `1` | Minimum lead time — earliest bookable delivery date (default = tomorrow). |
+| `ADMIN_TOKEN` | unset (open) | If set, `POST /api/admin/reset` requires `Authorization: Bearer <token>`. Leave unset for friction-free demos; set it on any shared deployment. |
 
-Windows are Morning (8am–12pm) / Afternoon (12–5pm).
+Windows are Morning (8am–12pm) / Afternoon (12–5pm), served to both frontends
+via `GET /api/serviceability` so labels have a single source of truth.
+
+> **Timezone note:** all date math (lead time, "today") runs on the **UTC**
+> calendar. For timezones west of UTC, the earliest bookable day can appear one
+> day later in the late evening local time — acceptable for the MVP.
 
 ## Run it
 
@@ -116,6 +122,11 @@ summary is *derived* from the booking's bins on the fly
 `Assigned` → `Out for filling` → `In transit (inbound)` → `Stored` →
 `Retrieval requested` → `In transit (outbound)` → `Returned to customer` →
 (`Returned / closed`, or re-store loop back to `In transit (inbound)`).
+
+Closing a bin **releases it back to inventory**: its booking/customer/photo
+fields are cleared and it becomes assignable to a new booking
+(`Returned / closed → Assigned`), with the movements log preserving the full
+chain of custody across lifecycles.
 
 The transition module rejects any move not in this table (try storing an
 already-`Stored` bin and you get a 422).

@@ -35,11 +35,12 @@ async function api(method, path, body) {
 const OTHER = '__other__';
 
 async function loadAreas() {
-  const { areas } = await api('GET', '/serviceability');
   const sel = $('#area');
+  sel.innerHTML = '<option value="" disabled selected>Loading areas…</option>';
+  const { areas } = await api('GET', '/serviceability');
   sel.innerHTML =
     '<option value="" disabled selected>Select your area…</option>' +
-    areas.map((a) => `<option value="${a}">${a}</option>`).join('') +
+    areas.map((a) => `<option value="${esc(a)}">${esc(a)}</option>`).join('') +
     `<option value="${OTHER}">My area isn't listed</option>`;
 }
 
@@ -167,11 +168,20 @@ $('#submitBtn').addEventListener('click', async () => {
     return toast('Name and phone are required', true);
   }
 
+  // Guard against double-submission (duplicate bookings).
+  const btn = $('#submitBtn');
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Creating…';
   try {
     const data = await api('POST', '/bookings', payload);
     location.href = `booking.html?ref=${encodeURIComponent(data.booking.id)}&new=1`;
   } catch (e) {
     toast(e.message, true);
+    btn.disabled = false;
+    btn.textContent = original;
+    // If the chosen window filled up while they typed, refresh availability.
+    if (/window is full/i.test(e.message)) loadSlots();
   }
 });
 

@@ -26,6 +26,22 @@ async function api(method, path, body) {
   return data;
 }
 
+// Today (UTC calendar) — the earliest customer-pickable service date.
+const TODAY_ISO = new Date().toISOString().slice(0, 10);
+
+// Delivery-window labels. Fallback values; refreshed from the API at boot so
+// the backend stays the single source of truth.
+let SLOT_LABELS = { am: 'Morning (8am–12pm)', pm: 'Afternoon (12–5pm)' };
+(async () => {
+  try {
+    const r = await fetch('/api/serviceability');
+    const data = await r.json();
+    if (Array.isArray(data.slots)) {
+      SLOT_LABELS = Object.fromEntries(data.slots.map((s) => [s.key, s.label]));
+    }
+  } catch { /* fallback labels stand */ }
+})();
+
 // Customer-facing status copy.
 const STATUS_COPY = {
   'Assigned': 'Booked — bins reserved for you',
@@ -86,7 +102,7 @@ function custodyDetails(bin) {
       body.classList.remove('muted');
       body.innerHTML = `<ul class="timeline">${movements
         .map((m) => `<li>
-            <div>${STATUS_COPY[m.to_status] || m.to_status}${m.location ? ` <span class="muted">@ ${m.location.barcode}</span>` : ''}</div>
+            <div>${esc(STATUS_COPY[m.to_status] || m.to_status)}${m.location ? ` <span class="muted">@ ${esc(m.location.barcode)}</span>` : ''}</div>
             <div class="ts">${new Date(m.ts).toLocaleString()}</div>
           </li>`)
         .join('')}</ul>`;
@@ -113,6 +129,7 @@ function binActions(bin) {
     const date = document.createElement('input');
     date.type = 'date';
     date.className = 'inline-date';
+    date.min = TODAY_ISO;
     wrap.appendChild(date);
     wrap.appendChild(
       mkBtn('', '📦 Store this again', async () => {
@@ -195,12 +212,15 @@ function renderBooking(booking) {
   const sku = Object.entries(booking.sku_breakdown || {}).map(([k, v]) => `${v} ${k}`).join(', ');
   const head = document.createElement('div');
   head.className = 'card';
-  const SLOT_LABELS = { am: 'Morning (8am–12pm)', pm: 'Afternoon (12–5pm)' };
-  const window = booking.delivery_slot ? ` · ${SLOT_LABELS[booking.delivery_slot] || booking.delivery_slot}` : '';
+  // NB: do not name this 'window' — it would shadow the global and break
+  // window.Barcode below.
+  const windowLabel = booking.delivery_slot
+    ? ` · ${SLOT_LABELS[booking.delivery_slot] || esc(booking.delivery_slot)}`
+    : '';
   head.innerHTML = `
-    <h2>Booking <code>${booking.id}</code></h2>
-    <div class="muted">${booking.bin_count} bins (${sku}) · delivery ${booking.delivery_date}${window}</div>
-    <div class="muted" style="margin-top:6px;"><strong>${booking.summary.text}</strong></div>`;
+    <h2>Booking <code>${esc(booking.id)}</code></h2>
+    <div class="muted">${esc(booking.bin_count)} bins (${esc(sku)}) · delivery ${esc(booking.delivery_date)}${windowLabel}</div>
+    <div class="muted" style="margin-top:6px;"><strong>${esc(booking.summary.text)}</strong></div>`;
   box.appendChild(head);
 
   const binsCard = document.createElement('div');
@@ -211,7 +231,8 @@ function renderBooking(booking) {
     binsCard.innerHTML += `<p class="muted">No bins assigned yet — we'll bind physical bins to your booking before delivery.</p>`;
   } else {
     booking.bins.forEach((bin) => {
-      const hasThumb = bin.photo_ref && bin.photo_ref.startsWith('data:');
+      // Only render data-URL images we expect (guards src attribute injection).
+      const hasThumb = bin.photo_ref && bin.photo_ref.startsWith('data:image/');
       const block = document.createElement('div');
       block.className = 'bin-block';
 
@@ -220,12 +241,12 @@ function renderBooking(booking) {
       const barcode = window.Barcode ? Barcode.svg(bin.barcode, { height: 28, moduleWidth: 1 }) : '';
       row.innerHTML = `
         <div>
-          <strong>${bin.barcode}</strong> <span class="muted">${bin.sku_type}</span>
-          <div class="muted">${STATUS_COPY[bin.status] || bin.status || 'pending'}${bin.photo_ref && !hasThumb ? ' · 📷 photo on file' : ''}</div>
+          <strong>${esc(bin.barcode)}</strong> <span class="muted">${esc(bin.sku_type)}</span>
+          <div class="muted">${esc(STATUS_COPY[bin.status] || bin.status || 'pending')}${bin.photo_ref && !hasThumb ? ' · 📷 photo on file' : ''}</div>
           <div class="bc-block">${barcode}</div>
-          ${hasThumb ? `<img class="thumb" src="${bin.photo_ref}" alt="contents photo" />` : ''}
+          ${hasThumb ? `<img class="thumb" src="${esc(bin.photo_ref)}" alt="contents photo" />` : ''}
         </div>
-        <div><span class="pill">${bin.status || 'pending'}</span></div>`;
+        <div><span class="pill">${esc(bin.status || 'pending')}</span></div>`;
       block.appendChild(row);
 
       block.appendChild(journeyTracker(bin));
@@ -265,11 +286,12 @@ function collectionPanel(booking) {
 
   card.innerHTML = scheduled
     ? `<h3 style="margin-top:0;">Collection</h3>
-       <p class="muted">Collection booked for <strong>${scheduled.scheduled_date}</strong>. Pick a new date to reschedule.</p>`
+       <p class="muted">Collection booked for <strong>${esc(scheduled.scheduled_date)}</strong>. Pick a new date to reschedule.</p>`
     : `<h3 style="margin-top:0;">Book a collection</h3>
        <p class="muted">Filled your bins? Choose a date and we'll come collect them.</p>`;
 
   const date = el('<input type="date" class="inline-date" />');
+  date.min = TODAY_ISO;
   if (scheduled?.scheduled_date) date.value = scheduled.scheduled_date;
   card.appendChild(el('<label>Collection date</label>'));
   card.appendChild(date);
@@ -292,12 +314,13 @@ function retrievalPanel(stored) {
     <p class="muted">Tick the bins you want returned and pick a delivery-back date.</p>`;
 
   const checks = stored.map((bin) => {
-    const wrap = el(`<label class="check-row"><input type="checkbox" value="${bin.id}" /> <strong>${bin.barcode}</strong> <span class="muted">${bin.sku_type}</span></label>`);
+    const wrap = el(`<label class="check-row"><input type="checkbox" value="${esc(bin.id)}" /> <strong>${esc(bin.barcode)}</strong> <span class="muted">${esc(bin.sku_type)}</span></label>`);
     return wrap;
   });
   checks.forEach((c) => card.appendChild(c));
 
   const date = el(`<input type="date" class="inline-date" />`);
+  date.min = TODAY_ISO;
   card.appendChild(el('<label>Delivery-back date</label>'));
   card.appendChild(date);
 
@@ -326,7 +349,7 @@ async function loadByRef(ref) {
     currentRef = ref;
     renderBooking(booking);
   } catch (e) {
-    $('#result').innerHTML = `<div class="card muted">${e.message}</div>`;
+    $('#result').innerHTML = `<div class="card muted">${esc(e.message)}</div>`;
   }
 }
 
@@ -344,11 +367,19 @@ function reloadCurrent() {
   if (currentRef) loadByRef(currentRef);
 }
 
-$('#lookupBtn').addEventListener('click', () => {
+$('#lookupBtn').addEventListener('click', async () => {
   const v = $('#lookup').value.trim();
   if (!v) return;
-  if (v.startsWith('book_')) loadByRef(v);
-  else loadByPhone(v);
+  const btn = $('#lookupBtn');
+  btn.disabled = true;
+  try {
+    if (v.startsWith('book_')) await loadByRef(v);
+    else await loadByPhone(v);
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    btn.disabled = false;
+  }
 });
 $('#lookup').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#lookupBtn').click(); });
 
@@ -361,8 +392,17 @@ setInterval(() => {
   if (active && $('#result')?.contains(active)) return;
   // Don't yank a chain-of-custody panel closed mid-read.
   if ($('#result')?.querySelector('details.custody[open]')) return;
+  // Don't wipe in-progress selections (ticked retrieval boxes, touched dates).
+  if ($('#result')?.querySelector('input[type=checkbox]:checked')) return;
+  if ($('#result')?.querySelector('input[type=date][data-dirty]')) return;
   reloadCurrent();
 }, 4000);
+
+// Mark date inputs the user has actually touched (prefilled values don't fire
+// 'input'), so polling pauses only for in-progress edits.
+$('#result').addEventListener('input', (e) => {
+  if (e.target.matches?.('input[type=date]')) e.target.dataset.dirty = '1';
+});
 
 // Auto-load from ?ref=, and show a confirmation banner if ?new=1.
 const params = new URLSearchParams(location.search);
@@ -370,7 +410,7 @@ const ref = params.get('ref');
 if (ref) {
   $('#lookup').value = ref;
   if (params.get('new') === '1') {
-    $('#confirmBanner').innerHTML = `<div class="banner">✅ Booking confirmed! Reference <code>${ref}</code>. We'll deliver your empty bins on the chosen date.</div>`;
+    $('#confirmBanner').innerHTML = `<div class="banner">✅ Booking confirmed! Reference <code>${esc(ref)}</code>. We'll deliver your empty bins on the chosen date.</div>`;
   }
   loadByRef(ref);
 }

@@ -18,13 +18,33 @@ import {
   setJobBinIds,
   setJobScheduledDate,
   countDeliveriesForSlot,
+  createDeliveryJobIfCapacity,
+  deleteBooking,
 } from '../db.js';
 import { transitionBin, STATUS } from '../transitions.js';
 import { deriveBookingSummary, deriveNextAction } from '../summary.js';
 import { isCovered } from '../coverage.js';
-import { validateDateSlot, SLOT_CAPACITY } from '../slots.js';
+import { validateDateSlot, validateFutureDate, SLOT_CAPACITY } from '../slots.js';
+import { safeParse } from '../util.js';
 
 const router = Router();
+
+const VALID_SKUS = ['bin', 'wardrobe', 'odd'];
+const MAX_PER_SKU = 50;
+
+// Returns null if ok, else an error message.
+function validateSkuBreakdown(skuBreakdown) {
+  if (!skuBreakdown || typeof skuBreakdown !== 'object' || Array.isArray(skuBreakdown)) {
+    return 'skuBreakdown must be an object';
+  }
+  for (const [sku, n] of Object.entries(skuBreakdown)) {
+    if (!VALID_SKUS.includes(sku)) return `Unknown SKU: ${sku}`;
+    if (!Number.isInteger(n) || n < 1 || n > MAX_PER_SKU) {
+      return `Count for ${sku} must be a whole number between 1 and ${MAX_PER_SKU}`;
+    }
+  }
+  return null;
+}
 
 // POST /api/bookings — create customer (if new) + booking + a deliver_empty job.
 router.post('/', async (req, res) => {
@@ -50,13 +70,15 @@ router.post('/', async (req, res) => {
   const slotErr = validateDateSlot(deliveryDate, deliverySlot);
   if (slotErr) return res.status(400).json({ error: slotErr });
 
-  const binCount = Object.values(skuBreakdown).reduce((a, b) => a + Number(b || 0), 0);
+  const skuErr = validateSkuBreakdown(skuBreakdown);
+  if (skuErr) return res.status(400).json({ error: skuErr });
+  const binCount = Object.values(skuBreakdown).reduce((a, b) => a + b, 0);
   if (binCount < 1) {
     return res.status(400).json({ error: 'Booking must include at least one bin' });
   }
 
   try {
-    // Per-window capacity (so routes can be batched).
+    // Fast-path capacity check (the authoritative check is transactional below).
     if ((await countDeliveriesForSlot(deliveryDate, deliverySlot)) >= SLOT_CAPACITY) {
       return res.status(409).json({ error: 'That delivery window is full — please pick another' });
     }
@@ -75,15 +97,21 @@ router.post('/', async (req, res) => {
       deliverySlot,
     });
 
-    // A deliver_empty job is scheduled for the requested date + window. Bins are
-    // assigned later by the admin, so bin_ids starts empty.
-    const job = await createJob({
-      bookingId: booking.id,
-      type: 'deliver_empty',
-      scheduledDate: deliveryDate,
-      scheduledSlot: deliverySlot,
-      binIds: [],
-    });
+    // The deliver_empty job is created with a transactional capacity check so
+    // concurrent bookings can't overshoot the window. If we lose that race,
+    // remove the just-created booking so no orphan is left behind.
+    let job;
+    try {
+      job = await createDeliveryJobIfCapacity({
+        bookingId: booking.id,
+        scheduledDate: deliveryDate,
+        scheduledSlot: deliverySlot,
+        capacity: SLOT_CAPACITY,
+      });
+    } catch (err) {
+      await deleteBooking(booking.id);
+      throw err;
+    }
 
     res.status(201).json({ booking, customer, job });
   } catch (err) {
@@ -162,6 +190,12 @@ router.post('/:id/assign-bins', async (req, res) => {
   if (!Array.isArray(barcodes) || barcodes.length === 0) {
     return res.status(400).json({ error: 'barcodes array is required' });
   }
+  if (barcodes.some((b) => typeof b !== 'string' || !b.trim())) {
+    return res.status(400).json({ error: 'barcodes must be non-empty strings' });
+  }
+  if (new Set(barcodes).size !== barcodes.length) {
+    return res.status(400).json({ error: 'Duplicate barcodes in request' });
+  }
 
   try {
     // Validate every barcode up front so the assignment is all-or-nothing-ish.
@@ -239,9 +273,8 @@ router.post('/:id/book-collection', async (req, res) => {
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
 
   const { collectionDate } = req.body || {};
-  if (!collectionDate) {
-    return res.status(400).json({ error: 'collectionDate is required' });
-  }
+  const dateErr = validateFutureDate(collectionDate);
+  if (dateErr) return res.status(400).json({ error: dateErr });
 
   try {
     const binIds = (await listBinsForBooking(booking.id))
@@ -282,32 +315,37 @@ router.post('/:id/book-collection', async (req, res) => {
 // Shared by manual assign-bins and auto-assign.
 async function bindBinsToBooking(booking, bins, actor = 'admin') {
   const assigned = [];
-  for (const bin of bins) {
-    // Bind ownership first, then transition (which writes the movement).
-    await setBinFields(bin.id, { customer_id: booking.customer_id, booking_id: booking.id });
-    assigned.push(await transitionBin(bin.id, STATUS.ASSIGNED, { actor }));
+  try {
+    for (const bin of bins) {
+      // Ownership + status change in ONE row-locked transaction (via
+      // transitionBin's binFields) so a concurrent assign that loses the
+      // legality check can't leave ownership pointing at the losing booking.
+      assigned.push(
+        await transitionBin(bin.id, STATUS.ASSIGNED, {
+          actor,
+          binFields: { customer_id: booking.customer_id, booking_id: booking.id },
+        })
+      );
+    }
+  } finally {
+    // Sync the job's pick list even if the loop aborted partway (a lost race),
+    // so already-won bins are never missing from the deliver_empty job.
+    await attachBinsToDeliverEmptyJob(booking.id).catch(() => {});
   }
-  await attachBinsToDeliverEmptyJob(booking.id, assigned.map((b) => b.id));
   return assigned;
 }
 
-async function attachBinsToDeliverEmptyJob(bookingId, binIds) {
-  // Find the scheduled deliver_empty job for this booking and set its bin_ids.
+async function attachBinsToDeliverEmptyJob(bookingId) {
+  // Recompute the scheduled deliver_empty job's bin list from the DB (all the
+  // booking's currently-Assigned bins) — self-healing under partial failures.
   const job = (await listJobs()).find(
     (j) => j.booking_id === bookingId && j.type === 'deliver_empty' && j.status === 'Scheduled'
   );
   if (job) {
-    const existing = safeParse(job.bin_ids) || [];
-    const merged = Array.from(new Set([...existing, ...binIds]));
-    await setJobBinIds(job.id, merged);
-  }
-}
-
-function safeParse(json) {
-  try {
-    return JSON.parse(json);
-  } catch {
-    return null;
+    const binIds = (await listBinsForBooking(bookingId))
+      .filter((b) => b.status === STATUS.ASSIGNED)
+      .map((b) => b.id);
+    await setJobBinIds(job.id, binIds);
   }
 }
 

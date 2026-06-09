@@ -3,14 +3,15 @@
 
 import { Router } from 'express';
 import { listAreas } from '../coverage.js';
-import { availabilityForDate, validateDateSlot } from '../slots.js';
+import { availabilityForDate, validateDateSlot, SLOTS } from '../slots.js';
 import { createLead } from '../db.js';
 
 const router = Router();
 
-// GET /api/serviceability — the service areas (populates the booking dropdown).
+// GET /api/serviceability — service areas + delivery windows. Single source of
+// truth for slot labels, so the two frontends can't drift from the backend.
 router.get('/serviceability', (_req, res) => {
-  res.json({ areas: listAreas() });
+  res.json({ areas: listAreas(), slots: SLOTS });
 });
 
 // GET /api/availability?date=YYYY-MM-DD — per-window remaining capacity.
@@ -25,7 +26,9 @@ router.get('/availability', async (req, res) => {
 // POST /api/leads { email, area } — out-of-area waitlist capture.
 router.post('/leads', async (req, res) => {
   const { email, area } = req.body || {};
-  if (!email) return res.status(400).json({ error: 'email is required' });
+  if (!email || typeof email !== 'string' || !/^\S+@\S+\.\S+$/.test(email.trim())) {
+    return res.status(400).json({ error: 'A valid email is required' });
+  }
   try {
     const lead = await createLead({ email, area });
     res.status(201).json({ ok: true, lead });

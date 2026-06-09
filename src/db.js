@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   customer_id    TEXT REFERENCES customers(id),
   bin_count      INTEGER,
   sku_breakdown  TEXT,
-  status         TEXT,
+  status         TEXT,  -- display-only / dead: always 'New'; real state is derived from bins
   delivery_date  TEXT,
   created_at     TEXT
 );
@@ -145,13 +145,25 @@ export async function getBin(id, client = sql) {
   return rows[0];
 }
 
+// Row-locked read for use inside a transaction: serialises concurrent
+// transitions on the same bin so the legality check can't act on a stale row.
+export async function getBinForUpdate(id, client) {
+  const rows = await client`SELECT * FROM bins WHERE id = ${id} FOR UPDATE`;
+  return rows[0];
+}
+
 export async function getBinByBarcode(barcode) {
   const rows = await sql`SELECT * FROM bins WHERE barcode = ${barcode}`;
   return rows[0];
 }
 
 export async function listAvailableBins() {
-  return sql`SELECT * FROM bins WHERE booking_id IS NULL ORDER BY barcode`;
+  // Free inventory: never-used bins (status NULL) plus closed bins released
+  // back to the pool after a completed lifecycle.
+  return sql`
+    SELECT * FROM bins
+    WHERE booking_id IS NULL AND (status IS NULL OR status = 'Returned / closed')
+    ORDER BY barcode`;
 }
 
 export async function listBinsForBooking(bookingId) {
@@ -165,8 +177,14 @@ export async function setBinFields(id, fields, client = sql) {
 
 // ----- locations -------------------------------------------------------------
 
-export async function getLocation(id) {
-  const rows = await sql`SELECT * FROM locations WHERE id = ${id}`;
+export async function getLocation(id, client = sql) {
+  const rows = await client`SELECT * FROM locations WHERE id = ${id}`;
+  return rows[0];
+}
+
+// Row-locked read (inside a transaction) so two put-aways can't both claim a slot.
+export async function getLocationForUpdate(id, client) {
+  const rows = await client`SELECT * FROM locations WHERE id = ${id} FOR UPDATE`;
   return rows[0];
 }
 
@@ -252,6 +270,35 @@ export async function countDeliveriesForSlot(date, slot) {
   return rows[0].n;
 }
 
+// Creates a deliver_empty job only if the window still has capacity, counting
+// and inserting in ONE transaction so concurrent bookings can't overshoot the
+// cap. Throws a 409-flavoured error when the window is full.
+export async function createDeliveryJobIfCapacity({ bookingId, scheduledDate, scheduledSlot, capacity }) {
+  return sql.begin(async (tx) => {
+    // Advisory xact-lock on the (date, slot) pair: concurrent bookings for the
+    // same window serialise here, so count+insert can't overshoot the cap.
+    await tx`SELECT pg_advisory_xact_lock(hashtext(${`${scheduledDate}|${scheduledSlot}`}))`;
+    const rows = await tx`
+      SELECT COUNT(*)::int AS n FROM jobs
+      WHERE type = 'deliver_empty' AND scheduled_date = ${scheduledDate} AND scheduled_slot = ${scheduledSlot}`;
+    if (rows[0].n >= capacity) {
+      const err = new Error('That delivery window is full — please pick another');
+      err.status = 409;
+      throw err;
+    }
+    const id = newId('job');
+    const inserted = await tx`
+      INSERT INTO jobs (id, booking_id, type, status, scheduled_date, scheduled_slot, bin_ids)
+      VALUES (${id}, ${bookingId}, ${'deliver_empty'}, ${'Scheduled'}, ${scheduledDate}, ${scheduledSlot}, ${'[]'})
+      RETURNING *`;
+    return inserted[0];
+  });
+}
+
+export async function deleteBooking(id) {
+  await sql`DELETE FROM bookings WHERE id = ${id}`;
+}
+
 export async function createLead({ email = null, area = null }) {
   const id = newId('lead');
   const rows = await sql`
@@ -296,7 +343,8 @@ export async function insertMovement(
 }
 
 export async function listMovementsForBin(binId) {
-  return sql`SELECT * FROM movements WHERE bin_id = ${binId} ORDER BY ts`;
+  // id tiebreak keeps ordering stable when two movements share a timestamp.
+  return sql`SELECT * FROM movements WHERE bin_id = ${binId} ORDER BY ts, id`;
 }
 
 // ----- aggregates / reset ----------------------------------------------------

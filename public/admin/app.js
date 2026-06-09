@@ -120,9 +120,9 @@ async function loadQueue() {
       <div class="card">
         <div class="row">
           <div>
-            <div><strong>${b.customer?.name || 'Unknown'}</strong> · ${b.bin_count} bins <span class="muted">(${sku})</span> ${assignBadge}</div>
-            <div class="muted">Delivery: ${b.delivery_date}${b.delivery_slot ? ' · ' + SLOT_LABEL_SHORT[b.delivery_slot] : ''} · ref <code>${b.id}</code></div>
-            <div class="summary" style="margin-top:6px;">${b.summary.text}</div>
+            <div><strong>${esc(b.customer?.name || 'Unknown')}</strong> · ${esc(b.bin_count)} bins <span class="muted">(${esc(sku)})</span> ${assignBadge}</div>
+            <div class="muted">Delivery: ${esc(b.delivery_date)}${b.delivery_slot ? ' · ' + esc(slotLabel(b.delivery_slot)) : ''} · ref <code>${esc(b.id)}</code></div>
+            <div class="summary" style="margin-top:6px;">${esc(b.summary.text)}</div>
           </div>
           <div class="next-action"></div>
         </div>
@@ -213,7 +213,7 @@ async function loadAssign() {
   const select = $('#assignBooking');
   const bookings = await api.get('/bookings');
   select.innerHTML = bookings
-    .map((b) => `<option value="${b.id}">${b.customer?.name} — ${b.bin_count} bins — ${b.delivery_date}</option>`)
+    .map((b) => `<option value="${esc(b.id)}">${esc(b.customer?.name)} — ${esc(b.bin_count)} bins — ${esc(b.delivery_date)}</option>`)
     .join('');
 
   // Honour a booking preselected from a queue card's "Assign bins" button.
@@ -255,9 +255,9 @@ function renderReconcile() {
   const cls = assignSelected.size > totalNeeded ? 'over' : assignSelected.size === totalNeeded && totalNeeded > 0 ? 'ok' : '';
 
   box.innerHTML = `
-    <div>${assignBookingDetail.summary.text}</div>
-    <div class="muted" style="margin-top:4px;">Still needs: <strong>${fmt(needed)}</strong></div>
-    <div class="reconcile ${cls}">Selected: <strong>${fmt(selectedBySku)}</strong> (${assignSelected.size}/${totalNeeded})</div>`;
+    <div>${esc(assignBookingDetail.summary.text)}</div>
+    <div class="muted" style="margin-top:4px;">Still needs: <strong>${esc(fmt(needed))}</strong></div>
+    <div class="reconcile ${cls}">Selected: <strong>${esc(fmt(selectedBySku))}</strong> (${assignSelected.size}/${totalNeeded})</div>`;
 }
 
 function tallyBySku(skus) {
@@ -277,7 +277,7 @@ async function renderAvailableBins() {
   box.innerHTML = '';
   bins.forEach((bin) => {
     availableSku[bin.barcode] = bin.sku_type;
-    const chip = el(`<span class="chip" data-barcode="${bin.barcode}">${bin.barcode} <span class="muted">${bin.sku_type}</span></span>`);
+    const chip = el(`<span class="chip" data-barcode="${esc(bin.barcode)}">${esc(bin.barcode)} <span class="muted">${esc(bin.sku_type)}</span></span>`);
     if (assignSelected.has(bin.barcode)) chip.classList.add('selected');
     chip.addEventListener('click', () => {
       toggleAssign(bin.barcode);
@@ -302,7 +302,7 @@ function renderAssignSelected() {
   }
   box.innerHTML = '';
   [...assignSelected].forEach((bc) => {
-    const chip = el(`<span class="chip selected">${bc} ✕</span>`);
+    const chip = el(`<span class="chip selected">${esc(bc)} ✕</span>`);
     chip.addEventListener('click', () => {
       assignSelected.delete(bc);
       renderAssignSelected();
@@ -344,7 +344,18 @@ const JOB_LABEL = {
   deliver_back: 'Deliver bins back',
 };
 
-const SLOT_LABEL_SHORT = { am: 'AM (8–12)', pm: 'PM (12–5)' };
+// Delivery-window labels — fallbacks refreshed from the API at boot so the
+// backend (src/slots.js) stays the single source of truth.
+let SLOT_LABELS = { am: 'Morning (8am–12pm)', pm: 'Afternoon (12–5pm)' };
+(async () => {
+  try {
+    const data = await api.get('/serviceability');
+    if (Array.isArray(data.slots)) {
+      SLOT_LABELS = Object.fromEntries(data.slots.map((s) => [s.key, s.label]));
+    }
+  } catch { /* fallback labels stand */ }
+})();
+const slotLabel = (key) => (key ? SLOT_LABELS[key] || key : '');
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -354,15 +365,15 @@ function jobCard(j, isDone) {
   const pickLabel = j.type === 'deliver_empty' ? 'Pick list — collect these empties' : 'Bins';
   const picklist = bins.length
     ? `<div class="picklist"><div class="picklist-head">${pickLabel}</div>${bins
-        .map((b) => `<span class="pick"><code>${b.barcode}</code> <span class="muted">${b.sku_type}</span></span>`)
+        .map((b) => `<span class="pick"><code>${esc(b.barcode)}</code> <span class="muted">${esc(b.sku_type)}</span></span>`)
         .join('')}</div>`
     : '';
   const card = el(`
     <div class="job-item">
       <div class="row">
         <div>
-          <div><strong>${JOB_LABEL[j.type] || j.type}</strong> <span class="status-pill">${j.status}</span> ${todayPill}</div>
-          <div class="muted">date ${j.scheduled_date || '—'}${j.scheduled_slot ? ' · ' + SLOT_LABEL_SHORT[j.scheduled_slot] : ''} · ${(j.bin_ids || []).length} bins</div>
+          <div><strong>${esc(JOB_LABEL[j.type] || j.type)}</strong> <span class="status-pill">${esc(j.status)}</span> ${todayPill}</div>
+          <div class="muted">date ${esc(j.scheduled_date || '—')}${j.scheduled_slot ? ' · ' + esc(slotLabel(j.scheduled_slot)) : ''} · ${(j.bin_ids || []).length} bins</div>
           ${picklist}
         </div>
         <div></div>
@@ -413,14 +424,14 @@ async function renderRackMap() {
   }
 
   Object.keys(byAisle).sort().forEach((aisle) => {
-    map.appendChild(el(`<div class="aisle-head">Aisle ${aisle}</div>`));
+    map.appendChild(el(`<div class="aisle-head">Aisle ${esc(aisle)}</div>`));
     const grid = el('<div class="rack-grid"></div>');
     byAisle[aisle].forEach((loc) => {
       const occ = !!loc.occupied;
       const slot = el(`
         <div class="slot ${occ ? 'occ' : 'free'}">
-          <div class="slot-code">${loc.barcode}</div>
-          ${occ ? `<div class="slot-occupant">${loc.bin_barcode || 'occupied'}</div>` : '<div class="slot-free">free</div>'}
+          <div class="slot-code">${esc(loc.barcode)}</div>
+          ${occ ? `<div class="slot-occupant">${esc(loc.bin_barcode || 'occupied')}</div>` : '<div class="slot-free">free</div>'}
           <div class="slot-bc">${window.Barcode ? Barcode.svg(loc.barcode, { height: 22, moduleWidth: 1 }) : ''}</div>
         </div>`);
       if (!occ) {
@@ -477,27 +488,27 @@ async function searchBin() {
     const rows = movements
       .map(
         (m) => `<li>
-          <div>${m.from_status || '(unassigned)'} → <strong>${m.to_status}</strong>
-            ${m.location ? `<span class="muted">@ ${m.location.barcode}</span>` : ''}
-            <span class="status-pill">${m.actor}</span></div>
+          <div>${esc(m.from_status || '(unassigned)')} → <strong>${esc(m.to_status)}</strong>
+            ${m.location ? `<span class="muted">@ ${esc(m.location.barcode)}</span>` : ''}
+            <span class="status-pill">${esc(m.actor)}</span></div>
           <div class="ts">${new Date(m.ts).toLocaleString()}</div>
         </li>`
       )
       .join('');
     const photo =
-      bin.photo_ref && bin.photo_ref.startsWith('data:')
-        ? `<img class="thumb" src="${bin.photo_ref}" alt="contents photo" />`
+      bin.photo_ref && bin.photo_ref.startsWith('data:image/')
+        ? `<img class="thumb" src="${esc(bin.photo_ref)}" alt="contents photo" />`
         : bin.photo_ref
         ? '<div class="muted">📷 photo on file</div>'
         : '';
     const barcode = window.Barcode ? Barcode.svg(bin.barcode, { height: 40, moduleWidth: 2 }) : '';
     box.innerHTML = `
-      <div><strong>${bin.barcode}</strong> · ${bin.sku_type} · current: <span class="summary">${bin.status || 'unassigned'}</span></div>
+      <div><strong>${esc(bin.barcode)}</strong> · ${esc(bin.sku_type)} · current: <span class="summary">${esc(bin.status || 'unassigned')}</span></div>
       <div class="bc-block">${barcode}</div>
       ${photo}
       <ul class="timeline" style="margin-top:10px;">${rows || '<li class="muted">No movements yet.</li>'}</ul>`;
   } catch (e) {
-    box.innerHTML = `<div class="muted">${e.message}</div>`;
+    box.innerHTML = `<div class="muted">${esc(e.message)}</div>`;
   }
 }
 

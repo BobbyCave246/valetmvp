@@ -8,8 +8,10 @@
 import {
   sql,
   getBin,
+  getBinForUpdate,
   setBinFields,
   insertMovement,
+  getLocationForUpdate,
   setLocationOccupied,
 } from './db.js';
 
@@ -40,7 +42,10 @@ const LEGAL = {
   // straight back to In transit (inbound) — NOT through Out for filling) or
   // closed out for good.
   [STATUS.RETURNED_TO_CUSTOMER]: [STATUS.IN_TRANSIT_INBOUND, STATUS.RETURNED_CLOSED],
-  [STATUS.RETURNED_CLOSED]: [], // terminal
+  // A closed bin is physically back in the warehouse and re-enters inventory:
+  // it may start a NEW lifecycle by being assigned to another booking. Its
+  // movement log carries the full chain of custody across lifecycles.
+  [STATUS.RETURNED_CLOSED]: [STATUS.ASSIGNED],
 };
 
 function key(status) {
@@ -76,7 +81,10 @@ export async function transitionBin(binId, toStatus, { actor, jobId = null, loca
   // begin() callback gives a transaction-scoped client; helpers take it so all
   // their statements run on the same connection inside the transaction.
   return sql.begin(async (tx) => {
-    const bin = await getBin(binId, tx);
+    // FOR UPDATE: concurrent transitions on the same bin serialise here, so the
+    // legality check below always sees the latest committed status (otherwise
+    // two racers could both pass it on a stale read and double-assign).
+    const bin = await getBinForUpdate(binId, tx);
     if (!bin) throw new TransitionError(`Bin ${binId} not found`);
 
     const fromStatus = bin.status;
@@ -92,6 +100,14 @@ export async function transitionBin(binId, toStatus, { actor, jobId = null, loca
     // Location bookkeeping for the two warehouse scans.
     if (toStatus === STATUS.STORED) {
       if (!locationId) throw new TransitionError('Storing a bin requires a location');
+      // Row-locked re-check INSIDE the transaction — the route's early check is
+      // only a fast path, and two concurrent put-aways could otherwise both
+      // claim the same slot.
+      const location = await getLocationForUpdate(locationId, tx);
+      if (!location) throw new TransitionError('Location not found');
+      if (location.occupied) {
+        throw new TransitionError(`Location ${location.barcode} is occupied`);
+      }
       fields.location_id = locationId;
       await setLocationOccupied(locationId, true, tx);
     }
@@ -99,6 +115,15 @@ export async function transitionBin(binId, toStatus, { actor, jobId = null, loca
       // Pulled from the rack — free the slot it was in.
       if (bin.location_id) await setLocationOccupied(bin.location_id, false, tx);
       fields.location_id = null;
+    }
+
+    if (toStatus === STATUS.RETURNED_CLOSED) {
+      // Lifecycle complete — release the bin back to inventory. Clearing
+      // booking/customer/photo makes it appear in listAvailableBins again;
+      // the movements log preserves the full history.
+      fields.booking_id = null;
+      fields.customer_id = null;
+      fields.photo_ref = null;
     }
 
     await setBinFields(binId, fields, tx);

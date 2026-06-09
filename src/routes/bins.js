@@ -13,6 +13,7 @@ import {
   listMovementsForBin,
 } from '../db.js';
 import { transitionBin, STATUS } from '../transitions.js';
+import { validateFutureDate } from '../slots.js';
 
 const router = Router();
 
@@ -89,9 +90,8 @@ router.post('/:id/request-return', async (req, res) => {
   if (!bin) return res.status(404).json({ error: 'Bin not found' });
 
   const { deliveryBackDate } = req.body || {};
-  if (!deliveryBackDate) {
-    return res.status(400).json({ error: 'deliveryBackDate is required' });
-  }
+  const dateErr = validateFutureDate(deliveryBackDate);
+  if (dateErr) return res.status(400).json({ error: dateErr });
 
   try {
     const updated = await transitionBin(bin.id, STATUS.RETRIEVAL_REQUESTED, { actor: 'customer' });
@@ -121,12 +121,16 @@ router.post('/:id/request-restore', async (req, res) => {
       .json({ error: `Only a "${STATUS.RETURNED_TO_CUSTOMER}" bin can be re-stored` });
   }
 
+  const { collectionDate } = req.body || {};
+  // Required: a null-dated job would land on the board with no dispatch date.
+  const dateErr = validateFutureDate(collectionDate);
+  if (dateErr) return res.status(400).json({ error: dateErr });
+
   try {
-    const { collectionDate } = req.body || {};
     const job = await createJob({
       bookingId: bin.booking_id,
       type: 'collect_full',
-      scheduledDate: collectionDate || null,
+      scheduledDate: collectionDate,
       binIds: [bin.id],
     });
     res.json({ bin, job });
@@ -162,15 +166,5 @@ router.get('/:barcode/movements', async (req, res) => {
   );
   res.json({ bin, movements });
 });
-
-// --- helpers -----------------------------------------------------------------
-
-function safeParse(json) {
-  try {
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
-}
 
 export default router;
