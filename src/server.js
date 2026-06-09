@@ -1,45 +1,9 @@
-// Express app: serves the two static frontends and mounts the /api routes.
-// The frontend never touches the DB — everything flows through these routes
-// and, for any status change, through the transition module (spec §1, §6).
+// Local entry point. Imports the shared Express app and starts listening.
+// (On Vercel the app is served by api/index.js instead — there is no listen.)
 
-import express from 'express';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import app from './app.js';
 
-import bookingsRouter from './routes/bookings.js';
-import jobsRouter from './routes/jobs.js';
-import binsRouter from './routes/bins.js';
-import locationsRouter from './routes/locations.js';
-import adminRouter from './routes/admin.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
-
-const app = express();
-app.use(express.json());
-
-// --- API ---------------------------------------------------------------------
-app.use('/api/bookings', bookingsRouter);
-app.use('/api/jobs', jobsRouter);
-app.use('/api/bins', binsRouter);
-app.use('/api/locations', locationsRouter);
-app.use('/api/admin', adminRouter);
-
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
-
-// --- Static frontends --------------------------------------------------------
-const publicDir = join(__dirname, '..', 'public');
-app.use('/booking', express.static(join(publicDir, 'booking')));
-app.use('/admin', express.static(join(publicDir, 'admin')));
-
-// Root → landing page of the public booking site.
-app.get('/', (_req, res) => res.redirect('/booking/'));
-
-// --- Error fallback ----------------------------------------------------------
-app.use((err, _req, res, _next) => {
-  console.error(err);
-  res.status(err.status || 500).json({ error: err.message || 'Internal error' });
-});
 
 app.listen(PORT, () => {
   console.log(`Valet MVP running:`);

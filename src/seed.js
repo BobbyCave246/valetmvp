@@ -2,7 +2,7 @@
 // demo fixtures so the flow can be walked cleanly. Exported as seed() so the
 // /api/admin/reset endpoint can reuse it; also runs directly via `npm run seed`.
 
-import { db, wipeAll, nowISO, newId } from './db.js';
+import { db, wipeAll, countBins, nowISO, newId } from './db.js';
 
 const BIN_SKUS = [
   'bin', 'bin', 'bin', 'bin',
@@ -61,6 +61,14 @@ export function seed() {
     bins: BIN_SKUS.length,
     locations: LOCATION_BARCODES.length,
   };
+}
+
+// Seed only if the datastore is empty (never wipes existing data). Used on app
+// startup so a fresh clone — or a Vercel cold start with an empty /tmp DB — is
+// never empty for the demo.
+export function seedIfEmpty() {
+  if (countBins() === 0) return seed();
+  return null;
 }
 
 // Run directly: `npm run seed`

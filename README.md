@@ -24,15 +24,54 @@ that's the single file you swap to move to Postgres later.
 
 ```bash
 npm install
-npm run seed     # create valet.db and load demo fixtures
-npm start        # http://localhost:3000
+npm start        # http://localhost:3000 — auto-seeds valet.db on first run
 ```
+
+(`npm run seed` exists too, to force a fresh re-seed, but `npm start` already
+seeds automatically when the datastore is empty.)
 
 - Booking site:  http://localhost:3000/booking/
 - Admin console: http://localhost:3000/admin/
 
 The admin console has a **Reset demo** button (and there's `POST /api/admin/reset`)
 that wipes and re-seeds so you can re-run the flow cleanly.
+
+## Deploying to Vercel
+
+This repo is set up to deploy to Vercel as-is:
+
+- [`api/index.js`](api/index.js) exports the shared Express app
+  ([`src/app.js`](src/app.js)) as a serverless function.
+- [`vercel.json`](vercel.json) rewrites all requests to that function; the
+  `public/` frontends are served by Vercel's CDN (static files take priority
+  over the rewrite), and Express handles everything else — identical to local.
+- `src/server.js` (the `app.listen`) is used only for local dev.
+
+Import the GitHub repo into Vercel (framework preset: **Other** — no build
+step needed) and deploy. `npm run seed` is **not** run on Vercel; instead the
+app **auto-seeds on cold start** when the datastore is empty, so the demo is
+always populated.
+
+### ⚠️ Datastore caveat on Vercel (read this)
+
+Vercel functions have an **ephemeral, per-instance `/tmp`** filesystem and the
+rest of the filesystem is read-only. So on Vercel the SQLite file lives at
+`/tmp/valet.db` and:
+
+- **Data resets on every cold start** and is **not shared** across concurrent
+  function instances. Each instance re-seeds itself.
+- This is fine for demoing the *flow*, but it is **not real persistence**.
+
+This is deliberate and temporary. The spec's production path — and the next
+step here — is to **migrate the data layer to Supabase Postgres**, which only
+touches [`src/db.js`](src/db.js) (no schema redesign, no frontend changes).
+When you're ready, set a `DATABASE_URL` env var in Vercel and swap that one
+file; everything else stays put.
+
+> Note: `better-sqlite3` is a native module. It builds on Vercel's Node 22
+> runtime (pinned via `engines` in `package.json`), but if a deploy ever fails
+> on the native binary, that's the cue to do the Supabase swap rather than fight
+> the bundler.
 
 ## Demo script (the happy path)
 

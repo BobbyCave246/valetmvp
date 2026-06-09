@@ -9,7 +9,13 @@ import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DB_PATH = process.env.VALET_DB || join(__dirname, '..', 'valet.db');
+
+// Where the SQLite file lives. On Vercel the project filesystem is read-only
+// except for /tmp, so we write there — note /tmp is ephemeral and per-instance,
+// so data resets on cold starts. That's acceptable for the demo until the
+// Supabase/Postgres swap (which only touches this file). Override with VALET_DB.
+const DB_PATH =
+  process.env.VALET_DB || (process.env.VERCEL ? '/tmp/valet.db' : join(__dirname, '..', 'valet.db'));
 
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
@@ -191,6 +197,10 @@ export function listMovementsForBin(binId) {
 }
 
 // ----- reset -----------------------------------------------------------------
+
+export function countBins() {
+  return db.prepare('SELECT COUNT(*) AS n FROM bins').get().n;
+}
 
 export function wipeAll() {
   // Delete in dependency order (referencing rows before referenced rows) so
