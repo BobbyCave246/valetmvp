@@ -8,13 +8,8 @@ import {
   setBinFields,
   listAvailableBins,
   getLocationByBarcode,
-  listFreeLocations,
   getLocation,
   createJob,
-  getJob,
-  listJobs,
-  setJobBinIds,
-  getBooking,
   listMovementsForBin,
 } from '../db.js';
 import { transitionBin, STATUS } from '../transitions.js';
@@ -26,8 +21,9 @@ router.get('/available', async (_req, res) => {
   res.json(await listAvailableBins());
 });
 
-// POST /api/bins/:barcode/photo — attach contents-photo stub + schedule a
-// collect_full job (spec §4 step 5). Bin must be Out for filling.
+// POST /api/bins/:barcode/photo — attach an optional contents photo. Bin must
+// be Out for filling. (Collection is booked separately — see
+// POST /api/bookings/:id/book-collection — so the photo is purely optional.)
 router.post('/:barcode/photo', async (req, res) => {
   const bin = await getBinByBarcode(req.params.barcode);
   if (!bin) return res.status(404).json({ error: 'Bin not found' });
@@ -40,11 +36,7 @@ router.post('/:barcode/photo', async (req, res) => {
   try {
     const photoRef = (req.body && req.body.photoRef) || `photo_${bin.barcode}_${Date.now()}`;
     await setBinFields(bin.id, { photo_ref: photoRef });
-
-    // Ensure a collect_full job exists for this booking and includes this bin.
-    const job = await ensureCollectFullJob(bin.booking_id, bin.id);
-
-    res.json({ bin: await getBin(bin.id), job });
+    res.json({ bin: await getBin(bin.id) });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
@@ -172,29 +164,6 @@ router.get('/:barcode/movements', async (req, res) => {
 });
 
 // --- helpers -----------------------------------------------------------------
-
-async function ensureCollectFullJob(bookingId, binId) {
-  const jobs = await listJobs();
-  let job = jobs.find(
-    (j) => j.booking_id === bookingId && j.type === 'collect_full' && j.status === 'Scheduled'
-  );
-
-  if (!job) {
-    const booking = await getBooking(bookingId);
-    return createJob({
-      bookingId,
-      type: 'collect_full',
-      scheduledDate: booking ? booking.delivery_date : null,
-      binIds: [binId],
-    });
-  }
-
-  const existing = safeParse(job.bin_ids) || [];
-  if (!existing.includes(binId)) {
-    await setJobBinIds(job.id, [...existing, binId]);
-  }
-  return getJob(job.id);
-}
 
 function safeParse(json) {
   try {

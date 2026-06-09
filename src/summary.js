@@ -62,7 +62,7 @@ export async function deriveNextAction(bookingId, booking) {
   if (has(STATUS.OUT_FOR_FILLING)) {
     const job = scheduledOf('collect_full');
     if (job) return { kind: 'job', label: 'Mark collection done', jobId: job.id };
-    return { kind: 'wait', label: 'Awaiting customer fill + photo' };
+    return { kind: 'wait', label: 'Awaiting customer to book collection' };
   }
   if (has(STATUS.STORED)) {
     return { kind: 'idle', label: 'Stored — awaiting customer' };

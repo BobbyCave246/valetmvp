@@ -147,7 +147,7 @@ function pickPhoto(bin) {
     try {
       const photoRef = await downscaleToDataURL(file, 320, 0.6);
       await api('POST', `/bins/${bin.barcode}/photo`, { photoRef });
-      toast('Photo added — collection scheduled');
+      toast('Photo added');
       reloadCurrent();
     } catch (e) {
       toast(e.message, true);
@@ -240,11 +240,47 @@ function renderBooking(booking) {
   }
   box.appendChild(binsCard);
 
+  // "Book collection" panel — schedule pickup of filled bins on a chosen date.
+  const outForFilling = (booking.bins || []).filter((b) => b.status === 'Out for filling');
+  if (outForFilling.length) {
+    box.appendChild(collectionPanel(booking));
+  }
+
   // "Get bins back" panel — request one or more Stored bins in a single step.
   const stored = (booking.bins || []).filter((b) => b.status === 'Stored');
   if (stored.length) {
     box.appendChild(retrievalPanel(stored));
   }
+}
+
+function collectionPanel(booking) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  // Already-scheduled collection (if any) so we can show + reschedule it.
+  const scheduled = (booking.jobs || []).find(
+    (j) => j.type === 'collect_full' && j.status === 'Scheduled'
+  );
+
+  card.innerHTML = scheduled
+    ? `<h3 style="margin-top:0;">Collection</h3>
+       <p class="muted">Collection booked for <strong>${scheduled.scheduled_date}</strong>. Pick a new date to reschedule.</p>`
+    : `<h3 style="margin-top:0;">Book a collection</h3>
+       <p class="muted">Filled your bins? Choose a date and we'll come collect them.</p>`;
+
+  const date = el('<input type="date" class="inline-date" />');
+  if (scheduled?.scheduled_date) date.value = scheduled.scheduled_date;
+  card.appendChild(el('<label>Collection date</label>'));
+  card.appendChild(date);
+
+  const btn = mkBtn('green', scheduled ? '📅 Change date' : '📅 Book collection', async () => {
+    if (!date.value) return toast('Pick a collection date', true);
+    await api('POST', `/bookings/${booking.id}/book-collection`, { collectionDate: date.value });
+    toast(scheduled ? 'Collection rescheduled' : 'Collection booked');
+    reloadCurrent();
+  });
+  btn.style.marginTop = '12px';
+  card.appendChild(btn);
+  return card;
 }
 
 function retrievalPanel(stored) {

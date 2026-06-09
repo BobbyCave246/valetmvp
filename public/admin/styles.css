@@ -134,6 +134,11 @@ code { font-family: ui-monospace, monospace; color: var(--accent); }
 .reconcile.ok { color: var(--accent-2); }
 .reconcile.over { color: var(--danger); }
 
+/* jobs nested inside a booking card */
+.booking-jobs { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.booking-jobs:empty { display: none; }
+.job-item { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+
 /* jobs board grouping */
 .group-head { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 4px 0 10px; }
 .done-group { margin-top: 8px; }

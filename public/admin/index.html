@@ -16,9 +16,8 @@
   </header>
 
   <nav>
-    <button data-tab="queue" class="active">Bookings queue</button>
+    <button data-tab="queue" class="active">Bookings &amp; jobs</button>
     <button data-tab="assign">Assign bins</button>
-    <button data-tab="jobs">Jobs board</button>
     <button data-tab="warehouse">Warehouse scan</button>
     <button data-tab="explorer">Bin explorer</button>
   </nav>
@@ -26,9 +25,9 @@
   <div id="statsBar"></div>
 
   <main>
-    <!-- QUEUE -->
+    <!-- BOOKINGS & JOBS -->
     <section class="tab active" id="tab-queue">
-      <h2>Bookings queue</h2>
+      <h2>Bookings &amp; jobs</h2>
       <div id="queueList"></div>
     </section>
 
@@ -56,12 +55,6 @@
           <button class="btn" id="assignSubmit">Assign &amp; bind to booking</button>
         </div>
       </div>
-    </section>
-
-    <!-- JOBS -->
-    <section class="tab" id="tab-jobs">
-      <h2>Jobs board</h2>
-      <div id="jobsList"></div>
     </section>
 
     <!-- WAREHOUSE -->

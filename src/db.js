@@ -232,6 +232,10 @@ export async function setJobBinIds(id, binIds) {
   await sql`UPDATE jobs SET bin_ids = ${JSON.stringify(binIds)} WHERE id = ${id}`;
 }
 
+export async function setJobScheduledDate(id, scheduledDate) {
+  await sql`UPDATE jobs SET scheduled_date = ${scheduledDate} WHERE id = ${id}`;
+}
+
 export async function setJobStatus(id, status) {
   await sql`UPDATE jobs SET status = ${status} WHERE id = ${id}`;
 }

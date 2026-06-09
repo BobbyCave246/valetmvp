@@ -62,7 +62,6 @@ function switchTab(name, ctx = {}) {
 function refreshTab(tab) {
   if (tab === 'queue') loadQueue();
   if (tab === 'assign') loadAssign();
-  if (tab === 'jobs') loadJobs();
   if (tab === 'warehouse') loadWarehouse();
 }
 
@@ -104,11 +103,15 @@ async function loadStats() {
 // ---- queue ------------------------------------------------------------------
 async function loadQueue() {
   const list = $('#queueList');
-  const bookings = await api.get('/bookings');
+  // Bookings and jobs share this page now — fetch both and nest jobs per booking.
+  const [bookings, allJobs] = await Promise.all([api.get('/bookings'), api.get('/jobs')]);
   if (bookings.length === 0) {
     list.innerHTML = '<div class="empty">No bookings yet. Create one on the booking site.</div>';
     return;
   }
+  const jobsByBooking = {};
+  for (const j of allJobs) (jobsByBooking[j.booking_id] ||= []).push(j);
+
   list.innerHTML = '';
   for (const b of bookings) {
     const sku = Object.entries(b.sku_breakdown || {}).map(([k, v]) => `${v} ${k}`).join(', ');
@@ -123,9 +126,22 @@ async function loadQueue() {
           </div>
           <div class="next-action"></div>
         </div>
+        <div class="booking-jobs"></div>
       </div>
     `);
     card.querySelector('.next-action').appendChild(nextActionControl(b));
+
+    // Nested jobs for this booking (open first, then a collapsed Done set).
+    const jobsBox = card.querySelector('.booking-jobs');
+    const jobs = jobsByBooking[b.id] || [];
+    const open = jobs.filter((j) => j.status !== 'Done');
+    const done = jobs.filter((j) => j.status === 'Done');
+    open.forEach((j) => jobsBox.appendChild(jobCard(j, false)));
+    if (done.length) {
+      const details = el(`<details class="done-group"><summary>${done.length} done</summary></details>`);
+      done.forEach((j) => details.appendChild(jobCard(j, true)));
+      jobsBox.appendChild(details);
+    }
     list.appendChild(card);
   }
 }
@@ -141,7 +157,7 @@ function nextActionControl(b) {
       mkActionBtn('btn', 'Auto-assign bins', async () => {
         const res = await api.post(`/bookings/${b.id}/auto-assign`, {});
         const n = res.assigned.length;
-        toast(n ? `Reserved ${n} bin${n === 1 ? '' : 's'} — pick list on Jobs board` : 'Nothing to assign');
+        toast(n ? `Reserved ${n} bin${n === 1 ? '' : 's'} — pick list shown below` : 'Nothing to assign');
         const short = Object.entries(res.shortages || {});
         if (short.length) {
           toast(`Short ${short.map(([s, n]) => `${n} ${s}`).join(', ')} — restock or assign manually`, true);
@@ -163,6 +179,7 @@ function nextActionControl(b) {
       await api.post(`/jobs/${na.jobId}/done`, {});
       toast(`Done — ${na.label}`);
       loadQueue();
+      loadStats();
     });
   }
   if (na.kind === 'warehouse') {
@@ -320,7 +337,7 @@ $('#assignSubmit').addEventListener('click', async () => {
   }
 });
 
-// ---- jobs -------------------------------------------------------------------
+// ---- jobs (rendered nested inside each booking card) ------------------------
 const JOB_LABEL = {
   deliver_empty: 'Deliver empty bins',
   collect_full: 'Collect filled bins',
@@ -328,34 +345,6 @@ const JOB_LABEL = {
 };
 
 const TODAY = new Date().toISOString().slice(0, 10);
-
-async function loadJobs() {
-  const list = $('#jobsList');
-  const jobs = await api.get('/jobs');
-  if (jobs.length === 0) {
-    list.innerHTML = '<div class="empty">No jobs scheduled.</div>';
-    return;
-  }
-
-  const scheduled = jobs.filter((j) => j.status !== 'Done');
-  const done = jobs.filter((j) => j.status === 'Done');
-  list.innerHTML = '';
-
-  // Scheduled jobs — the day's worklist.
-  list.appendChild(el(`<h3 class="group-head">Scheduled (${scheduled.length})</h3>`));
-  if (scheduled.length === 0) {
-    list.appendChild(el('<div class="muted" style="margin-bottom:14px;">Nothing scheduled.</div>'));
-  } else {
-    scheduled.forEach((j) => list.appendChild(jobCard(j, false)));
-  }
-
-  // Done jobs — collapsed.
-  if (done.length) {
-    const details = el(`<details class="done-group"><summary>Done (${done.length})</summary></details>`);
-    done.forEach((j) => details.appendChild(jobCard(j, true)));
-    list.appendChild(details);
-  }
-}
 
 function jobCard(j, isDone) {
   const todayPill = j.scheduled_date === TODAY ? '<span class="pill-today">Today</span>' : '';
@@ -367,11 +356,11 @@ function jobCard(j, isDone) {
         .join('')}</div>`
     : '';
   const card = el(`
-    <div class="card">
+    <div class="job-item">
       <div class="row">
         <div>
           <div><strong>${JOB_LABEL[j.type] || j.type}</strong> <span class="status-pill">${j.status}</span> ${todayPill}</div>
-          <div class="muted">booking <code>${j.booking_id}</code> · date ${j.scheduled_date || '—'} · ${j.bin_ids.length} bins</div>
+          <div class="muted">date ${j.scheduled_date || '—'} · ${(j.bin_ids || []).length} bins</div>
           ${picklist}
         </div>
         <div></div>
@@ -385,7 +374,8 @@ function jobCard(j, isDone) {
       try {
         const res = await api.post(`/jobs/${j.id}/done`, {});
         toast(`Done — bins now ${res.advanced[0]?.status}`);
-        loadJobs();
+        loadQueue();
+        loadStats();
       } catch (e) {
         toast(e.message, true);
         btn.disabled = false;
@@ -510,15 +500,13 @@ async function searchBin() {
 }
 
 // ---- polling ----------------------------------------------------------------
-// Refresh only the read-mostly boards (queue, jobs) so the console feels live
-// next to the booking site. Deliberately skips assign/warehouse so it never
-// clobbers an in-progress chip selection or scan input.
+// Refresh the stats bar and the (read-mostly) Bookings & jobs board so the
+// console feels live next to the booking site. Deliberately skips
+// assign/warehouse so it never clobbers an in-progress selection or scan input.
 setInterval(() => {
   if (document.hidden) return;
   loadStats(); // the stats bar is always visible, so refresh it every tick
-  const tab = activeTab();
-  if (tab === 'queue') loadQueue();
-  if (tab === 'jobs') loadJobs();
+  if (activeTab() === 'queue') loadQueue();
 }, 4000);
 
 // ---- boot -------------------------------------------------------------------

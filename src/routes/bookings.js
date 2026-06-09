@@ -16,6 +16,7 @@ import {
   setBinFields,
   listJobs,
   setJobBinIds,
+  setJobScheduledDate,
 } from '../db.js';
 import { transitionBin, STATUS } from '../transitions.js';
 import { deriveBookingSummary, deriveNextAction } from '../summary.js';
@@ -106,17 +107,22 @@ router.get('/:id', async (req, res) => {
   const booking = await getBooking(req.params.id);
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
 
-  const [customer, bins, summary] = await Promise.all([
+  const [customer, bins, summary, allJobs] = await Promise.all([
     getCustomer(booking.customer_id),
     listBinsForBooking(booking.id),
     deriveBookingSummary(booking.id),
+    listJobs(),
   ]);
+  const jobs = allJobs
+    .filter((j) => j.booking_id === booking.id)
+    .map((j) => ({ ...j, bin_ids: safeParse(j.bin_ids) || [] }));
   res.json({
     ...booking,
     sku_breakdown: safeParse(booking.sku_breakdown),
     customer,
     bins,
     summary,
+    jobs,
   });
 });
 
@@ -193,6 +199,51 @@ router.post('/:id/auto-assign', async (req, res) => {
       pickList,
       summary: await deriveBookingSummary(booking.id),
     });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+// POST /api/bookings/:id/book-collection — customer schedules (or reschedules)
+// the pickup of their filled bins. Idempotent at the booking level: covers all
+// the booking's "Out for filling" bins on the chosen date.
+// Body: { collectionDate }.
+router.post('/:id/book-collection', async (req, res) => {
+  const booking = await getBooking(req.params.id);
+  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+
+  const { collectionDate } = req.body || {};
+  if (!collectionDate) {
+    return res.status(400).json({ error: 'collectionDate is required' });
+  }
+
+  try {
+    const binIds = (await listBinsForBooking(booking.id))
+      .filter((b) => b.status === STATUS.OUT_FOR_FILLING)
+      .map((b) => b.id);
+    if (binIds.length === 0) {
+      return res.status(409).json({ error: 'No bins are out for filling yet' });
+    }
+
+    // Reschedule the existing scheduled collect_full job, or create one.
+    const existing = (await listJobs()).find(
+      (j) => j.booking_id === booking.id && j.type === 'collect_full' && j.status === 'Scheduled'
+    );
+    let job;
+    if (existing) {
+      await setJobScheduledDate(existing.id, collectionDate);
+      await setJobBinIds(existing.id, binIds);
+      job = { ...existing, scheduled_date: collectionDate, bin_ids: JSON.stringify(binIds) };
+    } else {
+      job = await createJob({
+        bookingId: booking.id,
+        type: 'collect_full',
+        scheduledDate: collectionDate,
+        binIds,
+      });
+    }
+
+    res.json({ job, summary: await deriveBookingSummary(booking.id) });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
