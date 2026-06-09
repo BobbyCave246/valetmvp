@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Valet — Admin / Warehouse Console</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>🗄️ Store All Valet — Admin / Warehouse</h1>
+    <span class="spacer"></span>
+    <a href="/booking/" style="color:var(--muted);font-size:13px;">Booking site ↗</a>
+    <button class="btn danger" id="resetBtn">Reset demo</button>
+  </header>
+
+  <nav>
+    <button data-tab="queue" class="active">Bookings queue</button>
+    <button data-tab="assign">Assign bins</button>
+    <button data-tab="jobs">Jobs board</button>
+    <button data-tab="warehouse">Warehouse scan</button>
+    <button data-tab="explorer">Bin explorer</button>
+  </nav>
+
+  <main>
+    <!-- QUEUE -->
+    <section class="tab active" id="tab-queue">
+      <h2>Bookings queue</h2>
+      <div id="queueList"></div>
+    </section>
+
+    <!-- ASSIGN -->
+    <section class="tab" id="tab-assign">
+      <h2>Assign bins to a booking</h2>
+      <div class="card">
+        <label>Booking</label>
+        <select id="assignBooking"></select>
+        <div id="assignSummary" class="muted" style="margin-top:8px;"></div>
+
+        <label>Scan / type a bin barcode</label>
+        <div class="flex">
+          <input type="text" id="assignBarcode" placeholder="BIN1001" />
+          <button class="btn ghost" id="assignAddBarcode">Add</button>
+        </div>
+
+        <label>Or click an available bin</label>
+        <div id="availableBins"></div>
+
+        <label>Bins to assign</label>
+        <div id="assignSelected"><span class="muted">none selected</span></div>
+
+        <div style="margin-top:14px;">
+          <button class="btn" id="assignSubmit">Assign &amp; bind to booking</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- JOBS -->
+    <section class="tab" id="tab-jobs">
+      <h2>Jobs board</h2>
+      <div id="jobsList"></div>
+    </section>
+
+    <!-- WAREHOUSE -->
+    <section class="tab" id="tab-warehouse">
+      <h2>Warehouse scan</h2>
+      <div class="card">
+        <h3 style="margin-top:0;font-size:15px;">Put-away (scan bin → scan location)</h3>
+        <label>Bin barcode</label>
+        <input type="text" id="storeBin" placeholder="BIN1001" />
+        <label>Location — type or click a free slot</label>
+        <input type="text" id="storeLoc" placeholder="A-01-1-01" />
+        <div id="freeLocations" style="margin-top:6px;"></div>
+        <div style="margin-top:14px;">
+          <button class="btn green" id="storeSubmit">Store bin</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;font-size:15px;">Scan-out (pull from rack)</h3>
+        <label>Bin barcode</label>
+        <div class="flex">
+          <input type="text" id="scanOutBin" placeholder="BIN1001" />
+          <button class="btn" id="scanOutSubmit">Scan out</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXPLORER -->
+    <section class="tab" id="tab-explorer">
+      <h2>Bin explorer — chain of custody</h2>
+      <div class="card">
+        <div class="flex">
+          <input type="text" id="explorerBarcode" placeholder="BIN1001" />
+          <button class="btn" id="explorerSearch">Search</button>
+        </div>
+        <div id="explorerResult" style="margin-top:14px;"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>

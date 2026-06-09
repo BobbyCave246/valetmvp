@@ -1,0 +1,17 @@
+{
+  "name": "valetmvp",
+  "version": "1.0.0",
+  "description": "Store All Valet — MVP prototype simulating the full valet bin lifecycle",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/seed.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "express": "^4.21.2"
+  }
+}

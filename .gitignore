@@ -1,0 +1,7 @@
+node_modules/
+valet.db
+valet.db-journal
+valet.db-wal
+valet.db-shm
+*.log
+.DS_Store

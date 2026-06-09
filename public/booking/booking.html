@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My booking — Store All Valet</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>📦 Store All Valet</h1>
+    <span class="spacer"></span>
+    <a href="index.html">Home</a>
+    <a href="book.html">Book bins</a>
+  </header>
+
+  <main>
+    <div id="confirmBanner"></div>
+
+    <div class="card">
+      <h2>Find my booking</h2>
+      <p class="muted">No login needed — look up by booking reference or phone number.</p>
+      <label for="lookup">Booking reference or phone</label>
+      <div class="flex">
+        <input type="text" id="lookup" placeholder="book_xxxx or 555-0123" />
+        <button class="btn" id="lookupBtn">Look up</button>
+      </div>
+    </div>
+
+    <div id="result"></div>
+  </main>
+  <div id="toast"></div>
+  <script src="booking.js"></script>
+</body>
+</html>

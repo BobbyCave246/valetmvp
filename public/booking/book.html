@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Book bins — Store All Valet</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>📦 Store All Valet</h1>
+    <span class="spacer"></span>
+    <a href="index.html">Home</a>
+    <a href="booking.html">My booking</a>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Book your bins</h2>
+      <p class="muted">Choose how many of each you need. Pricing is per bin, per month.</p>
+
+      <div id="skuList"></div>
+
+      <div class="total">
+        <span>Estimated monthly total</span>
+        <span id="total">£0</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Delivery & contact</h3>
+      <label for="deliveryDate">Delivery date for empty bins</label>
+      <input type="date" id="deliveryDate" />
+
+      <label for="name">Name</label>
+      <input type="text" id="name" placeholder="Your name" />
+
+      <label for="phone">Phone</label>
+      <input type="text" id="phone" placeholder="555-0123" />
+
+      <label for="email">Email</label>
+      <input type="text" id="email" placeholder="you@example.com" />
+
+      <label for="address">Delivery address</label>
+      <input type="text" id="address" placeholder="123 Example St" />
+
+      <div style="margin-top:18px;">
+        <button class="btn" id="submitBtn">Create booking</button>
+      </div>
+    </div>
+  </main>
+  <div id="toast"></div>
+  <script src="book.js"></script>
+</body>
+</html>
