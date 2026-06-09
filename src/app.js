@@ -24,7 +24,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 seedIfEmpty();
 
 const app = express();
-app.use(express.json());
+// Raised from the ~100kb default so contents-photo data URLs fit (the client
+// downscales to a small thumbnail, so payloads stay well under this).
+app.use(express.json({ limit: '5mb' }));
 
 // --- API ---------------------------------------------------------------------
 app.use('/api/bookings', bookingsRouter);

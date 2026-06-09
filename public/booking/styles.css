@@ -78,3 +78,11 @@ code { background: #f1f5f9; padding: 2px 6px; border-radius: 6px; font-family: u
 }
 #toast.show { opacity: 1; }
 #toast.err { background: #b91c1c; }
+
+/* contents-photo thumbnail */
+.thumb { max-width: 240px; max-height: 180px; border-radius: 10px; border: 1px solid var(--line); margin-top: 8px; display: block; }
+
+/* retrieval panel */
+.check-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; font-weight: normal; margin: 0; }
+.check-row input { width: auto; }
+.inline-date { width: auto; }

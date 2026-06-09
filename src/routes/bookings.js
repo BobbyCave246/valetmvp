@@ -17,7 +17,7 @@ import {
   setJobBinIds,
 } from '../db.js';
 import { transitionBin, STATUS } from '../transitions.js';
-import { deriveBookingSummary } from '../summary.js';
+import { deriveBookingSummary, deriveNextAction } from '../summary.js';
 
 const router = Router();
 
@@ -63,11 +63,14 @@ router.post('/', (req, res) => {
 router.get('/', (_req, res) => {
   const bookings = listBookings().map((b) => {
     const customer = getCustomer(b.customer_id);
+    const summary = deriveBookingSummary(b.id);
     return {
       ...b,
       sku_breakdown: safeParse(b.sku_breakdown),
       customer,
-      summary: deriveBookingSummary(b.id),
+      summary,
+      assignedCount: summary.total,
+      nextAction: deriveNextAction(b.id, b),
     };
   });
   res.json(bookings);

@@ -2,6 +2,11 @@
 // and the per-bin customer actions (photo stub, request back, re-store, close).
 
 const $ = (s) => document.querySelector(s);
+const el = (html) => {
+  const t = document.createElement('template');
+  t.innerHTML = html.trim();
+  return t.content.firstChild;
+};
 
 function toast(msg, isErr = false) {
   const t = $('#toast');
@@ -37,32 +42,23 @@ function binActions(bin) {
   const wrap = document.createElement('div');
   wrap.className = 'flex';
 
+  // Out for filling → upload a real contents photo (downscaled to a thumbnail).
   if (bin.status === 'Out for filling') {
-    const btn = mkBtn('green', '📷 Add contents photo', async () => {
-      await api('POST', `/bins/${bin.barcode}/photo`, {});
-      toast('Photo added — collection scheduled');
-      reloadCurrent();
-    });
-    wrap.appendChild(btn);
+    wrap.appendChild(
+      mkBtn('green', bin.photo_ref ? '📷 Replace photo' : '📷 Add contents photo', () => pickPhoto(bin))
+    );
   }
 
-  if (bin.status === 'Stored') {
-    const btn = mkBtn('', '↩ Request this bin back', async () => {
-      const date = prompt('Delivery-back date (YYYY-MM-DD)?');
-      if (!date) return;
-      await api('POST', `/bins/${bin.id}/request-return`, { deliveryBackDate: date });
-      toast('Retrieval requested');
-      reloadCurrent();
-    });
-    wrap.appendChild(btn);
-  }
-
+  // Returned to customer → re-store (inline date) or close for good.
   if (bin.status === 'Returned to customer') {
+    const date = document.createElement('input');
+    date.type = 'date';
+    date.className = 'inline-date';
+    wrap.appendChild(date);
     wrap.appendChild(
       mkBtn('', '📦 Store this again', async () => {
-        const date = prompt('Collection date (YYYY-MM-DD)?');
-        if (!date) return;
-        await api('POST', `/bins/${bin.id}/request-restore`, { collectionDate: date });
+        if (!date.value) return toast('Pick a collection date', true);
+        await api('POST', `/bins/${bin.id}/request-restore`, { collectionDate: date.value });
         toast('Re-store collection scheduled');
         reloadCurrent();
       })
@@ -78,6 +74,48 @@ function binActions(bin) {
   }
 
   return wrap;
+}
+
+// Opens a file picker, downscales the chosen image to a small thumbnail data
+// URL, and posts it as the bin's contents photo.
+function pickPhoto(bin) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const photoRef = await downscaleToDataURL(file, 320, 0.6);
+      await api('POST', `/bins/${bin.barcode}/photo`, { photoRef });
+      toast('Photo added — collection scheduled');
+      reloadCurrent();
+    } catch (e) {
+      toast(e.message, true);
+    }
+  });
+  input.click();
+}
+
+function downscaleToDataURL(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('Could not read that image'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('Could not read that file'));
+    reader.readAsDataURL(file);
+  });
 }
 
 function mkBtn(variant, label, onClick) {
@@ -112,11 +150,13 @@ function renderBooking(booking) {
     binsCard.innerHTML += `<p class="muted">No bins assigned yet — we'll bind physical bins to your booking before delivery.</p>`;
   } else {
     booking.bins.forEach((bin) => {
+      const hasThumb = bin.photo_ref && bin.photo_ref.startsWith('data:');
       const row = document.createElement('div');
       row.className = 'bin-row';
       const left = document.createElement('div');
       left.innerHTML = `<strong>${bin.barcode}</strong> <span class="muted">${bin.sku_type}</span>
-        <div class="muted">${STATUS_COPY[bin.status] || bin.status || 'pending'}${bin.photo_ref ? ' · 📷 photo on file' : ''}</div>`;
+        <div class="muted">${STATUS_COPY[bin.status] || bin.status || 'pending'}${bin.photo_ref && !hasThumb ? ' · 📷 photo on file' : ''}</div>
+        ${hasThumb ? `<img class="thumb" src="${bin.photo_ref}" alt="contents photo" />` : ''}`;
       const right = document.createElement('div');
       right.innerHTML = `<span class="pill">${bin.status || 'pending'}</span>`;
       row.appendChild(left);
@@ -130,6 +170,46 @@ function renderBooking(booking) {
     });
   }
   box.appendChild(binsCard);
+
+  // "Get bins back" panel — request one or more Stored bins in a single step.
+  const stored = (booking.bins || []).filter((b) => b.status === 'Stored');
+  if (stored.length) {
+    box.appendChild(retrievalPanel(stored));
+  }
+}
+
+function retrievalPanel(stored) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `<h3 style="margin-top:0;">Get bins back</h3>
+    <p class="muted">Tick the bins you want returned and pick a delivery-back date.</p>`;
+
+  const checks = stored.map((bin) => {
+    const wrap = el(`<label class="check-row"><input type="checkbox" value="${bin.id}" /> <strong>${bin.barcode}</strong> <span class="muted">${bin.sku_type}</span></label>`);
+    return wrap;
+  });
+  checks.forEach((c) => card.appendChild(c));
+
+  const date = el(`<input type="date" class="inline-date" />`);
+  card.appendChild(el('<label>Delivery-back date</label>'));
+  card.appendChild(date);
+
+  const btn = mkBtn('', '↩ Request selected bins back', async () => {
+    const ids = checks
+      .map((c) => c.querySelector('input'))
+      .filter((i) => i.checked)
+      .map((i) => i.value);
+    if (ids.length === 0) return toast('Tick at least one bin', true);
+    if (!date.value) return toast('Pick a delivery-back date', true);
+    for (const id of ids) {
+      await api('POST', `/bins/${id}/request-return`, { deliveryBackDate: date.value });
+    }
+    toast(`Requested ${ids.length} bin${ids.length === 1 ? '' : 's'} back`);
+    reloadCurrent();
+  });
+  btn.style.marginTop = '12px';
+  card.appendChild(btn);
+  return card;
 }
 
 let currentRef = null;
@@ -164,6 +244,16 @@ $('#lookupBtn').addEventListener('click', () => {
   else loadByPhone(v);
 });
 $('#lookup').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#lookupBtn').click(); });
+
+// Keep the loaded booking fresh so customer-visible status changes appear
+// without a manual lookup. Skips a tick if the user is typing/selecting inside
+// the result area (a date field or checkbox) so it never interrupts them.
+setInterval(() => {
+  if (!currentRef || document.hidden) return;
+  const active = document.activeElement;
+  if (active && $('#result')?.contains(active)) return;
+  reloadCurrent();
+}, 4000);
 
 // Auto-load from ?ref=, and show a confirmation banner if ?new=1.
 const params = new URLSearchParams(location.search);

@@ -109,3 +109,31 @@ label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px
 #toast.err { border-color: var(--danger); }
 .empty { color: var(--muted); padding: 20px; text-align: center; }
 code { font-family: ui-monospace, monospace; color: var(--accent); }
+
+/* next-action cell on queue cards */
+.next-action { display: flex; align-items: center; }
+
+/* assigned-vs-booking badge */
+.badge {
+  font-size: 12px; padding: 3px 8px; border-radius: 999px; margin-left: 6px;
+  border: 1px solid var(--line); background: var(--panel-2);
+}
+.badge.ok { color: var(--accent-2); border-color: var(--accent-2); }
+.badge.warn { color: var(--warn); border-color: var(--warn); }
+
+/* SKU reconciliation line on the Assign tab */
+.reconcile { margin-top: 4px; font-size: 13px; color: var(--muted); }
+.reconcile.ok { color: var(--accent-2); }
+.reconcile.over { color: var(--danger); }
+
+/* jobs board grouping */
+.group-head { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 4px 0 10px; }
+.done-group { margin-top: 8px; }
+.done-group > summary { cursor: pointer; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 10px; }
+.pill-today { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--accent); color: #00263a; font-weight: 600; }
+
+/* contents-photo thumbnail */
+.thumb { max-width: 220px; max-height: 165px; border-radius: 10px; border: 1px solid var(--line); margin: 8px 0; display: block; }
+
+/* live indicator */
+.live-dot { color: var(--accent-2); font-size: 12px; }

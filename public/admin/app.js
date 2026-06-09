@@ -34,6 +34,14 @@ function toast(msg, isErr = false) {
 }
 
 // ---- tab switching ----------------------------------------------------------
+// Context handed from a queue card's action button to the destination tab.
+let pendingAssign = null;     // { bookingId }
+let pendingWarehouse = null;  // { binBarcode, mode: 'store' | 'scanout' }
+
+function activeTab() {
+  return document.querySelector('nav button.active').dataset.tab;
+}
+
 document.querySelectorAll('nav button').forEach((btn) => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('nav button').forEach((b) => b.classList.remove('active'));
@@ -43,6 +51,13 @@ document.querySelectorAll('nav button').forEach((btn) => {
     refreshTab(btn.dataset.tab);
   });
 });
+
+// Programmatically switch tabs, optionally passing context for the destination.
+function switchTab(name, ctx = {}) {
+  if (name === 'assign') pendingAssign = ctx;
+  if (name === 'warehouse') pendingWarehouse = ctx;
+  [...document.querySelectorAll('nav button')].find((b) => b.dataset.tab === name)?.click();
+}
 
 function refreshTab(tab) {
   if (tab === 'queue') loadQueue();
@@ -70,24 +85,62 @@ async function loadQueue() {
   list.innerHTML = '';
   for (const b of bookings) {
     const sku = Object.entries(b.sku_breakdown || {}).map(([k, v]) => `${v} ${k}`).join(', ');
+    const assignBadge = `<span class="badge ${b.assignedCount < b.bin_count ? 'warn' : 'ok'}">${b.assignedCount} of ${b.bin_count} assigned</span>`;
     const card = el(`
       <div class="card">
         <div class="row">
           <div>
-            <div><strong>${b.customer?.name || 'Unknown'}</strong> · ${b.bin_count} bins <span class="muted">(${sku})</span></div>
+            <div><strong>${b.customer?.name || 'Unknown'}</strong> · ${b.bin_count} bins <span class="muted">(${sku})</span> ${assignBadge}</div>
             <div class="muted">Delivery date: ${b.delivery_date} · ref <code>${b.id}</code></div>
             <div class="summary" style="margin-top:6px;">${b.summary.text}</div>
           </div>
-          <div><span class="status-pill">${b.customer?.phone || ''}</span></div>
+          <div class="next-action"></div>
         </div>
       </div>
     `);
+    card.querySelector('.next-action').appendChild(nextActionControl(b));
     list.appendChild(card);
   }
 }
 
+// Renders the contextual "next step" control for a queue card from b.nextAction.
+function nextActionControl(b) {
+  const na = b.nextAction || { kind: 'idle', label: '' };
+  if (na.kind === 'assign') {
+    return mkActionBtn('btn', na.label, () => switchTab('assign', { bookingId: b.id }));
+  }
+  if (na.kind === 'job' && na.jobId) {
+    return mkActionBtn('btn green', na.label, async () => {
+      await api.post(`/jobs/${na.jobId}/done`, {});
+      toast(`Done — ${na.label}`);
+      loadQueue();
+    });
+  }
+  if (na.kind === 'warehouse') {
+    return mkActionBtn('btn', na.label, () =>
+      switchTab('warehouse', { binBarcode: na.binBarcode, mode: na.mode })
+    );
+  }
+  // wait / idle / done — no action, just a muted hint.
+  const span = document.createElement('span');
+  span.className = 'muted';
+  span.textContent = na.label;
+  return span;
+}
+
+function mkActionBtn(cls, label, onClick) {
+  const btn = el(`<button class="${cls}">${label}</button>`);
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    try { await onClick(); } catch (e) { toast(e.message, true); } finally { btn.disabled = false; }
+  });
+  return btn;
+}
+
 // ---- assign -----------------------------------------------------------------
 let assignSelected = new Set();
+let availableSku = {};      // barcode → sku_type, for SKU reconciliation
+let assignBookingDetail = null;
 
 async function loadAssign() {
   assignSelected = new Set();
@@ -96,22 +149,60 @@ async function loadAssign() {
   select.innerHTML = bookings
     .map((b) => `<option value="${b.id}">${b.customer?.name} — ${b.bin_count} bins — ${b.delivery_date}</option>`)
     .join('');
+
+  // Honour a booking preselected from a queue card's "Assign bins" button.
+  if (pendingAssign?.bookingId) {
+    select.value = pendingAssign.bookingId;
+    pendingAssign = null;
+  }
+
   await renderAvailableBins();
   renderAssignSelected();
-  updateAssignSummary();
+  await updateAssignSummary();
 }
 
 $('#assignBooking').addEventListener('change', updateAssignSummary);
 
 async function updateAssignSummary() {
   const id = $('#assignBooking').value;
-  if (!id) return ($('#assignSummary').textContent = '');
-  const booking = await api.get(`/bookings/${id}`);
-  $('#assignSummary').textContent = booking.summary.text;
+  if (!id) return ($('#assignSummary').innerHTML = '');
+  assignBookingDetail = await api.get(`/bookings/${id}`);
+  renderReconcile();
+}
+
+// SKU-aware reconciliation: what the booking still needs vs what's selected.
+function renderReconcile() {
+  const box = $('#assignSummary');
+  if (!assignBookingDetail) return (box.innerHTML = '');
+
+  const breakdown = assignBookingDetail.sku_breakdown || {};
+  const assignedBySku = tallyBySku((assignBookingDetail.bins || []).map((b) => b.sku_type));
+  const needed = {};
+  for (const [sku, n] of Object.entries(breakdown)) {
+    needed[sku] = Math.max(0, n - (assignedBySku[sku] || 0));
+  }
+  const selectedBySku = tallyBySku([...assignSelected].map((bc) => availableSku[bc] || '?'));
+
+  const fmt = (obj) =>
+    Object.entries(obj).filter(([, n]) => n > 0).map(([k, n]) => `${n} ${k}`).join(', ') || 'none';
+  const totalNeeded = Object.values(needed).reduce((a, b) => a + b, 0);
+  const cls = assignSelected.size > totalNeeded ? 'over' : assignSelected.size === totalNeeded && totalNeeded > 0 ? 'ok' : '';
+
+  box.innerHTML = `
+    <div>${assignBookingDetail.summary.text}</div>
+    <div class="muted" style="margin-top:4px;">Still needs: <strong>${fmt(needed)}</strong></div>
+    <div class="reconcile ${cls}">Selected: <strong>${fmt(selectedBySku)}</strong> (${assignSelected.size}/${totalNeeded})</div>`;
+}
+
+function tallyBySku(skus) {
+  const out = {};
+  for (const s of skus) out[s] = (out[s] || 0) + 1;
+  return out;
 }
 
 async function renderAvailableBins() {
   const bins = await api.get('/bins/available');
+  availableSku = {};
   const box = $('#availableBins');
   if (bins.length === 0) {
     box.innerHTML = '<span class="muted">No unassigned bins left.</span>';
@@ -119,7 +210,9 @@ async function renderAvailableBins() {
   }
   box.innerHTML = '';
   bins.forEach((bin) => {
+    availableSku[bin.barcode] = bin.sku_type;
     const chip = el(`<span class="chip" data-barcode="${bin.barcode}">${bin.barcode} <span class="muted">${bin.sku_type}</span></span>`);
+    if (assignSelected.has(bin.barcode)) chip.classList.add('selected');
     chip.addEventListener('click', () => {
       toggleAssign(bin.barcode);
       chip.classList.toggle('selected', assignSelected.has(bin.barcode));
@@ -132,6 +225,7 @@ function toggleAssign(barcode) {
   if (assignSelected.has(barcode)) assignSelected.delete(barcode);
   else assignSelected.add(barcode);
   renderAssignSelected();
+  renderReconcile();
 }
 
 function renderAssignSelected() {
@@ -147,6 +241,7 @@ function renderAssignSelected() {
       assignSelected.delete(bc);
       renderAssignSelected();
       renderAvailableBins();
+      renderReconcile();
     });
     box.appendChild(chip);
   });
@@ -158,6 +253,7 @@ $('#assignAddBarcode').addEventListener('click', () => {
   assignSelected.add(v);
   $('#assignBarcode').value = '';
   renderAssignSelected();
+  renderReconcile();
 });
 $('#assignBarcode').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') $('#assignAddBarcode').click();
@@ -182,6 +278,8 @@ const JOB_LABEL = {
   deliver_back: 'Deliver bins back',
 };
 
+const TODAY = new Date().toISOString().slice(0, 10);
+
 async function loadJobs() {
   const list = $('#jobsList');
   const jobs = await api.get('/jobs');
@@ -189,39 +287,67 @@ async function loadJobs() {
     list.innerHTML = '<div class="empty">No jobs scheduled.</div>';
     return;
   }
+
+  const scheduled = jobs.filter((j) => j.status !== 'Done');
+  const done = jobs.filter((j) => j.status === 'Done');
   list.innerHTML = '';
-  jobs.forEach((j) => {
-    const done = j.status === 'Done';
-    const card = el(`
-      <div class="card">
-        <div class="row">
-          <div>
-            <div><strong>${JOB_LABEL[j.type] || j.type}</strong> <span class="status-pill">${j.status}</span></div>
-            <div class="muted">${j.booking?.customer_id ? 'booking ' : ''}<code>${j.booking_id}</code> · date ${j.scheduled_date || '—'} · ${j.bin_ids.length} bins</div>
-          </div>
-          <div></div>
+
+  // Scheduled jobs — the day's worklist.
+  list.appendChild(el(`<h3 class="group-head">Scheduled (${scheduled.length})</h3>`));
+  if (scheduled.length === 0) {
+    list.appendChild(el('<div class="muted" style="margin-bottom:14px;">Nothing scheduled.</div>'));
+  } else {
+    scheduled.forEach((j) => list.appendChild(jobCard(j, false)));
+  }
+
+  // Done jobs — collapsed.
+  if (done.length) {
+    const details = el(`<details class="done-group"><summary>Done (${done.length})</summary></details>`);
+    done.forEach((j) => details.appendChild(jobCard(j, true)));
+    list.appendChild(details);
+  }
+}
+
+function jobCard(j, isDone) {
+  const todayPill = j.scheduled_date === TODAY ? '<span class="pill-today">Today</span>' : '';
+  const card = el(`
+    <div class="card">
+      <div class="row">
+        <div>
+          <div><strong>${JOB_LABEL[j.type] || j.type}</strong> <span class="status-pill">${j.status}</span> ${todayPill}</div>
+          <div class="muted">booking <code>${j.booking_id}</code> · date ${j.scheduled_date || '—'} · ${j.bin_ids.length} bins</div>
         </div>
+        <div></div>
       </div>
-    `);
-    if (!done) {
-      const btn = el(`<button class="btn green">Mark done</button>`);
-      btn.addEventListener('click', async () => {
-        try {
-          const res = await api.post(`/jobs/${j.id}/done`, {});
-          toast(`Done — bins now ${res.advanced[0]?.status}`);
-          loadJobs();
-        } catch (e) {
-          toast(e.message, true);
-        }
-      });
-      card.querySelector('.row > div:last-child').appendChild(btn);
-    }
-    list.appendChild(card);
-  });
+    </div>
+  `);
+  if (!isDone) {
+    const btn = el(`<button class="btn green">Mark done</button>`);
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        const res = await api.post(`/jobs/${j.id}/done`, {});
+        toast(`Done — bins now ${res.advanced[0]?.status}`);
+        loadJobs();
+      } catch (e) {
+        toast(e.message, true);
+        btn.disabled = false;
+      }
+    });
+    card.querySelector('.row > div:last-child').appendChild(btn);
+  }
+  return card;
 }
 
 // ---- warehouse --------------------------------------------------------------
 async function loadWarehouse() {
+  // Prefill a bin barcode handed over from a queue card's warehouse action.
+  if (pendingWarehouse?.binBarcode) {
+    const field = pendingWarehouse.mode === 'scanout' ? '#scanOutBin' : '#storeBin';
+    $(field).value = pendingWarehouse.binBarcode;
+    pendingWarehouse = null;
+  }
+
   const free = await api.get('/locations/free');
   const box = $('#freeLocations');
   if (free.length === 0) {
@@ -284,13 +410,31 @@ async function searchBin() {
         </li>`
       )
       .join('');
+    const photo =
+      bin.photo_ref && bin.photo_ref.startsWith('data:')
+        ? `<img class="thumb" src="${bin.photo_ref}" alt="contents photo" />`
+        : bin.photo_ref
+        ? '<div class="muted">📷 photo on file</div>'
+        : '';
     box.innerHTML = `
       <div><strong>${bin.barcode}</strong> · ${bin.sku_type} · current: <span class="summary">${bin.status || 'unassigned'}</span></div>
+      ${photo}
       <ul class="timeline" style="margin-top:10px;">${rows || '<li class="muted">No movements yet.</li>'}</ul>`;
   } catch (e) {
     box.innerHTML = `<div class="muted">${e.message}</div>`;
   }
 }
+
+// ---- polling ----------------------------------------------------------------
+// Refresh only the read-mostly boards (queue, jobs) so the console feels live
+// next to the booking site. Deliberately skips assign/warehouse so it never
+// clobbers an in-progress chip selection or scan input.
+setInterval(() => {
+  if (document.hidden) return;
+  const tab = activeTab();
+  if (tab === 'queue') loadQueue();
+  if (tab === 'jobs') loadJobs();
+}, 4000);
 
 // ---- boot -------------------------------------------------------------------
 loadQueue();
