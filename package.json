@@ -14,7 +14,8 @@
     "node": "22.x"
   },
   "dependencies": {
-    "better-sqlite3": "^11.8.1",
-    "express": "^4.21.2"
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "postgres": "^3.4.5"
   }
 }

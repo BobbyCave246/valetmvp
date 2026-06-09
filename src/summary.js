@@ -5,8 +5,8 @@
 import { listBinsForBooking, listJobs } from './db.js';
 import { STATUS } from './transitions.js';
 
-export function deriveBookingSummary(bookingId) {
-  const bins = listBinsForBooking(bookingId);
+export async function deriveBookingSummary(bookingId) {
+  const bins = await listBinsForBooking(bookingId);
   const total = bins.length;
 
   if (total === 0) {
@@ -30,8 +30,8 @@ export function deriveBookingSummary(bookingId) {
 // are the unit of truth, so this never relies on a booking status.
 // Returns { kind, label, jobId?, binBarcode? }.
 //   kind: 'assign' | 'job' | 'warehouse' | 'wait' | 'idle' | 'done'
-export function deriveNextAction(bookingId, booking) {
-  const bins = listBinsForBooking(bookingId);
+export async function deriveNextAction(bookingId, booking) {
+  const bins = await listBinsForBooking(bookingId);
   const assignedCount = bins.length;
 
   // Bins still need binding to the booking.
@@ -41,7 +41,7 @@ export function deriveNextAction(bookingId, booking) {
   }
 
   const has = (status) => bins.find((b) => b.status === status);
-  const jobs = listJobs().filter((j) => j.booking_id === bookingId);
+  const jobs = (await listJobs()).filter((j) => j.booking_id === bookingId);
   const scheduledOf = (type) => jobs.find((j) => j.type === type && j.status === 'Scheduled');
 
   // Highest-priority actionable step first, walking the pipeline.

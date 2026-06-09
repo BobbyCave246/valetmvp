@@ -6,13 +6,13 @@ import { listFreeLocations, listLocations } from '../db.js';
 const router = Router();
 
 // GET /api/locations/free — free rack slots.
-router.get('/free', (_req, res) => {
-  res.json(listFreeLocations());
+router.get('/free', async (_req, res) => {
+  res.json(await listFreeLocations());
 });
 
 // GET /api/locations — all slots with their occupant (for the rack map).
-router.get('/', (_req, res) => {
-  res.json(listLocations());
+router.get('/', async (_req, res) => {
+  res.json(await listLocations());
 });
 
 export default router;

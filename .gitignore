@@ -1,7 +1,5 @@
 node_modules/
-valet.db
-valet.db-journal
-valet.db-wal
-valet.db-shm
+.env
+.env.local
 *.log
 .DS_Store

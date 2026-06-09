@@ -9,27 +9,27 @@ const router = Router();
 
 // GET /api/jobs — jobs board. Each job resolves its bin_ids to {barcode,
 // sku_type, status} so the board can show a concrete pick list.
-router.get('/', (_req, res) => {
-  const jobs = listJobs().map((j) => {
-    const booking = getBooking(j.booking_id);
-    const binIds = safeParse(j.bin_ids) || [];
-    const bins = binIds
-      .map((id) => getBin(id))
-      .filter(Boolean)
-      .map((b) => ({ barcode: b.barcode, sku_type: b.sku_type, status: b.status }));
-    return {
-      ...j,
-      bin_ids: binIds,
-      bins,
-      booking,
-    };
-  });
+router.get('/', async (_req, res) => {
+  const rows = await listJobs();
+  const jobs = await Promise.all(
+    rows.map(async (j) => {
+      const binIds = safeParse(j.bin_ids) || [];
+      const [booking, binRows] = await Promise.all([
+        getBooking(j.booking_id),
+        Promise.all(binIds.map((id) => getBin(id))),
+      ]);
+      const bins = binRows
+        .filter(Boolean)
+        .map((b) => ({ barcode: b.barcode, sku_type: b.sku_type, status: b.status }));
+      return { ...j, bin_ids: binIds, bins, booking };
+    })
+  );
   res.json(jobs);
 });
 
 // POST /api/jobs/:id/done — mark Done and advance its bins.
-router.post('/:id/done', (req, res) => {
-  const job = getJob(req.params.id);
+router.post('/:id/done', async (req, res) => {
+  const job = await getJob(req.params.id);
   if (!job) return res.status(404).json({ error: 'Job not found' });
   if (job.status === 'Done') {
     return res.status(409).json({ error: 'Job is already Done' });
@@ -48,11 +48,12 @@ router.post('/:id/done', (req, res) => {
   }
 
   try {
-    const advanced = binIds.map((binId) =>
-      transitionBin(binId, target, { actor: 'admin', jobId: job.id })
-    );
-    setJobStatus(job.id, 'Done');
-    res.json({ job: getJob(job.id), advanced });
+    const advanced = [];
+    for (const binId of binIds) {
+      advanced.push(await transitionBin(binId, target, { actor: 'admin', jobId: job.id }));
+    }
+    await setJobStatus(job.id, 'Done');
+    res.json({ job: await getJob(job.id), advanced });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }

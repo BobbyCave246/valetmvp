@@ -6,7 +6,7 @@
 // touch bins.status or movements directly.
 
 import {
-  tx,
+  sql,
   getBin,
   setBinFields,
   insertMovement,
@@ -71,9 +71,12 @@ export class TransitionError extends Error {
  * @param {object} [opts.binFields]        extra bins.* fields to set atomically
  * @returns the updated bin row
  */
-export function transitionBin(binId, toStatus, { actor, jobId = null, locationId = null, binFields = {} } = {}) {
-  return tx(() => {
-    const bin = getBin(binId);
+export async function transitionBin(binId, toStatus, { actor, jobId = null, locationId = null, binFields = {} } = {}) {
+  // Status change + movement row in ONE transaction (spec §6 invariant). The
+  // begin() callback gives a transaction-scoped client; helpers take it so all
+  // their statements run on the same connection inside the transaction.
+  return sql.begin(async (tx) => {
+    const bin = await getBin(binId, tx);
     if (!bin) throw new TransitionError(`Bin ${binId} not found`);
 
     const fromStatus = bin.status;
@@ -90,26 +93,29 @@ export function transitionBin(binId, toStatus, { actor, jobId = null, locationId
     if (toStatus === STATUS.STORED) {
       if (!locationId) throw new TransitionError('Storing a bin requires a location');
       fields.location_id = locationId;
-      setLocationOccupied(locationId, true);
+      await setLocationOccupied(locationId, true, tx);
     }
     if (toStatus === STATUS.IN_TRANSIT_OUTBOUND) {
       // Pulled from the rack — free the slot it was in.
-      if (bin.location_id) setLocationOccupied(bin.location_id, false);
+      if (bin.location_id) await setLocationOccupied(bin.location_id, false, tx);
       fields.location_id = null;
     }
 
-    setBinFields(binId, fields);
+    await setBinFields(binId, fields, tx);
 
-    insertMovement({
-      binId,
-      fromStatus,
-      toStatus,
-      locationId: toStatus === STATUS.STORED ? locationId : null,
-      actor,
-      jobId,
-    });
+    await insertMovement(
+      {
+        binId,
+        fromStatus,
+        toStatus,
+        locationId: toStatus === STATUS.STORED ? locationId : null,
+        actor,
+        jobId,
+      },
+      tx
+    );
 
-    return getBin(binId);
+    return getBin(binId, tx);
   });
 }
 

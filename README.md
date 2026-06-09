@@ -8,8 +8,8 @@ no real camera scanning — barcodes are typed or clicked).
 
 ## Stack
 
-- **Datastore:** SQLite (single file `valet.db`)
-- **Backend:** Node + Express + `better-sqlite3` (plain JS / ESM)
+- **Datastore:** Postgres (Supabase) via [`postgres`](https://github.com/porsager/postgres) (postgres.js)
+- **Backend:** Node + Express (plain JS / ESM, fully async data layer)
 - **Frontends:** two vanilla HTML/JS/CSS apps served by Express
   - Public booking site → `/booking/`
   - Combined admin / warehouse console → `/admin/`
@@ -17,18 +17,36 @@ no real camera scanning — barcodes are typed or clicked).
 **Architectural rule:** the frontend never touches the DB. All reads/writes go
 through `/api`, and *every* bin-status change goes through one transition module
 ([`src/transitions.js`](src/transitions.js)) that writes a `movements` row in
-the same transaction. `src/db.js` is the only file that knows about SQLite —
-that's the single file you swap to move to Postgres later.
+the **same Postgres transaction** (via `sql.begin`). `src/db.js` is the only
+file that knows about the database driver.
+
+## Configure the database
+
+The app needs a `DATABASE_URL` pointing at a Postgres database. With Supabase:
+
+1. Create (or open) a Supabase project dedicated to this app.
+2. **Project → Settings → Database → Connection string → "Transaction pooler"**
+   (URI form). The transaction pooler is the right one for serverless/Vercel.
+3. Put it in `.env` for local dev (copy [`.env.example`](.env.example)):
+   ```
+   DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
+   ```
+4. On Vercel, set `DATABASE_URL` as a Project Environment Variable.
+
+The schema is **created automatically** on first boot (idempotent
+`CREATE TABLE IF NOT EXISTS`), and the demo data is **auto-seeded** when the
+tables are empty — no manual migration step.
 
 ## Run it
 
 ```bash
 npm install
-npm start        # http://localhost:3000 — auto-seeds valet.db on first run
+# put your DATABASE_URL in .env (see above)
+npm start        # http://localhost:3000 — creates schema + seeds on first run
 ```
 
-(`npm run seed` exists too, to force a fresh re-seed, but `npm start` already
-seeds automatically when the datastore is empty.)
+(`npm run seed` forces a fresh re-seed; `npm start` already seeds automatically
+when the database is empty.)
 
 - Booking site:  http://localhost:3000/booking/
 - Admin console: http://localhost:3000/admin/
@@ -38,7 +56,7 @@ that wipes and re-seeds so you can re-run the flow cleanly.
 
 ## Deploying to Vercel
 
-This repo is set up to deploy to Vercel as-is:
+This repo deploys to Vercel as-is:
 
 - [`api/index.js`](api/index.js) exports the shared Express app
   ([`src/app.js`](src/app.js)) as a serverless function.
@@ -47,31 +65,11 @@ This repo is set up to deploy to Vercel as-is:
   over the rewrite), and Express handles everything else — identical to local.
 - `src/server.js` (the `app.listen`) is used only for local dev.
 
-Import the GitHub repo into Vercel (framework preset: **Other** — no build
-step needed) and deploy. `npm run seed` is **not** run on Vercel; instead the
-app **auto-seeds on cold start** when the datastore is empty, so the demo is
-always populated.
-
-### ⚠️ Datastore caveat on Vercel (read this)
-
-Vercel functions have an **ephemeral, per-instance `/tmp`** filesystem and the
-rest of the filesystem is read-only. So on Vercel the SQLite file lives at
-`/tmp/valet.db` and:
-
-- **Data resets on every cold start** and is **not shared** across concurrent
-  function instances. Each instance re-seeds itself.
-- This is fine for demoing the *flow*, but it is **not real persistence**.
-
-This is deliberate and temporary. The spec's production path — and the next
-step here — is to **migrate the data layer to Supabase Postgres**, which only
-touches [`src/db.js`](src/db.js) (no schema redesign, no frontend changes).
-When you're ready, set a `DATABASE_URL` env var in Vercel and swap that one
-file; everything else stays put.
-
-> Note: `better-sqlite3` is a native module. It builds on Vercel's Node 22
-> runtime (pinned via `engines` in `package.json`), but if a deploy ever fails
-> on the native binary, that's the cue to do the Supabase swap rather than fight
-> the bundler.
+Steps: import the GitHub repo into Vercel (framework preset: **Other** — no
+build step), set the **`DATABASE_URL`** env var to your Supabase transaction
+pooler string, and deploy. Because the datastore is now shared Postgres,
+state persists across requests and serverless instances (this is what fixed the
+old "data disappears" behaviour from the ephemeral per-instance SQLite).
 
 ## Demo script (the happy path)
 
@@ -92,9 +90,9 @@ The **Bin explorer** tab shows any bin's full movement history (chain of custody
 
 ## Data model
 
-Six tables (see [`src/schema.sql`](src/schema.sql)): `customers`, `bins`,
-`locations`, `bookings`, `jobs`, `movements`. Ids are `TEXT`, timestamps are
-ISO strings — deliberately, so the schema lifts cleanly to Postgres.
+Six tables (created by the DDL in [`src/db.js`](src/db.js)): `customers`,
+`bins`, `locations`, `bookings`, `jobs`, `movements`. Ids are `TEXT`,
+timestamps are ISO strings.
 
 Bins are the **unit of truth**. Bookings have no status state machine; the queue
 summary is *derived* from the booking's bins on the fly
@@ -146,12 +144,11 @@ Recorded omissions, per the spec — the build does not silently paper over them
 Also out of scope: real payments, SiteLink integration, real camera scanning,
 customer login, SMS/email, route optimisation, multi-site.
 
-## Migration note
+## Notes
 
-Use of parameterised SQL and a single data-access module (`src/db.js`) means the
-move to production is: swap `better-sqlite3` for a Postgres client in that one
-file, add auth + row-level security, and point the same API at Supabase — no
-frontend changes, no schema redesign.
+The data layer is isolated in a single async module (`src/db.js`) using
+parameterised SQL throughout. Production hardening from here would add auth +
+row-level security; the API and frontends stay unchanged.
 
 `customers.sitelink_tenant_id` (seeded as `236692` on the demo customer) is the
 deliberate hook for SiteLink reconciliation: unused in the single-tenant MVP,

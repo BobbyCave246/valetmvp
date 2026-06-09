@@ -1,29 +1,31 @@
-// Data-access module — the ONLY file that knows about better-sqlite3.
-// Everything else goes through these helpers. To move to Postgres later,
-// this is the one file you swap (see README migration note).
+// Data-access module — the ONLY file that knows about the database driver.
+// Everything else goes through these (now async) helpers. Backed by Postgres
+// (Supabase) via postgres.js. All functions return promises.
 
-import Database from 'better-sqlite3';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import 'dotenv/config';
+import postgres from 'postgres';
 import { randomUUID } from 'node:crypto';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const url = process.env.DATABASE_URL;
+if (!url) {
+  throw new Error(
+    'DATABASE_URL is not set. Point it at your Supabase Postgres connection ' +
+      '(Project → Settings → Database → Connection string → Transaction pooler). ' +
+      'Set it in .env locally and as an env var on Vercel.'
+  );
+}
 
-// Where the SQLite file lives. On Vercel the project filesystem is read-only
-// except for /tmp, so we write there — note /tmp is ephemeral and per-instance,
-// so data resets on cold starts. That's acceptable for the demo until the
-// Supabase/Postgres swap (which only touches this file). Override with VALET_DB.
-const DB_PATH =
-  process.env.VALET_DB || (process.env.VERCEL ? '/tmp/valet.db' : join(__dirname, '..', 'valet.db'));
-
-const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-
-// Apply schema (idempotent — uses CREATE TABLE IF NOT EXISTS).
-const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf8');
-db.exec(schema);
+// Local Postgres needs no TLS; Supabase requires it. prepare:false keeps us
+// compatible with Supabase's transaction pooler (pgbouncer).
+const isLocal = /\/\/[^@]*@?(localhost|127\.0\.0\.1)[:/]/.test(url) || /(\b|_)host=localhost/.test(url);
+export const sql = postgres(url, {
+  max: Number(process.env.PGMAX || 5),
+  prepare: false,
+  idle_timeout: 20,
+  ssl: isLocal ? false : 'require',
+  // Quiet the "relation already exists, skipping" notices from idempotent DDL.
+  onnotice: () => {},
+});
 
 // ----- small helpers ---------------------------------------------------------
 
@@ -35,198 +37,240 @@ export function newId(prefix) {
   return `${prefix}_${randomUUID().slice(0, 8)}`;
 }
 
-// Run a function inside a transaction. better-sqlite3 transactions are sync.
-export function tx(fn) {
-  return db.transaction(fn)();
+// Schema DDL — idempotent. Tables are created in dependency order so the
+// foreign keys resolve (a referencing table comes after the tables it points
+// at). TEXT ids + ISO-string timestamps, matching the original SQLite design.
+const SCHEMA_DDL = `
+CREATE TABLE IF NOT EXISTS customers (
+  id                 TEXT PRIMARY KEY,
+  sitelink_tenant_id TEXT UNIQUE,
+  name               TEXT,
+  phone              TEXT,
+  email              TEXT,
+  address            TEXT,
+  created_at         TEXT
+);
+CREATE TABLE IF NOT EXISTS locations (
+  id        TEXT PRIMARY KEY,
+  barcode   TEXT UNIQUE NOT NULL,
+  occupied  INTEGER DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS bookings (
+  id             TEXT PRIMARY KEY,
+  customer_id    TEXT REFERENCES customers(id),
+  bin_count      INTEGER,
+  sku_breakdown  TEXT,
+  status         TEXT,
+  delivery_date  TEXT,
+  created_at     TEXT
+);
+CREATE TABLE IF NOT EXISTS jobs (
+  id              TEXT PRIMARY KEY,
+  booking_id      TEXT REFERENCES bookings(id),
+  type            TEXT,
+  status          TEXT,
+  scheduled_date  TEXT,
+  bin_ids         TEXT
+);
+CREATE TABLE IF NOT EXISTS bins (
+  id           TEXT PRIMARY KEY,
+  barcode      TEXT UNIQUE NOT NULL,
+  sku_type     TEXT,
+  status       TEXT,
+  customer_id  TEXT REFERENCES customers(id),
+  booking_id   TEXT REFERENCES bookings(id),
+  location_id  TEXT REFERENCES locations(id),
+  photo_ref    TEXT
+);
+CREATE TABLE IF NOT EXISTS movements (
+  id           TEXT PRIMARY KEY,
+  bin_id       TEXT REFERENCES bins(id),
+  from_status  TEXT,
+  to_status    TEXT,
+  location_id  TEXT REFERENCES locations(id),
+  actor        TEXT,
+  job_id       TEXT REFERENCES jobs(id),
+  ts           TEXT
+);
+`;
+
+// Run once on startup (idempotent). app.js awaits this before serving.
+export async function ensureSchema() {
+  await sql.unsafe(SCHEMA_DDL);
 }
-
-// ----- raw access (used by the data-access functions below) ------------------
-
-export { db };
 
 // ----- customers -------------------------------------------------------------
 
-export function createCustomer({ name, phone, email, address, sitelinkTenantId = null }) {
+export async function createCustomer({
+  name = null,
+  phone = null,
+  email = null,
+  address = null,
+  sitelinkTenantId = null,
+}) {
   const id = newId('cust');
-  db.prepare(
-    `INSERT INTO customers (id, sitelink_tenant_id, name, phone, email, address, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(id, sitelinkTenantId, name, phone, email, address, nowISO());
-  return getCustomer(id);
+  const rows = await sql`
+    INSERT INTO customers (id, sitelink_tenant_id, name, phone, email, address, created_at)
+    VALUES (${id}, ${sitelinkTenantId}, ${name}, ${phone}, ${email}, ${address}, ${nowISO()})
+    RETURNING *`;
+  return rows[0];
 }
 
-export function getCustomer(id) {
-  return db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
+export async function getCustomer(id) {
+  const rows = await sql`SELECT * FROM customers WHERE id = ${id}`;
+  return rows[0];
 }
 
-export function findCustomerByPhone(phone) {
-  return db.prepare('SELECT * FROM customers WHERE phone = ?').get(phone);
+export async function findCustomerByPhone(phone) {
+  const rows = await sql`SELECT * FROM customers WHERE phone = ${phone}`;
+  return rows[0];
 }
 
 // ----- bins ------------------------------------------------------------------
 
-export function getBin(id) {
-  return db.prepare('SELECT * FROM bins WHERE id = ?').get(id);
+export async function getBin(id, client = sql) {
+  const rows = await client`SELECT * FROM bins WHERE id = ${id}`;
+  return rows[0];
 }
 
-export function getBinByBarcode(barcode) {
-  return db.prepare('SELECT * FROM bins WHERE barcode = ?').get(barcode);
+export async function getBinByBarcode(barcode) {
+  const rows = await sql`SELECT * FROM bins WHERE barcode = ${barcode}`;
+  return rows[0];
 }
 
-export function listAvailableBins() {
-  // Unassigned bins: no booking bound and status is still null/unassigned.
-  return db
-    .prepare(`SELECT * FROM bins WHERE booking_id IS NULL ORDER BY barcode`)
-    .all();
+export async function listAvailableBins() {
+  return sql`SELECT * FROM bins WHERE booking_id IS NULL ORDER BY barcode`;
 }
 
-export function listBinsForBooking(bookingId) {
-  return db
-    .prepare('SELECT * FROM bins WHERE booking_id = ? ORDER BY barcode')
-    .all(bookingId);
+export async function listBinsForBooking(bookingId) {
+  return sql`SELECT * FROM bins WHERE booking_id = ${bookingId} ORDER BY barcode`;
 }
 
-export function setBinFields(id, fields) {
-  const keys = Object.keys(fields);
-  if (keys.length === 0) return;
-  const setClause = keys.map((k) => `${k} = ?`).join(', ');
-  const values = keys.map((k) => fields[k]);
-  db.prepare(`UPDATE bins SET ${setClause} WHERE id = ?`).run(...values, id);
+export async function setBinFields(id, fields, client = sql) {
+  if (Object.keys(fields).length === 0) return;
+  await client`UPDATE bins SET ${client(fields)} WHERE id = ${id}`;
 }
 
 // ----- locations -------------------------------------------------------------
 
-export function getLocation(id) {
-  return db.prepare('SELECT * FROM locations WHERE id = ?').get(id);
+export async function getLocation(id) {
+  const rows = await sql`SELECT * FROM locations WHERE id = ${id}`;
+  return rows[0];
 }
 
-export function getLocationByBarcode(barcode) {
-  return db.prepare('SELECT * FROM locations WHERE barcode = ?').get(barcode);
+export async function getLocationByBarcode(barcode) {
+  const rows = await sql`SELECT * FROM locations WHERE barcode = ${barcode}`;
+  return rows[0];
 }
 
-export function listFreeLocations() {
-  return db
-    .prepare('SELECT * FROM locations WHERE occupied = 0 ORDER BY barcode')
-    .all();
+export async function listFreeLocations() {
+  return sql`SELECT * FROM locations WHERE occupied = 0 ORDER BY barcode`;
 }
 
 // All slots with their current occupant's barcode (null if free).
-export function listLocations() {
-  return db
-    .prepare(
-      `SELECT l.*, b.barcode AS bin_barcode
-       FROM locations l
-       LEFT JOIN bins b ON b.location_id = l.id
-       ORDER BY l.barcode`
-    )
-    .all();
+export async function listLocations() {
+  return sql`
+    SELECT l.*, b.barcode AS bin_barcode
+    FROM locations l
+    LEFT JOIN bins b ON b.location_id = l.id
+    ORDER BY l.barcode`;
 }
 
-export function setLocationOccupied(id, occupied) {
-  db.prepare('UPDATE locations SET occupied = ? WHERE id = ?').run(occupied ? 1 : 0, id);
+export async function setLocationOccupied(id, occupied, client = sql) {
+  await client`UPDATE locations SET occupied = ${occupied ? 1 : 0} WHERE id = ${id}`;
 }
 
 // ----- bookings --------------------------------------------------------------
 
-export function createBooking({ customerId, binCount, skuBreakdown, deliveryDate }) {
+export async function createBooking({ customerId = null, binCount = null, skuBreakdown, deliveryDate = null }) {
   const id = newId('book');
-  db.prepare(
-    `INSERT INTO bookings (id, customer_id, bin_count, sku_breakdown, status, delivery_date, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    id,
-    customerId,
-    binCount,
-    JSON.stringify(skuBreakdown || {}),
-    'New',
-    deliveryDate,
-    nowISO()
-  );
-  return getBooking(id);
+  const rows = await sql`
+    INSERT INTO bookings (id, customer_id, bin_count, sku_breakdown, status, delivery_date, created_at)
+    VALUES (${id}, ${customerId}, ${binCount}, ${JSON.stringify(skuBreakdown || {})}, ${'New'}, ${deliveryDate}, ${nowISO()})
+    RETURNING *`;
+  return rows[0];
 }
 
-export function getBooking(id) {
-  return db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
+export async function getBooking(id) {
+  const rows = await sql`SELECT * FROM bookings WHERE id = ${id}`;
+  return rows[0];
 }
 
-export function listBookings() {
-  return db.prepare('SELECT * FROM bookings ORDER BY created_at DESC').all();
+export async function listBookings() {
+  return sql`SELECT * FROM bookings ORDER BY created_at DESC`;
 }
 
-export function findBookingByPhone(phone) {
-  return db
-    .prepare(
-      `SELECT b.* FROM bookings b
-       JOIN customers c ON c.id = b.customer_id
-       WHERE c.phone = ?
-       ORDER BY b.created_at DESC`
-    )
-    .all(phone);
+export async function findBookingByPhone(phone) {
+  return sql`
+    SELECT b.* FROM bookings b
+    JOIN customers c ON c.id = b.customer_id
+    WHERE c.phone = ${phone}
+    ORDER BY b.created_at DESC`;
 }
 
 // ----- jobs ------------------------------------------------------------------
 
-export function createJob({ bookingId, type, scheduledDate, binIds = [] }) {
+export async function createJob({ bookingId = null, type = null, scheduledDate = null, binIds = [] }) {
   const id = newId('job');
-  db.prepare(
-    `INSERT INTO jobs (id, booking_id, type, status, scheduled_date, bin_ids)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(id, bookingId, type, 'Scheduled', scheduledDate, JSON.stringify(binIds));
-  return getJob(id);
+  const rows = await sql`
+    INSERT INTO jobs (id, booking_id, type, status, scheduled_date, bin_ids)
+    VALUES (${id}, ${bookingId}, ${type}, ${'Scheduled'}, ${scheduledDate}, ${JSON.stringify(binIds)})
+    RETURNING *`;
+  return rows[0];
 }
 
-export function getJob(id) {
-  return db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+export async function getJob(id) {
+  const rows = await sql`SELECT * FROM jobs WHERE id = ${id}`;
+  return rows[0];
 }
 
-export function listJobs() {
-  return db.prepare('SELECT * FROM jobs ORDER BY scheduled_date').all();
+export async function listJobs() {
+  return sql`SELECT * FROM jobs ORDER BY scheduled_date`;
 }
 
-export function setJobBinIds(id, binIds) {
-  db.prepare('UPDATE jobs SET bin_ids = ? WHERE id = ?').run(JSON.stringify(binIds), id);
+export async function setJobBinIds(id, binIds) {
+  await sql`UPDATE jobs SET bin_ids = ${JSON.stringify(binIds)} WHERE id = ${id}`;
 }
 
-export function setJobStatus(id, status) {
-  db.prepare('UPDATE jobs SET status = ? WHERE id = ?').run(status, id);
+export async function setJobStatus(id, status) {
+  await sql`UPDATE jobs SET status = ${status} WHERE id = ${id}`;
 }
 
 // ----- movements -------------------------------------------------------------
 
-export function insertMovement({ binId, fromStatus, toStatus, locationId = null, actor, jobId = null }) {
+export async function insertMovement(
+  { binId, fromStatus, toStatus, locationId = null, actor, jobId = null },
+  client = sql
+) {
   const id = newId('mov');
-  db.prepare(
-    `INSERT INTO movements (id, bin_id, from_status, to_status, location_id, actor, job_id, ts)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(id, binId, fromStatus, toStatus, locationId, actor, jobId, nowISO());
+  await client`
+    INSERT INTO movements (id, bin_id, from_status, to_status, location_id, actor, job_id, ts)
+    VALUES (${id}, ${binId}, ${fromStatus}, ${toStatus}, ${locationId}, ${actor}, ${jobId}, ${nowISO()})`;
   return id;
 }
 
-export function listMovementsForBin(binId) {
-  return db
-    .prepare('SELECT * FROM movements WHERE bin_id = ? ORDER BY ts')
-    .all(binId);
+export async function listMovementsForBin(binId) {
+  return sql`SELECT * FROM movements WHERE bin_id = ${binId} ORDER BY ts`;
 }
 
-// ----- reset -----------------------------------------------------------------
+// ----- aggregates / reset ----------------------------------------------------
 
-export function countBins() {
-  return db.prepare('SELECT COUNT(*) AS n FROM bins').get().n;
+export async function countBins() {
+  const rows = await sql`SELECT COUNT(*)::int AS n FROM bins`;
+  return rows[0].n;
 }
 
 // Bin counts grouped by status; null status reported as 'unassigned'.
-export function countBinsByStatus() {
-  const rows = db.prepare('SELECT status, COUNT(*) AS n FROM bins GROUP BY status').all();
+export async function countBinsByStatus() {
+  const rows = await sql`SELECT status, COUNT(*)::int AS n FROM bins GROUP BY status`;
   const out = {};
   for (const r of rows) out[r.status ?? 'unassigned'] = r.n;
   return out;
 }
 
-export function wipeAll() {
-  // Delete in dependency order (referencing rows before referenced rows) so
-  // foreign-key constraints stay satisfied. bins reference bookings, so bins
-  // must go before bookings.
-  db.exec(`
+export async function wipeAll() {
+  // Delete in dependency order (referencing rows before referenced rows).
+  await sql.unsafe(`
     DELETE FROM movements;
     DELETE FROM bins;
     DELETE FROM jobs;

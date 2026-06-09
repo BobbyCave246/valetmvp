@@ -15,19 +15,30 @@ import binsRouter from './routes/bins.js';
 import locationsRouter from './routes/locations.js';
 import adminRouter from './routes/admin.js';
 import statsRouter from './routes/stats.js';
+import { ensureSchema } from './db.js';
 import { seedIfEmpty } from './seed.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// On a fresh datastore (a clean clone locally, or /tmp on a Vercel cold start)
-// load the demo fixtures so the app is never empty. Only seeds when empty, so
-// it never wipes existing data.
-seedIfEmpty();
+// One-time async init: create the schema (idempotent) and seed if empty. Runs
+// once per process (e.g. per Vercel cold start). Every /api request awaits it
+// below, so the DB is guaranteed ready before any query runs.
+const dbReady = ensureSchema().then(() => seedIfEmpty());
 
 const app = express();
 // Raised from the ~100kb default so contents-photo data URLs fit (the client
 // downscales to a small thumbnail, so payloads stay well under this).
 app.use(express.json({ limit: '5mb' }));
+
+// Gate API requests on the DB being ready.
+app.use('/api', async (_req, res, next) => {
+  try {
+    await dbReady;
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // --- API ---------------------------------------------------------------------
 app.use('/api/bookings', bookingsRouter);
