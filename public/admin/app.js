@@ -134,7 +134,29 @@ async function loadQueue() {
 function nextActionControl(b) {
   const na = b.nextAction || { kind: 'idle', label: '' };
   if (na.kind === 'assign') {
-    return mkActionBtn('btn', na.label, () => switchTab('assign', { bookingId: b.id }));
+    // Primary path: one-click auto-assign matching free bins. Manual is a fallback.
+    const wrap = document.createElement('div');
+    wrap.className = 'action-stack';
+    wrap.appendChild(
+      mkActionBtn('btn', 'Auto-assign bins', async () => {
+        const res = await api.post(`/bookings/${b.id}/auto-assign`, {});
+        const n = res.assigned.length;
+        toast(n ? `Reserved ${n} bin${n === 1 ? '' : 's'} — pick list on Jobs board` : 'Nothing to assign');
+        const short = Object.entries(res.shortages || {});
+        if (short.length) {
+          toast(`Short ${short.map(([s, n]) => `${n} ${s}`).join(', ')} — restock or assign manually`, true);
+        }
+        loadQueue();
+        loadStats();
+      })
+    );
+    const manual = el('<a href="#" class="manual-link">assign manually</a>');
+    manual.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchTab('assign', { bookingId: b.id });
+    });
+    wrap.appendChild(manual);
+    return wrap;
   }
   if (na.kind === 'job' && na.jobId) {
     return mkActionBtn('btn green', na.label, async () => {
@@ -337,12 +359,20 @@ async function loadJobs() {
 
 function jobCard(j, isDone) {
   const todayPill = j.scheduled_date === TODAY ? '<span class="pill-today">Today</span>' : '';
+  const bins = j.bins || [];
+  const pickLabel = j.type === 'deliver_empty' ? 'Pick list — collect these empties' : 'Bins';
+  const picklist = bins.length
+    ? `<div class="picklist"><div class="picklist-head">${pickLabel}</div>${bins
+        .map((b) => `<span class="pick"><code>${b.barcode}</code> <span class="muted">${b.sku_type}</span></span>`)
+        .join('')}</div>`
+    : '';
   const card = el(`
     <div class="card">
       <div class="row">
         <div>
           <div><strong>${JOB_LABEL[j.type] || j.type}</strong> <span class="status-pill">${j.status}</span> ${todayPill}</div>
           <div class="muted">booking <code>${j.booking_id}</code> · date ${j.scheduled_date || '—'} · ${j.bin_ids.length} bins</div>
+          ${picklist}
         </div>
         <div></div>
       </div>

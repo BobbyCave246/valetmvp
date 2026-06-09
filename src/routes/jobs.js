@@ -2,18 +2,25 @@
 // via the transition module (which logs movements).
 
 import { Router } from 'express';
-import { listJobs, getJob, getBooking, setJobStatus } from '../db.js';
+import { listJobs, getJob, getBooking, setJobStatus, getBin } from '../db.js';
 import { transitionBin, JOB_DONE_TARGET } from '../transitions.js';
 
 const router = Router();
 
-// GET /api/jobs — jobs board.
+// GET /api/jobs — jobs board. Each job resolves its bin_ids to {barcode,
+// sku_type, status} so the board can show a concrete pick list.
 router.get('/', (_req, res) => {
   const jobs = listJobs().map((j) => {
     const booking = getBooking(j.booking_id);
+    const binIds = safeParse(j.bin_ids) || [];
+    const bins = binIds
+      .map((id) => getBin(id))
+      .filter(Boolean)
+      .map((b) => ({ barcode: b.barcode, sku_type: b.sku_type, status: b.status }));
     return {
       ...j,
-      bin_ids: safeParse(j.bin_ids) || [],
+      bin_ids: binIds,
+      bins,
       booking,
     };
   });

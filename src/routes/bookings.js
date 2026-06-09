@@ -12,6 +12,7 @@ import {
   createJob,
   getBinByBarcode,
   listBinsForBooking,
+  listAvailableBins,
   setBinFields,
   listJobs,
   setJobBinIds,
@@ -124,22 +125,74 @@ router.post('/:id/assign-bins', (req, res) => {
   }
 
   try {
-    const assigned = bins.map((bin) => {
-      // Bind ownership first, then transition (which writes the movement).
-      setBinFields(bin.id, { customer_id: booking.customer_id, booking_id: booking.id });
-      return transitionBin(bin.id, STATUS.ASSIGNED, { actor: 'admin' });
-    });
-
-    // Attach the assigned bins to the open deliver_empty job for this booking.
-    attachBinsToDeliverEmptyJob(booking.id, assigned.map((b) => b.id));
-
+    const assigned = bindBinsToBooking(booking, bins);
     res.json({ assigned, summary: deriveBookingSummary(booking.id) });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
 });
 
+// POST /api/bookings/:id/auto-assign — system picks free bins matching the
+// booking's SKU mix and binds them, producing a pick list for the warehouse.
+// Idempotent: re-running tops up whatever is still needed.
+router.post('/:id/auto-assign', (req, res) => {
+  const booking = getBooking(req.params.id);
+  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+
+  const breakdown = safeParse(booking.sku_breakdown) || {};
+
+  // What's still needed per SKU = requested minus already-assigned by sku_type.
+  const assignedBySku = {};
+  for (const b of listBinsForBooking(booking.id)) {
+    assignedBySku[b.sku_type] = (assignedBySku[b.sku_type] || 0) + 1;
+  }
+
+  // Group free bins by sku_type (ordered by barcode → deterministic picks).
+  const freeBySku = {};
+  for (const bin of listAvailableBins()) {
+    (freeBySku[bin.sku_type] ||= []).push(bin);
+  }
+
+  const toAssign = [];
+  const shortages = {};
+  for (const [sku, requested] of Object.entries(breakdown)) {
+    const need = Math.max(0, requested - (assignedBySku[sku] || 0));
+    if (need === 0) continue;
+    const available = freeBySku[sku] || [];
+    const picked = available.slice(0, need);
+    toAssign.push(...picked);
+    if (picked.length < need) shortages[sku] = need - picked.length;
+  }
+
+  try {
+    const assigned = toAssign.length ? bindBinsToBooking(booking, toAssign) : [];
+    const pickList = listBinsForBooking(booking.id)
+      .filter((b) => b.status === STATUS.ASSIGNED)
+      .map((b) => ({ barcode: b.barcode, sku_type: b.sku_type }));
+    res.json({
+      assigned,
+      shortages,
+      pickList,
+      summary: deriveBookingSummary(booking.id),
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 // --- helpers -----------------------------------------------------------------
+
+// Binds bins to a booking: sets ownership, transitions each to Assigned (which
+// logs a movement), and attaches them to the booking's deliver_empty job.
+// Shared by manual assign-bins and auto-assign.
+function bindBinsToBooking(booking, bins, actor = 'admin') {
+  const assigned = bins.map((bin) => {
+    setBinFields(bin.id, { customer_id: booking.customer_id, booking_id: booking.id });
+    return transitionBin(bin.id, STATUS.ASSIGNED, { actor });
+  });
+  attachBinsToDeliverEmptyJob(booking.id, assigned.map((b) => b.id));
+  return assigned;
+}
 
 function attachBinsToDeliverEmptyJob(bookingId, binIds) {
   // Find the scheduled deliver_empty job for this booking and set its bin_ids.
