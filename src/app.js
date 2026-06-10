@@ -61,6 +61,7 @@ app.use('/admin', express.static(join(publicDir, 'admin')));
 app.use('/driver', express.static(join(publicDir, 'driver')));
 app.use('/warehouse', express.static(join(publicDir, 'warehouse')));
 app.use('/start', express.static(join(publicDir, 'start')));
+app.use('/guide', express.static(join(publicDir, 'guide')));
 app.use('/shared', express.static(join(publicDir, 'shared')));
 app.use('/vendor', express.static(join(publicDir, 'vendor')));
 
