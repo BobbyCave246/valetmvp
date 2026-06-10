@@ -98,6 +98,14 @@ CREATE TABLE IF NOT EXISTS leads (
   area        TEXT,
   created_at  TEXT
 );
+CREATE TABLE IF NOT EXISTS users (
+  id             TEXT PRIMARY KEY,
+  email          TEXT UNIQUE NOT NULL,  -- stored lowercased
+  password_hash  TEXT NOT NULL,         -- format: scrypt$<saltB64>$<hashB64>
+  role           TEXT NOT NULL,         -- 'admin' | 'warehouse' | 'driver'
+  name           TEXT,
+  created_at     TEXT
+);
 
 -- Additive migrations (idempotent) for booking time-windows + serviceability.
 ALTER TABLE bookings  ADD COLUMN IF NOT EXISTS delivery_slot  TEXT;
@@ -136,6 +144,31 @@ export async function getCustomer(id) {
 export async function findCustomerByPhone(phone) {
   const rows = await sql`SELECT * FROM customers WHERE phone = ${phone}`;
   return rows[0];
+}
+
+// ----- users (staff accounts) ------------------------------------------------
+
+export async function createUser({ email, passwordHash, role, name = null }) {
+  const rows = await sql`
+    INSERT INTO users (id, email, password_hash, role, name, created_at)
+    VALUES (${newId('user')}, ${email.toLowerCase()}, ${passwordHash}, ${role}, ${name}, ${nowISO()})
+    RETURNING id, email, role, name, created_at`;
+  return rows[0];
+}
+
+export async function getUserByEmail(email) {
+  const rows = await sql`SELECT * FROM users WHERE email = ${email.toLowerCase()}`;
+  return rows[0];
+}
+
+export async function getUserById(id) {
+  const rows = await sql`SELECT * FROM users WHERE id = ${id}`;
+  return rows[0];
+}
+
+// Never selects password_hash — safe to return to the admin staff list.
+export async function listUsers() {
+  return sql`SELECT id, email, role, name, created_at FROM users ORDER BY created_at`;
 }
 
 // ----- bins ------------------------------------------------------------------

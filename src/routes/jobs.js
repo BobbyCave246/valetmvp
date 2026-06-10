@@ -5,8 +5,12 @@ import { Router } from 'express';
 import { listJobs, getJob, getBooking, getCustomer, setJobStatus, getBin } from '../db.js';
 import { transitionBin, isLegalTransition, JOB_DONE_TARGET } from '../transitions.js';
 import { safeParse } from '../util.js';
+import { requireAuth, requireRole } from '../auth.js';
 
 const router = Router();
+
+// The jobs board is the driver's workspace (admin can see it too).
+router.use(requireAuth, requireRole('driver', 'admin'));
 
 // GET /api/jobs — jobs board. Each job resolves its bin_ids to {barcode,
 // sku_type, status} so the board can show a concrete pick list, plus the

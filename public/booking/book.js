@@ -24,6 +24,7 @@ async function api(method, path, body) {
   const r = await fetch(`/api${path}`, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : {},
+    credentials: 'same-origin',
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await r.json().catch(() => ({}));

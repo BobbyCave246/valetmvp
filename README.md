@@ -3,8 +3,9 @@
 A local-first prototype that simulates the full valet-bin lifecycle: a customer
 books storage → we deliver empty bins → they're filled → collected → racked in
 the warehouse → retrieved on demand → returned or closed. Built to validate the
-**flow and the data model**, not for production (no cloud, no auth, no payments,
-no real camera scanning — barcodes are typed or clicked).
+**flow and the data model**, not for production (no payments, and camera
+scanning is best-effort). Staff sign in with role-based access (see
+[Sign-in & roles](#sign-in--roles)); customers book without an account.
 
 ## Stack
 
@@ -47,10 +48,44 @@ via env vars (sensible defaults ship for the demo):
 | `COVERAGE_AREAS` | The Villages at Coverley | Comma-separated list of the areas you serve (the booking dropdown). The MVP is limited to The Villages at Coverley (Christ Church, Barbados); set this to expand coverage. Out-of-area visitors join an email waitlist instead of booking. |
 | `SLOT_CAPACITY` | `4` | Max empty-bin deliveries per window per day (so routes can be batched). |
 | `LEAD_DAYS` | `1` | Minimum lead time — earliest bookable delivery date (default = tomorrow). |
-| `ADMIN_TOKEN` | unset (open) | If set, `POST /api/admin/reset` requires `Authorization: Bearer <token>`. Leave unset for friction-free demos; set it on any shared deployment. |
 
 Windows are Morning (8am–12pm) / Afternoon (12–5pm), served to both frontends
 via `GET /api/serviceability` so labels have a single source of truth.
+
+## Sign-in & roles
+
+Staff sign in at **`/login`**; customers never log in (they book and look up by
+phone/booking reference as before). There are three staff roles, and a person
+only ever sees their own surface:
+
+| Role | Surface | Can do |
+|---|---|---|
+| `driver` | `/driver` | the jobs board (`/api/jobs`) |
+| `warehouse` | `/warehouse` | put-away, pull-out, bin intake, rack/locations |
+| `admin` | `/admin` | bookings queue, assign, cancel, stats, demo reset, **staff management** |
+
+Sessions are a signed httpOnly cookie (Node `crypto` only — no auth deps). The
+**API is the security boundary**: every protected `/api` route checks the
+role server-side, so the static HTML shells being public is harmless (an
+unauthorised visitor just gets 401/403 on every call). After login the client
+redirects each role to its surface and bounces anyone who lands on the wrong one.
+
+Accounts are **admin-provisioned** — roles are never self-selected. An admin
+creates staff in the admin console's **Staff** tab. Starter accounts are seeded
+on first boot (idempotent; they survive `POST /api/admin/reset`).
+
+| Var | Default | Purpose |
+|---|---|---|
+| `AUTH_SECRET` | **required** | Signs session cookies. Generate with `openssl rand -base64 32`. Rotating it logs everyone out. |
+| `SESSION_TTL_SECONDS` | `43200` (12h) | Session/cookie lifetime. |
+| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | `admin@valet.local` / `admin1234` | Starter admin. **Change the password immediately.** |
+| `SEED_DRIVER_*`, `SEED_WAREHOUSE_*` | `driver@valet.local` / `warehouse@valet.local` (…`1234`) | Starter driver & warehouse accounts. |
+
+> Set `AUTH_SECRET` (and ideally non-default seed credentials) on Vercel and
+> **redeploy** — env changes only take effect on a new deployment.
+>
+> The old `ADMIN_TOKEN` bearer gate has been **removed**; `POST /api/admin/reset`
+> and `POST /api/bookings/:id/cancel` now require an admin session instead.
 
 > **Timezone note:** all date math (lead time, "today") runs on the **UTC**
 > calendar. For timezones west of UTC, the earliest bookable day can appear one

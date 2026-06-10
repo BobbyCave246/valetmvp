@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Staff sign in — Store All Valet</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #f8fafc; color: #0f172a;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px 24px;
+      width: 100%; max-width: 380px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    h1 { font-size: 20px; margin: 0 0 2px; }
+    p.sub { color: #64748b; font-size: 14px; margin: 0 0 20px; }
+    label { display: block; font-size: 14px; font-weight: 600; margin: 14px 0 5px; }
+    input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 9px; font-size: 16px; }
+    button { width: 100%; margin-top: 20px; padding: 13px; border: none; border-radius: 10px;
+      background: #2563eb; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; min-height: 48px; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .err { color: #b91c1c; font-size: 14px; margin-top: 14px; min-height: 18px; }
+    a.book { margin-top: 22px; color: #64748b; font-size: 13px; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔐 Staff sign in</h1>
+    <p class="sub">Drivers, warehouse and admin. Customers don't need an account — just book.</p>
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input type="email" id="email" autocomplete="username" placeholder="you@valet.local" required />
+      <label for="password">Password</label>
+      <input type="password" id="password" autocomplete="current-password" required />
+      <button type="submit" id="submitBtn">Sign in</button>
+      <div class="err" id="err"></div>
+    </form>
+  </div>
+  <a class="book" href="/booking/">← Back to the booking site</a>
+
+  <script>
+    // If already signed in, skip straight to your surface.
+    const HOME = { admin: '/admin/', driver: '/driver/', warehouse: '/warehouse/' };
+    fetch('/api/auth/me', { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.user) location.replace(HOME[d.user.role] || '/booking/'); })
+      .catch(() => {});
+
+    const form = document.getElementById('loginForm');
+    const btn = document.getElementById('submitBtn');
+    const err = document.getElementById('err');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      err.textContent = '';
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            email: document.getElementById('email').value.trim(),
+            password: document.getElementById('password').value,
+          }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || 'Sign in failed');
+        location.replace(HOME[data.user.role] || '/booking/');
+      } catch (e2) {
+        err.textContent = e2.message;
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

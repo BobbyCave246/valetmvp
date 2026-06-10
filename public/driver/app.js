@@ -3,20 +3,25 @@
 // The scan-to-confirm checklist is purely client-side reassurance; the server's
 // transition module remains the authority on what may advance.
 
+// A lost session (expired cookie) surfaces as 401/403 — bounce to login.
+function guard401(r) {
+  if (r.status === 401 || r.status === 403) Session.onUnauthorized();
+}
 const api = {
   async get(path) {
-    const r = await fetch(`/api${path}`);
-    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
+    const r = await fetch(`/api${path}`, { credentials: 'same-origin' });
+    if (!r.ok) { guard401(r); throw new Error((await r.json().catch(() => ({}))).error || r.statusText); }
     return r.json();
   },
   async post(path, body) {
     const r = await fetch(`/api${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
       body: JSON.stringify(body || {}),
     });
     const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(data.error || r.statusText);
+    if (!r.ok) { guard401(r); throw new Error(data.error || r.statusText); }
     return data;
   },
 };
@@ -243,6 +248,9 @@ setInterval(() => {
 }, 5000);
 
 // ---- boot ----------------------------------------------------------------------
-loadJobs().catch((e) => {
-  $('#jobGroups').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+// Gate on a signed-in driver first; Session.guard redirects if not.
+Session.guard('driver').then(() => {
+  loadJobs().catch((e) => {
+    $('#jobGroups').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+  });
 });

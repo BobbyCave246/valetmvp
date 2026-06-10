@@ -16,15 +16,21 @@ import locationsRouter from './routes/locations.js';
 import adminRouter from './routes/admin.js';
 import statsRouter from './routes/stats.js';
 import intakeRouter from './routes/intake.js';
+import authRouter from './routes/auth.js';
 import { ensureSchema } from './db.js';
 import { seedIfEmpty } from './seed.js';
+import { seedStarterUsers } from './auth.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// One-time async init: create the schema (idempotent) and seed if empty. Runs
-// once per process (e.g. per Vercel cold start). Every /api request awaits it
-// below, so the DB is guaranteed ready before any query runs.
-const dbReady = ensureSchema().then(() => seedIfEmpty());
+// One-time async init: create the schema (idempotent), seed demo data if empty,
+// and seed starter staff accounts. seedStarterUsers is its OWN step (not gated
+// on the bin count like seedIfEmpty, and never wiped by the demo reset), so
+// staff exist even on a DB that already has bins. Runs once per process (e.g.
+// per Vercel cold start). Every /api request awaits it before any query runs.
+const dbReady = ensureSchema()
+  .then(() => seedIfEmpty())
+  .then(() => seedStarterUsers());
 
 const app = express();
 // Raised from the ~100kb default so contents-photo data URLs fit (the client
@@ -48,6 +54,7 @@ app.use('/api/bins', binsRouter);
 app.use('/api/locations', locationsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/stats', statsRouter);
+app.use('/api/auth', authRouter);
 app.use('/api', intakeRouter); // /serviceability, /availability, /leads
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -60,13 +67,17 @@ app.use('/booking', express.static(join(publicDir, 'booking')));
 app.use('/admin', express.static(join(publicDir, 'admin')));
 app.use('/driver', express.static(join(publicDir, 'driver')));
 app.use('/warehouse', express.static(join(publicDir, 'warehouse')));
-app.use('/start', express.static(join(publicDir, 'start')));
+app.use('/login', express.static(join(publicDir, 'login')));
 app.use('/guide', express.static(join(publicDir, 'guide')));
 app.use('/shared', express.static(join(publicDir, 'shared')));
 app.use('/vendor', express.static(join(publicDir, 'vendor')));
 
 // Root → landing page of the public booking site.
 app.get('/', (_req, res) => res.redirect('/booking/'));
+
+// The old all-roles launcher is gone — staff sign in instead.
+app.get('/start', (_req, res) => res.redirect('/login/'));
+app.get('/start/', (_req, res) => res.redirect('/login/'));
 
 // --- Error fallback ----------------------------------------------------------
 app.use((err, _req, res, _next) => {

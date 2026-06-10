@@ -18,18 +18,23 @@ import {
 import { transitionBin, STATUS } from '../transitions.js';
 import { validateFutureDate } from '../slots.js';
 import { VALID_SKUS } from '../util.js';
+import { requireAuth, requireRole } from '../auth.js';
 
 const router = Router();
 
+// Warehouse-only guard, applied per-route below (this router also carries
+// public customer actions — photo, request-*, close, movements — which stay open).
+const warehouse = [requireAuth, requireRole('warehouse', 'admin')];
+
 // GET /api/bins/available — unassigned bins for the assign-bins screen.
-router.get('/available', async (_req, res) => {
+router.get('/available', warehouse, async (_req, res) => {
   res.json(await listAvailableBins());
 });
 
 // POST /api/bins — register a newly purchased bin into the pool.
 // Body: { barcode, skuType }. The bin starts unassigned (= available).
 // Returns the bin plus fresh pool counts so the intake UI can show progress.
-router.post('/', async (req, res) => {
+router.post('/', warehouse, async (req, res) => {
   const { barcode, skuType } = req.body || {};
 
   const code = String(barcode || '').trim().toUpperCase();
@@ -78,7 +83,7 @@ router.post('/:barcode/photo', async (req, res) => {
 });
 
 // POST /api/bins/:barcode/store — two-scan put-away. Body: { locationBarcode }.
-router.post('/:barcode/store', async (req, res) => {
+router.post('/:barcode/store', warehouse, async (req, res) => {
   const bin = await getBinByBarcode(req.params.barcode);
   if (!bin) return res.status(404).json({ error: 'Bin not found' });
 
@@ -104,7 +109,7 @@ router.post('/:barcode/store', async (req, res) => {
 });
 
 // POST /api/bins/:barcode/scan-out — pull from rack → In transit (outbound).
-router.post('/:barcode/scan-out', async (req, res) => {
+router.post('/:barcode/scan-out', warehouse, async (req, res) => {
   const bin = await getBinByBarcode(req.params.barcode);
   if (!bin) return res.status(404).json({ error: 'Bin not found' });
 
