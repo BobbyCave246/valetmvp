@@ -48,7 +48,8 @@ input, select {
   padding: 11px 12px;
   border: 1px solid var(--line);
   border-radius: 9px;
-  font-size: 15px;
+  /* 16px minimum stops iOS Safari auto-zooming the page on focus */
+  font-size: 16px;
 }
 .sku-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .sku-row .price { color: var(--muted); font-size: 13px; }
@@ -123,3 +124,16 @@ svg.barcode { display: block; }
 .timeline { list-style: none; padding: 0; margin: 0; }
 .timeline li { padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .timeline .ts { color: var(--muted); font-size: 12px; }
+
+/* phone layout */
+@media (max-width: 640px) {
+  main { padding: 16px 14px; }
+  .card { padding: 16px; }
+  button.btn, a.btn { width: 100%; min-height: 44px; }
+  .flex { flex-direction: column; align-items: stretch; }
+  .flex > * { width: 100%; }
+  .bin-row { flex-direction: column; align-items: stretch; }
+  .bin-row .pill { align-self: flex-start; }
+  .stepper button { width: 44px; height: 44px; }
+  #toast { left: 14px; right: 14px; bottom: 14px; max-width: none; text-align: center; }
+}

@@ -58,7 +58,11 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 const publicDir = join(__dirname, '..', 'public');
 app.use('/booking', express.static(join(publicDir, 'booking')));
 app.use('/admin', express.static(join(publicDir, 'admin')));
+app.use('/driver', express.static(join(publicDir, 'driver')));
+app.use('/warehouse', express.static(join(publicDir, 'warehouse')));
+app.use('/start', express.static(join(publicDir, 'start')));
 app.use('/shared', express.static(join(publicDir, 'shared')));
+app.use('/vendor', express.static(join(publicDir, 'vendor')));
 
 // Root → landing page of the public booking site.
 app.get('/', (_req, res) => res.redirect('/booking/'));

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Driver — Store All Valet</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>🚚 Driver</h1>
+    <span class="spacer"></span>
+    <a href="/start/">Switch role</a>
+  </header>
+
+  <main>
+    <!-- Job list (default view) -->
+    <section id="listView">
+      <div id="jobGroups"><div class="empty">Loading jobs…</div></div>
+    </section>
+
+    <!-- Job detail (hidden until a job is tapped) -->
+    <section id="detailView" hidden>
+      <button class="back" id="backBtn">‹ All jobs</button>
+      <div id="jobDetail"></div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+  <script src="/shared/esc.js"></script>
+  <script src="/shared/barcode.js"></script>
+  <script src="/vendor/html5-qrcode.min.js"></script>
+  <script src="/shared/scanner.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

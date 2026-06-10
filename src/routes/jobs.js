@@ -2,14 +2,15 @@
 // via the transition module (which logs movements).
 
 import { Router } from 'express';
-import { listJobs, getJob, getBooking, setJobStatus, getBin } from '../db.js';
+import { listJobs, getJob, getBooking, getCustomer, setJobStatus, getBin } from '../db.js';
 import { transitionBin, isLegalTransition, JOB_DONE_TARGET } from '../transitions.js';
 import { safeParse } from '../util.js';
 
 const router = Router();
 
 // GET /api/jobs — jobs board. Each job resolves its bin_ids to {barcode,
-// sku_type, status} so the board can show a concrete pick list.
+// sku_type, status} so the board can show a concrete pick list, plus the
+// booking's customer so the driver app can show who/where without extra calls.
 router.get('/', async (_req, res) => {
   const rows = await listJobs();
   const jobs = await Promise.all(
@@ -22,7 +23,12 @@ router.get('/', async (_req, res) => {
       const bins = binRows
         .filter(Boolean)
         .map((b) => ({ barcode: b.barcode, sku_type: b.sku_type, status: b.status }));
-      return { ...j, bin_ids: binIds, bins, booking };
+      let customer = null;
+      if (booking?.customer_id) {
+        const c = await getCustomer(booking.customer_id);
+        if (c) customer = { name: c.name, phone: c.phone, address: c.address, postcode: c.postcode };
+      }
+      return { ...j, bin_ids: binIds, bins, booking: booking ? { ...booking, customer } : booking };
     })
   );
   res.json(jobs);

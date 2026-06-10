@@ -12,6 +12,7 @@
     <span class="spacer"></span>
     <span class="live-dot" title="Boards auto-refresh every few seconds">● live</span>
     <a href="/booking/" style="color:var(--muted);font-size:13px;">Booking site ↗</a>
+    <a href="/start/" style="color:var(--muted);font-size:13px;">Phone roles ↗</a>
     <button class="btn danger" id="resetBtn">Reset demo</button>
   </header>
 
@@ -43,6 +44,7 @@
         <div class="flex">
           <input type="text" id="assignBarcode" placeholder="BIN1001" />
           <button class="btn ghost" id="assignAddBarcode">Add</button>
+          <button class="btn ghost scan-btn" data-target="assignBarcode" data-then="assignAddBarcode">📷 Scan</button>
         </div>
 
         <label>Or click an available bin</label>
@@ -63,9 +65,15 @@
       <div class="card">
         <h3 style="margin-top:0;font-size:15px;">Put-away (scan bin → scan location)</h3>
         <label>Bin barcode</label>
-        <input type="text" id="storeBin" placeholder="BIN1001" />
+        <div class="flex">
+          <input type="text" id="storeBin" placeholder="BIN1001" style="flex:1;" />
+          <button class="btn ghost scan-btn" data-target="storeBin">📷 Scan</button>
+        </div>
         <label>Location — type or click a free slot below</label>
-        <input type="text" id="storeLoc" placeholder="A-01-1-01" />
+        <div class="flex">
+          <input type="text" id="storeLoc" placeholder="A-01-1-01" style="flex:1;" />
+          <button class="btn ghost scan-btn" data-target="storeLoc">📷 Scan</button>
+        </div>
         <div style="margin-top:14px;">
           <button class="btn green" id="storeSubmit">Store bin</button>
         </div>
@@ -80,6 +88,7 @@
         <label>Bin barcode</label>
         <div class="flex">
           <input type="text" id="scanOutBin" placeholder="BIN1001" />
+          <button class="btn ghost scan-btn" data-target="scanOutBin">📷 Scan</button>
           <button class="btn" id="scanOutSubmit">Scan out</button>
         </div>
       </div>
@@ -91,6 +100,7 @@
       <div class="card">
         <div class="flex">
           <input type="text" id="explorerBarcode" placeholder="BIN1001" />
+          <button class="btn ghost scan-btn" data-target="explorerBarcode" data-then="explorerSearch">📷 Scan</button>
           <button class="btn" id="explorerSearch">Search</button>
         </div>
         <div id="explorerResult" style="margin-top:14px;"></div>
@@ -101,6 +111,8 @@
   <div id="toast"></div>
   <script src="/shared/esc.js"></script>
   <script src="/shared/barcode.js"></script>
+  <script src="/vendor/html5-qrcode.min.js"></script>
+  <script src="/shared/scanner.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
