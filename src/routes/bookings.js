@@ -21,7 +21,8 @@ import {
   createDeliveryJobIfCapacity,
   deleteBooking,
 } from '../db.js';
-import { transitionBin, STATUS } from '../transitions.js';
+import { transitionBin, cancelBooking, STATUS } from '../transitions.js';
+import { requireAdminToken } from './admin.js';
 import { deriveBookingSummary, deriveNextAction } from '../summary.js';
 import { isCovered } from '../coverage.js';
 import { validateDateSlot, validateFutureDate, SLOT_CAPACITY } from '../slots.js';
@@ -157,6 +158,18 @@ router.get('/by-phone/:phone', async (req, res) => {
 });
 
 // GET /api/bookings/:id — customer lookup + admin detail (bins + statuses).
+// POST /api/bookings/:id/cancel — admin cancel. Releases the booking's bins
+// back to inventory (freeing rack slots), logs the release per bin, deletes
+// the booking's jobs and the booking itself. Gated by ADMIN_TOKEN if set.
+router.post('/:id/cancel', requireAdminToken, async (req, res) => {
+  try {
+    const result = await cancelBooking(req.params.id, { actor: 'admin' });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   const booking = await getBooking(req.params.id);
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
