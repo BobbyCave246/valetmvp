@@ -2,7 +2,7 @@
 // availability, and out-of-area lead capture. Mounted at /api.
 
 import { Router } from 'express';
-import { listAreas } from '../coverage.js';
+import { listAreas, listVillages } from '../coverage.js';
 import { availabilityForDate, validateDateSlot, SLOTS } from '../slots.js';
 import { createLead } from '../db.js';
 
@@ -11,7 +11,7 @@ const router = Router();
 // GET /api/serviceability — service areas + delivery windows. Single source of
 // truth for slot labels, so the two frontends can't drift from the backend.
 router.get('/serviceability', (_req, res) => {
-  res.json({ areas: listAreas(), slots: SLOTS });
+  res.json({ areas: listAreas(), villages: listVillages(), slots: SLOTS });
 });
 
 // GET /api/availability?date=YYYY-MM-DD — per-window remaining capacity.

@@ -37,11 +37,14 @@ const OTHER = '__other__';
 async function loadAreas() {
   const sel = $('#area');
   sel.innerHTML = '<option value="" disabled selected>Loading areas…</option>';
-  const { areas } = await api('GET', '/serviceability');
+  const { areas, villages } = await api('GET', '/serviceability');
   sel.innerHTML =
     '<option value="" disabled selected>Select your area…</option>' +
     areas.map((a) => `<option value="${esc(a)}">${esc(a)}</option>`).join('') +
     `<option value="${OTHER}">My area isn't listed</option>`;
+  $('#village').innerHTML =
+    '<option value="" disabled selected>Select your village…</option>' +
+    (villages || []).map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
 }
 
 $('#area').addEventListener('change', () => {
@@ -154,11 +157,19 @@ $('#submitBtn').addEventListener('click', async () => {
   if (!$('#deliveryDate').value) return toast('Pick a delivery date', true);
   if (!chosenSlot) return toast('Pick a delivery window', true);
 
+  // Structured address: village + house/lot number (no free-text street —
+  // Coverley has no public address dataset to validate against, so we capture
+  // structure instead).
+  const village = $('#village').value;
+  const houseNo = $('#houseNo').value.trim();
+  if (!village) return toast('Select your village', true);
+  if (!houseNo) return toast('Enter your house / lot number', true);
+
   const payload = {
     name: $('#name').value.trim(),
     phone: $('#phone').value.trim(),
     email: $('#email').value.trim(),
-    address: $('#address').value.trim(),
+    address: `House ${houseNo}, ${village}`,
     area: chosenArea,
     deliveryDate: $('#deliveryDate').value,
     deliverySlot: chosenSlot,
