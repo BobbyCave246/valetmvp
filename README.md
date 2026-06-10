@@ -44,7 +44,7 @@ via env vars (sensible defaults ship for the demo):
 
 | Var | Default | Purpose |
 |---|---|---|
-| `COVERAGE_AREAS` | placeholder Barbados towns | **Set this** — comma-separated list of the areas you serve (the booking dropdown). Out-of-area visitors join an email waitlist instead of booking. |
+| `COVERAGE_AREAS` | The Villages at Coverley | Comma-separated list of the areas you serve (the booking dropdown). The MVP is limited to The Villages at Coverley (Christ Church, Barbados); set this to expand coverage. Out-of-area visitors join an email waitlist instead of booking. |
 | `SLOT_CAPACITY` | `4` | Max empty-bin deliveries per window per day (so routes can be batched). |
 | `LEAD_DAYS` | `1` | Minimum lead time — earliest bookable delivery date (default = tomorrow). |
 | `ADMIN_TOKEN` | unset (open) | If set, `POST /api/admin/reset` requires `Authorization: Bearer <token>`. Leave unset for friction-free demos; set it on any shared deployment. |

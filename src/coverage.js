@@ -1,16 +1,12 @@
-// Service-area coverage. Set COVERAGE_AREAS (comma-separated) to your REAL
-// service areas. The placeholder list below is only so the demo runs; replace
-// it (or set the env var) before going live.
+// Service-area coverage. The MVP serves ONLY The Villages at Coverley
+// (Christ Church, Barbados). Set COVERAGE_AREAS (comma-separated) to override
+// without a code change when the service area grows.
 
-const PLACEHOLDER = [
-  'Bridgetown',
-  'Holetown',
-  'Oistins',
-  'Speightstown',
-  'Worthing',
+const DEFAULT_AREAS = [
+  'The Villages at Coverley',
 ];
 
-export const COVERAGE_AREAS = (process.env.COVERAGE_AREAS || PLACEHOLDER.join(','))
+export const COVERAGE_AREAS = (process.env.COVERAGE_AREAS || DEFAULT_AREAS.join(','))
   .split(',')
   .map((a) => a.trim())
   .filter(Boolean);
