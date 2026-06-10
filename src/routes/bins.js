@@ -10,16 +10,50 @@ import {
   getLocationByBarcode,
   getLocation,
   createJob,
+  createBin,
+  countBins,
+  countBinsByStatus,
   listMovementsForBin,
 } from '../db.js';
 import { transitionBin, STATUS } from '../transitions.js';
 import { validateFutureDate } from '../slots.js';
+import { VALID_SKUS } from '../util.js';
 
 const router = Router();
 
 // GET /api/bins/available — unassigned bins for the assign-bins screen.
 router.get('/available', async (_req, res) => {
   res.json(await listAvailableBins());
+});
+
+// POST /api/bins — register a newly purchased bin into the pool.
+// Body: { barcode, skuType }. The bin starts unassigned (= available).
+// Returns the bin plus fresh pool counts so the intake UI can show progress.
+router.post('/', async (req, res) => {
+  const { barcode, skuType } = req.body || {};
+
+  const code = String(barcode || '').trim().toUpperCase();
+  if (!code) return res.status(400).json({ error: 'barcode is required' });
+  if (!/^[A-Z0-9-]{3,32}$/.test(code)) {
+    return res.status(400).json({
+      error: 'Barcode must be 3–32 characters: letters, numbers and dashes only',
+    });
+  }
+  if (!VALID_SKUS.includes(skuType)) {
+    return res.status(400).json({ error: `skuType must be one of: ${VALID_SKUS.join(', ')}` });
+  }
+
+  if (await getBinByBarcode(code)) {
+    return res.status(409).json({ error: `Bin ${code} is already in the pool` });
+  }
+
+  try {
+    const bin = await createBin({ barcode: code, skuType });
+    const [total, byStatus] = await Promise.all([countBins(), countBinsByStatus()]);
+    res.status(201).json({ bin, pool: { total, available: byStatus.unassigned || 0 } });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
 });
 
 // POST /api/bins/:barcode/photo — attach an optional contents photo. Bin must

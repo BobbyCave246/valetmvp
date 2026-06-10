@@ -35,11 +35,12 @@ function toast(msg, isErr = false) {
   setTimeout(() => (t.className = ''), 2600);
 }
 
-let mode = null; // 'putaway' | 'pullout'
+let mode = null; // 'putaway' | 'pullout' | 'intake'
 let lastResult = null; // { ok, text } banner from the previous bin
 
 $('#modePutaway').addEventListener('click', () => openFlow('putaway'));
 $('#modePullout').addEventListener('click', () => openFlow('pullout'));
+$('#modeIntake').addEventListener('click', () => openFlow('intake'));
 $('#backBtn').addEventListener('click', () => {
   mode = null;
   lastResult = null;
@@ -50,6 +51,7 @@ $('#backBtn').addEventListener('click', () => {
 function openFlow(m) {
   mode = m;
   lastResult = null;
+  if (m === 'intake') intakeSku = null; // fresh run: re-pick the bin type
   $('#modeView').hidden = true;
   $('#flowView').hidden = false;
   renderFlow();
@@ -63,6 +65,7 @@ function bannerHtml() {
 // ---- put-away: scan bin → scan/tap location → store --------------------------
 async function renderFlow() {
   if (mode === 'putaway') renderPutaway();
+  else if (mode === 'intake') renderIntake();
   else renderPullout();
 }
 
@@ -128,6 +131,73 @@ async function storeBin(bin, loc) {
     lastResult = { ok: false, text: `✗ ${bin}: ${e.message}` };
   }
   renderPutaway(); // reset for the next bin, banner on top
+}
+
+// ---- intake: register newly purchased bins into the pool -----------------------
+// Pick the bin type once, then scan each new bin in a loop — one POST per scan.
+const SKU_LABELS = {
+  bin: { label: 'Standard bin', icon: '📦' },
+  wardrobe: { label: 'Wardrobe box', icon: '👔' },
+  odd: { label: 'Odd / bulky item', icon: '🚲' },
+};
+let intakeSku = null;     // chosen SKU for this intake run
+let intakeCount = 0;      // bins added this session
+
+function renderIntake() {
+  const body = $('#flowBody');
+  if (!intakeSku) {
+    intakeCount = 0;
+    body.innerHTML = `
+      ${bannerHtml()}
+      <div class="card">
+        <h2>🆕 Add new bins</h2>
+        <p class="muted">What type are the bins you're adding?</p>
+        <div id="skuPick"></div>
+      </div>
+    `;
+    const pick = $('#skuPick');
+    Object.entries(SKU_LABELS).forEach(([key, s]) => {
+      const btn = el(`<button class="btn ghost" style="margin-top:10px;">${s.icon} ${esc(s.label)}</button>`);
+      btn.addEventListener('click', () => {
+        intakeSku = key;
+        renderIntake();
+      });
+      pick.appendChild(btn);
+    });
+    return;
+  }
+
+  const s = SKU_LABELS[intakeSku];
+  body.innerHTML = `
+    ${bannerHtml()}
+    <div class="card">
+      <h2>🆕 Adding: ${s.icon} ${esc(s.label)}</h2>
+      <p class="muted">Scan each new bin's barcode — it's added to the pool instantly.
+        <strong>${intakeCount}</strong> added this session.</p>
+      <button class="btn green" id="scanStep">📷 Scan new bin</button>
+      <button class="btn ghost" id="switchSku" style="margin-top:10px;">Change bin type</button>
+    </div>
+  `;
+  $('#switchSku').addEventListener('click', () => {
+    intakeSku = null;
+    lastResult = null;
+    renderIntake();
+  });
+  $('#scanStep').addEventListener('click', async () => {
+    const code = await Scanner.scan({ title: `Scan new ${s.label.toLowerCase()} barcode` });
+    if (!code) return;
+    try {
+      const res = await api.post('/bins', { barcode: code, skuType: intakeSku });
+      intakeCount++;
+      lastResult = {
+        ok: true,
+        text: `✓ ${res.bin.barcode} added — pool now ${res.pool.total} bins (${res.pool.available} available)`,
+      };
+    } catch (e) {
+      lastResult = { ok: false, text: `✗ ${code}: ${e.message}` };
+    }
+    renderIntake();
+  });
 }
 
 // ---- pull-out: scan bin → scan-out --------------------------------------------
