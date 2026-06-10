@@ -1,20 +1,25 @@
 // Admin / warehouse console. All state lives in the API — this file only
 // renders responses and POSTs actions. Nothing touches a DB directly.
 
+// A lost session (expired cookie) surfaces as 401/403 — bounce to login.
+function guard401(r) {
+  if (r.status === 401 || r.status === 403) Session.onUnauthorized();
+}
 const api = {
   async get(path) {
-    const r = await fetch(`/api${path}`);
-    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
+    const r = await fetch(`/api${path}`, { credentials: 'same-origin' });
+    if (!r.ok) { guard401(r); throw new Error((await r.json().catch(() => ({}))).error || r.statusText); }
     return r.json();
   },
   async post(path, body) {
     const r = await fetch(`/api${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
       body: JSON.stringify(body || {}),
     });
     const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(data.error || r.statusText);
+    if (!r.ok) { guard401(r); throw new Error(data.error || r.statusText); }
     return data;
   },
 };
@@ -63,6 +68,7 @@ function refreshTab(tab) {
   if (tab === 'queue') loadQueue();
   if (tab === 'assign') loadAssign();
   if (tab === 'warehouse') loadWarehouse();
+  if (tab === 'staff') loadStaff();
 }
 
 // ---- reset ------------------------------------------------------------------
@@ -539,6 +545,47 @@ document.querySelectorAll('.scan-btn').forEach((btn) => {
   });
 });
 
+// ---- staff accounts ----------------------------------------------------------
+const ROLE_LABEL = { admin: 'Admin', warehouse: 'Warehouse', driver: 'Driver' };
+
+async function loadStaff() {
+  const box = $('#staffList');
+  try {
+    const users = await api.get('/auth/users');
+    if (!users.length) { box.innerHTML = '<div class="empty">No staff yet.</div>'; return; }
+    box.innerHTML = users
+      .map(
+        (u) => `<div class="bin-row">
+          <div><strong>${esc(u.email)}</strong> ${u.name ? `<span class="muted">${esc(u.name)}</span>` : ''}</div>
+          <div><span class="badge ok">${esc(ROLE_LABEL[u.role] || u.role)}</span></div>
+        </div>`
+      )
+      .join('');
+  } catch (e) {
+    box.innerHTML = `<div class="muted">${esc(e.message)}</div>`;
+  }
+}
+
+$('#staffCreate').addEventListener('click', async () => {
+  const payload = {
+    email: $('#staffEmail').value.trim(),
+    name: $('#staffName').value.trim(),
+    role: $('#staffRole').value,
+    password: $('#staffPassword').value,
+  };
+  if (!payload.email || !payload.password) return toast('Email and password are required', true);
+  try {
+    const res = await api.post('/auth/users', payload);
+    toast(`Created ${res.user.email} (${ROLE_LABEL[res.user.role]})`);
+    $('#staffEmail').value = '';
+    $('#staffName').value = '';
+    $('#staffPassword').value = '';
+    loadStaff();
+  } catch (e) {
+    toast(e.message, true);
+  }
+});
+
 // ---- polling ----------------------------------------------------------------
 // Refresh the stats bar and the (read-mostly) Bookings & jobs board so the
 // console feels live next to the booking site. Deliberately skips
@@ -550,5 +597,8 @@ setInterval(() => {
 }, 4000);
 
 // ---- boot -------------------------------------------------------------------
-loadStats();
-loadQueue();
+// Gate on a signed-in admin first; Session.guard redirects anyone else.
+Session.guard('admin').then(() => {
+  loadStats();
+  loadQueue();
+});

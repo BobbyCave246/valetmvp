@@ -8,11 +8,12 @@ import {
   listBookings,
   listJobs,
 } from '../db.js';
+import { requireAuth, requireRole } from '../auth.js';
 
 const router = Router();
 
 // GET /api/stats — counts for the admin dashboard.
-router.get('/', async (_req, res) => {
+router.get('/', requireAuth, requireRole('admin'), async (_req, res) => {
   const [byStatus, locations, jobs, bookings, total] = await Promise.all([
     countBinsByStatus(),
     listLocations(),

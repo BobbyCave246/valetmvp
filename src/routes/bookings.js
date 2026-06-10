@@ -22,7 +22,7 @@ import {
   deleteBooking,
 } from '../db.js';
 import { transitionBin, cancelBooking, STATUS } from '../transitions.js';
-import { requireAdminToken } from './admin.js';
+import { requireAuth, requireRole } from '../auth.js';
 import { deriveBookingSummary, deriveNextAction } from '../summary.js';
 import { isCovered } from '../coverage.js';
 import { validateDateSlot, validateFutureDate, SLOT_CAPACITY } from '../slots.js';
@@ -120,7 +120,7 @@ router.post('/', async (req, res) => {
 });
 
 // GET /api/bookings — admin queue with derived bin-status summaries.
-router.get('/', async (_req, res) => {
+router.get('/', requireAuth, requireRole('admin'), async (_req, res) => {
   const rows = await listBookings();
   const bookings = await Promise.all(
     rows.map(async (b) => {
@@ -160,7 +160,7 @@ router.get('/by-phone/:phone', async (req, res) => {
 // POST /api/bookings/:id/cancel — admin cancel. Releases the booking's bins
 // back to inventory (freeing rack slots), logs the release per bin, deletes
 // the booking's jobs and the booking itself. Gated by ADMIN_TOKEN if set.
-router.post('/:id/cancel', requireAdminToken, async (req, res) => {
+router.post('/:id/cancel', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const result = await cancelBooking(req.params.id, { actor: 'admin' });
     res.json({ ok: true, ...result });
@@ -194,7 +194,7 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/bookings/:id/assign-bins — bind scanned bins to the booking.
 // Body: { barcodes: ["BIN1001", ...] }
-router.post('/:id/assign-bins', async (req, res) => {
+router.post('/:id/assign-bins', requireAuth, requireRole('admin'), async (req, res) => {
   const booking = await getBooking(req.params.id);
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
 
@@ -231,7 +231,7 @@ router.post('/:id/assign-bins', async (req, res) => {
 // POST /api/bookings/:id/auto-assign — system picks free bins matching the
 // booking's SKU mix and binds them, producing a pick list for the warehouse.
 // Idempotent: re-running tops up whatever is still needed.
-router.post('/:id/auto-assign', async (req, res) => {
+router.post('/:id/auto-assign', requireAuth, requireRole('admin'), async (req, res) => {
   const booking = await getBooking(req.params.id);
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
 

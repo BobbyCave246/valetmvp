@@ -12,7 +12,6 @@
     <span class="spacer"></span>
     <span class="live-dot" title="Boards auto-refresh every few seconds">● live</span>
     <a href="/booking/" style="color:var(--muted);font-size:13px;">Booking site ↗</a>
-    <a href="/start/" style="color:var(--muted);font-size:13px;">Phone roles ↗</a>
     <a href="/guide/" style="color:var(--muted);font-size:13px;">Flow guide ↗</a>
     <button class="btn danger" id="resetBtn">Reset demo</button>
   </header>
@@ -22,6 +21,7 @@
     <button data-tab="assign">Assign bins</button>
     <button data-tab="warehouse">Warehouse scan</button>
     <button data-tab="explorer">Bin explorer</button>
+    <button data-tab="staff">Staff</button>
   </nav>
 
   <div id="statsBar"></div>
@@ -107,11 +107,40 @@
         <div id="explorerResult" style="margin-top:14px;"></div>
       </div>
     </section>
+
+    <!-- STAFF -->
+    <section class="tab" id="tab-staff">
+      <h2>Staff accounts</h2>
+      <div class="card">
+        <h3 style="margin-top:0;font-size:15px;">Add a staff member</h3>
+        <p class="muted">They sign in at <code>/login</code>. Roles can only be set here — never self-selected. Ask new staff to change their temporary password.</p>
+        <label>Email</label>
+        <input type="email" id="staffEmail" placeholder="name@valet.local" />
+        <label>Name</label>
+        <input type="text" id="staffName" placeholder="Full name" />
+        <label>Role</label>
+        <select id="staffRole">
+          <option value="driver">Driver</option>
+          <option value="warehouse">Warehouse</option>
+          <option value="admin">Admin</option>
+        </select>
+        <label>Temporary password</label>
+        <input type="text" id="staffPassword" placeholder="at least 8 characters" />
+        <div style="margin-top:14px;">
+          <button class="btn" id="staffCreate">Create staff account</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;font-size:15px;">Current staff</h3>
+        <div id="staffList"></div>
+      </div>
+    </section>
   </main>
 
   <div id="toast"></div>
   <script src="/shared/esc.js"></script>
   <script src="/shared/barcode.js"></script>
+  <script src="/shared/session.js"></script>
   <script src="/vendor/html5-qrcode.min.js"></script>
   <script src="/shared/scanner.js"></script>
   <script src="app.js"></script>
