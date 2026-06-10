@@ -1,0 +1,158 @@
+// Warehouse phone scan station. Two flows over the same endpoints the admin
+// console uses: put-away (POST /bins/:barcode/store) and pull-out
+// (POST /bins/:barcode/scan-out). After each result it auto-resets for the
+// next bin, scan-gun style.
+
+const api = {
+  async get(path) {
+    const r = await fetch(`/api${path}`);
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
+    return r.json();
+  },
+  async post(path, body) {
+    const r = await fetch(`/api${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || r.statusText);
+    return data;
+  },
+};
+
+const $ = (sel) => document.querySelector(sel);
+const el = (html) => {
+  const t = document.createElement('template');
+  t.innerHTML = html.trim();
+  return t.content.firstChild;
+};
+
+function toast(msg, isErr = false) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = `show${isErr ? ' err' : ''}`;
+  setTimeout(() => (t.className = ''), 2600);
+}
+
+let mode = null; // 'putaway' | 'pullout'
+let lastResult = null; // { ok, text } banner from the previous bin
+
+$('#modePutaway').addEventListener('click', () => openFlow('putaway'));
+$('#modePullout').addEventListener('click', () => openFlow('pullout'));
+$('#backBtn').addEventListener('click', () => {
+  mode = null;
+  lastResult = null;
+  $('#flowView').hidden = true;
+  $('#modeView').hidden = false;
+});
+
+function openFlow(m) {
+  mode = m;
+  lastResult = null;
+  $('#modeView').hidden = true;
+  $('#flowView').hidden = false;
+  renderFlow();
+}
+
+function bannerHtml() {
+  if (!lastResult) return '';
+  return `<div class="banner ${lastResult.ok ? 'ok' : 'err'}">${esc(lastResult.text)}</div>`;
+}
+
+// ---- put-away: scan bin → scan/tap location → store --------------------------
+async function renderFlow() {
+  if (mode === 'putaway') renderPutaway();
+  else renderPullout();
+}
+
+async function renderPutaway(binBarcode = null) {
+  const body = $('#flowBody');
+  body.innerHTML = `
+    ${bannerHtml()}
+    <div class="card">
+      <h2>📥 Put away</h2>
+      <div class="scan-step ${binBarcode ? 'done' : ''}">
+        <div class="num">1</div>
+        <div>${binBarcode ? `Bin <code>${esc(binBarcode)}</code> ✓` : 'Scan the bin barcode'}</div>
+      </div>
+      <div class="scan-step">
+        <div class="num">2</div>
+        <div>${binBarcode ? 'Scan the rack location — or tap a free slot below' : 'Then scan its rack location'}</div>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="btn" id="scanStep">📷 ${binBarcode ? 'Scan location' : 'Scan bin'}</button>
+      </div>
+      <div id="freeSlots"></div>
+    </div>
+  `;
+
+  $('#scanStep').addEventListener('click', async () => {
+    if (!binBarcode) {
+      const code = await Scanner.scan({ title: 'Scan the bin barcode' });
+      if (code) renderPutaway(code);
+    } else {
+      const loc = await Scanner.scan({ title: 'Scan the rack location' });
+      if (loc) storeBin(binBarcode, loc);
+    }
+  });
+
+  if (binBarcode) {
+    // Tappable free-slot fallback (rack-location barcodes may not be printed).
+    try {
+      const locations = await api.get('/locations');
+      const free = locations.filter((l) => !l.occupied);
+      const box = $('#freeSlots');
+      if (!free.length) {
+        box.innerHTML = '<div class="muted" style="margin-top:12px;">No free slots on the rack.</div>';
+        return;
+      }
+      box.innerHTML = '<div class="muted" style="margin-top:14px;">Free slots — tap to use:</div><div class="slot-list"></div>';
+      const list = box.querySelector('.slot-list');
+      free.forEach((l) => {
+        const chip = el(`<button class="slot-chip">${esc(l.barcode)}</button>`);
+        chip.addEventListener('click', () => storeBin(binBarcode, l.barcode));
+        list.appendChild(chip);
+      });
+    } catch (e) {
+      toast(e.message, true);
+    }
+  }
+}
+
+async function storeBin(bin, loc) {
+  try {
+    const res = await api.post(`/bins/${bin}/store`, { locationBarcode: loc });
+    lastResult = { ok: true, text: `✓ ${res.bin.barcode} stored @ ${res.location.barcode}` };
+  } catch (e) {
+    lastResult = { ok: false, text: `✗ ${bin}: ${e.message}` };
+  }
+  renderPutaway(); // reset for the next bin, banner on top
+}
+
+// ---- pull-out: scan bin → scan-out --------------------------------------------
+function renderPullout() {
+  const body = $('#flowBody');
+  body.innerHTML = `
+    ${bannerHtml()}
+    <div class="card">
+      <h2>📤 Pull out</h2>
+      <p class="muted">Scan a stored bin to pull it from the rack for return delivery.</p>
+      <button class="btn" id="scanStep">📷 Scan bin</button>
+    </div>
+  `;
+  $('#scanStep').addEventListener('click', async () => {
+    const code = await Scanner.scan({ title: 'Scan the bin barcode' });
+    if (!code) return;
+    try {
+      const res = await api.post(`/bins/${code}/scan-out`, {});
+      lastResult = {
+        ok: true,
+        text: `✓ ${res.bin.barcode} → ${res.bin.status}` + (res.freedLocation ? ` (freed ${res.freedLocation.barcode})` : ''),
+      };
+    } catch (e) {
+      lastResult = { ok: false, text: `✗ ${code}: ${e.message}` };
+    }
+    renderPullout();
+  });
+}

@@ -512,6 +512,19 @@ async function searchBin() {
   }
 }
 
+// ---- camera scan buttons ------------------------------------------------------
+// Each .scan-btn fills its data-target input via the shared camera scanner and,
+// if data-then names a button, clicks it (e.g. auto-run the explorer search).
+document.querySelectorAll('.scan-btn').forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    const code = await Scanner.scan({ title: 'Scan a barcode' });
+    if (!code) return;
+    const input = document.getElementById(btn.dataset.target);
+    input.value = code;
+    if (btn.dataset.then) document.getElementById(btn.dataset.then).click();
+  });
+});
+
 // ---- polling ----------------------------------------------------------------
 // Refresh the stats bar and the (read-mostly) Bookings & jobs board so the
 // console feels live next to the booking site. Deliberately skips

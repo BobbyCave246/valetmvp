@@ -383,6 +383,21 @@ $('#lookupBtn').addEventListener('click', async () => {
 });
 $('#lookup').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#lookupBtn').click(); });
 
+// Scan a bin's barcode (e.g. the bin sitting in front of you) to open the
+// booking it belongs to.
+$('#scanLookupBtn').addEventListener('click', async () => {
+  const code = await Scanner.scan({ title: 'Scan a bin barcode' });
+  if (!code) return;
+  try {
+    const { bin } = await api('GET', `/bins/${encodeURIComponent(code)}/movements`);
+    if (!bin.booking_id) return toast(`${code} isn't linked to a booking yet`, true);
+    $('#lookup').value = bin.booking_id;
+    await loadByRef(bin.booking_id);
+  } catch (e) {
+    toast(e.message, true);
+  }
+});
+
 // Keep the loaded booking fresh so customer-visible status changes appear
 // without a manual lookup. Skips a tick if the user is typing/selecting inside
 // the result area (a date field or checkbox) so it never interrupts them.

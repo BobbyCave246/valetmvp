@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Warehouse scan — Store All Valet</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>🏭 Warehouse scan</h1>
+    <span class="spacer"></span>
+    <a href="/start/">Switch role</a>
+  </header>
+
+  <main>
+    <!-- Mode picker -->
+    <section id="modeView">
+      <button class="mode-btn" id="modePutaway">
+        <span class="mode-icon">📥</span>
+        <span class="mode-label">Put away</span>
+        <span class="mode-sub">Scan bin → scan rack location</span>
+      </button>
+      <button class="mode-btn" id="modePullout">
+        <span class="mode-icon">📤</span>
+        <span class="mode-label">Pull out</span>
+        <span class="mode-sub">Scan bin to pull it from the rack</span>
+      </button>
+    </section>
+
+    <!-- Active flow -->
+    <section id="flowView" hidden>
+      <button class="back" id="backBtn">‹ Modes</button>
+      <div id="flowBody"></div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+  <script src="/shared/esc.js"></script>
+  <script src="/shared/barcode.js"></script>
+  <script src="/vendor/html5-qrcode.min.js"></script>
+  <script src="/shared/scanner.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
