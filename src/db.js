@@ -157,6 +157,16 @@ export async function getBinByBarcode(barcode) {
   return rows[0];
 }
 
+// Register a brand-new physical bin into the pool (status NULL = available
+// for assignment). Barcode uniqueness is enforced by the UNIQUE constraint.
+export async function createBin({ barcode, skuType }) {
+  const rows = await sql`
+    INSERT INTO bins (id, barcode, sku_type, status, customer_id, booking_id, location_id, photo_ref)
+    VALUES (${newId('bin')}, ${barcode}, ${skuType}, NULL, NULL, NULL, NULL, NULL)
+    RETURNING *`;
+  return rows[0];
+}
+
 export async function listAvailableBins() {
   // Free inventory: never-used bins (status NULL) plus closed bins released
   // back to the pool after a completed lifecycle.

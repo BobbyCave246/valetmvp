@@ -26,11 +26,10 @@ import { requireAdminToken } from './admin.js';
 import { deriveBookingSummary, deriveNextAction } from '../summary.js';
 import { isCovered } from '../coverage.js';
 import { validateDateSlot, validateFutureDate, SLOT_CAPACITY } from '../slots.js';
-import { safeParse } from '../util.js';
+import { safeParse, VALID_SKUS } from '../util.js';
 
 const router = Router();
 
-const VALID_SKUS = ['bin', 'wardrobe', 'odd'];
 const MAX_PER_SKU = 50;
 
 // Returns null if ok, else an error message.
