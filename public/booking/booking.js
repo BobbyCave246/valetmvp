@@ -102,7 +102,7 @@ function custodyDetails(bin) {
       body.classList.remove('muted');
       body.innerHTML = `<ul class="timeline">${movements
         .map((m) => `<li>
-            <div>${esc(STATUS_COPY[m.to_status] || m.to_status)}${m.location ? ` <span class="muted">@ ${esc(m.location.barcode)}</span>` : ''}</div>
+            <div>${esc(STATUS_COPY[m.to_status] || m.to_status || 'Booking cancelled — bin released')}${m.location ? ` <span class="muted">@ ${esc(m.location.barcode)}</span>` : ''}</div>
             <div class="ts">${new Date(m.ts).toLocaleString()}</div>
           </li>`)
         .join('')}</ul>`;

@@ -7,7 +7,7 @@ const router = Router();
 
 // If ADMIN_TOKEN is set, destructive admin actions require
 // `Authorization: Bearer <token>`. Unset = open (demo default).
-function requireAdminToken(req, res, next) {
+export function requireAdminToken(req, res, next) {
   const token = process.env.ADMIN_TOKEN;
   if (!token) return next();
   const supplied = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');

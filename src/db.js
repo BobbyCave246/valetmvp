@@ -295,8 +295,26 @@ export async function createDeliveryJobIfCapacity({ bookingId, scheduledDate, sc
   });
 }
 
-export async function deleteBooking(id) {
-  await sql`DELETE FROM bookings WHERE id = ${id}`;
+export async function deleteBooking(id, client = sql) {
+  await client`DELETE FROM bookings WHERE id = ${id}`;
+}
+
+// ----- cancel-booking helpers (transaction-scoped, used by transitions.js) ----
+
+export async function listBinsForBookingForUpdate(bookingId, client) {
+  return client`SELECT * FROM bins WHERE booking_id = ${bookingId} FOR UPDATE`;
+}
+
+// Keep movement history when a booking's jobs are deleted: detach the FK
+// rather than deleting the rows (chain of custody survives cancellation).
+export async function detachMovementsFromBookingJobs(bookingId, client) {
+  await client`
+    UPDATE movements SET job_id = NULL
+    WHERE job_id IN (SELECT id FROM jobs WHERE booking_id = ${bookingId})`;
+}
+
+export async function deleteJobsForBooking(bookingId, client) {
+  await client`DELETE FROM jobs WHERE booking_id = ${bookingId}`;
 }
 
 export async function createLead({ email = null, area = null }) {

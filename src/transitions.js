@@ -13,6 +13,11 @@ import {
   insertMovement,
   getLocationForUpdate,
   setLocationOccupied,
+  getBooking,
+  listBinsForBookingForUpdate,
+  detachMovementsFromBookingJobs,
+  deleteJobsForBooking,
+  deleteBooking,
 } from './db.js';
 
 // The seven bin statuses (plus the implicit UNASSIGNED start state).
@@ -141,6 +146,50 @@ export async function transitionBin(binId, toStatus, { actor, jobId = null, loca
     );
 
     return getBin(binId, tx);
+  });
+}
+
+/**
+ * Cancel a booking — the one sanctioned escape hatch from the legal-transition
+ * table (alongside the demo reset). In a single transaction it:
+ *   1. releases the booking's bins back to inventory (status → unassigned,
+ *      customer/photo cleared), freeing any rack slot a stored bin occupied;
+ *   2. logs a movement per bin (to_status NULL = released), so the chain of
+ *      custody records the cancellation instead of losing it;
+ *   3. detaches old movements from the booking's jobs, then deletes the jobs
+ *      and the booking row itself.
+ * The §6 invariant holds: every bin change writes its movement in the SAME
+ * transaction. Customers are kept (they may have other bookings).
+ * @returns {{ releasedBins: number, freedLocations: number }}
+ */
+export async function cancelBooking(bookingId, { actor = 'admin' } = {}) {
+  return sql.begin(async (tx) => {
+    const booking = await getBooking(bookingId);
+    if (!booking) throw Object.assign(new Error('Booking not found'), { status: 404 });
+
+    const bins = await listBinsForBookingForUpdate(bookingId, tx);
+    let freedLocations = 0;
+    for (const bin of bins) {
+      if (bin.location_id) {
+        await setLocationOccupied(bin.location_id, false, tx);
+        freedLocations++;
+      }
+      await setBinFields(
+        bin.id,
+        { status: null, booking_id: null, customer_id: null, photo_ref: null, location_id: null },
+        tx
+      );
+      await insertMovement(
+        { binId: bin.id, fromStatus: bin.status, toStatus: null, actor },
+        tx
+      );
+    }
+
+    await detachMovementsFromBookingJobs(bookingId, tx);
+    await deleteJobsForBooking(bookingId, tx);
+    await deleteBooking(bookingId, tx);
+
+    return { releasedBins: bins.length, freedLocations };
   });
 }
 

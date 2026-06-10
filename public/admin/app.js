@@ -121,7 +121,7 @@ async function loadQueue() {
         <div class="row">
           <div>
             <div><strong>${esc(b.customer?.name || 'Unknown')}</strong> · ${esc(b.bin_count)} bins <span class="muted">(${esc(sku)})</span> ${assignBadge}</div>
-            <div class="muted">Delivery: ${esc(b.delivery_date)}${b.delivery_slot ? ' · ' + esc(slotLabel(b.delivery_slot)) : ''} · ref <code>${esc(b.id)}</code></div>
+            <div class="muted">Delivery: ${esc(b.delivery_date)}${b.delivery_slot ? ' · ' + esc(slotLabel(b.delivery_slot)) : ''} · ref <code>${esc(b.id)}</code> · <a href="#" class="cancel-link" style="color:#b91c1c;">cancel booking</a></div>
             <div class="summary" style="margin-top:6px;">${esc(b.summary.text)}</div>
           </div>
           <div class="next-action"></div>
@@ -130,6 +130,20 @@ async function loadQueue() {
       </div>
     `);
     card.querySelector('.next-action').appendChild(nextActionControl(b));
+
+    card.querySelector('.cancel-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      const n = b.assignedCount || 0;
+      if (!confirm(`Cancel booking ${b.id}?\nThis deletes its jobs and releases ${n} assigned bin${n === 1 ? '' : 's'} back to inventory.`)) return;
+      try {
+        const res = await api.post(`/bookings/${b.id}/cancel`, {});
+        toast(`Booking cancelled — ${res.releasedBins} bin${res.releasedBins === 1 ? '' : 's'} released`);
+        loadQueue();
+        loadStats();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    });
 
     // Nested jobs for this booking (open first, then a collapsed Done set).
     const jobsBox = card.querySelector('.booking-jobs');
@@ -488,7 +502,7 @@ async function searchBin() {
     const rows = movements
       .map(
         (m) => `<li>
-          <div>${esc(m.from_status || '(unassigned)')} → <strong>${esc(m.to_status)}</strong>
+          <div>${esc(m.from_status || '(unassigned)')} → <strong>${esc(m.to_status || '(released — booking cancelled)')}</strong>
             ${m.location ? `<span class="muted">@ ${esc(m.location.barcode)}</span>` : ''}
             <span class="status-pill">${esc(m.actor)}</span></div>
           <div class="ts">${new Date(m.ts).toLocaleString()}</div>
