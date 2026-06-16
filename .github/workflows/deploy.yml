@@ -1,0 +1,37 @@
+# Reliable production deploys: every push to main pings a Vercel Deploy Hook so a
+# build is triggered even when the GitHub<->Vercel webhook doesn't fire on its
+# own (e.g. some squash-merges). This removes the manual "empty trigger commit"
+# step.
+#
+# Setup (one-time):
+#   1. Vercel -> Project -> Settings -> Git -> Deploy Hooks: create a hook for
+#      the `main` branch and copy its URL.
+#   2. GitHub -> repo Settings -> Secrets and variables -> Actions: add a secret
+#      named VERCEL_DEPLOY_HOOK with that URL.
+# Until the secret is set, this job is a harmless no-op.
+
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  trigger-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel production deploy
+        env:
+          DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "VERCEL_DEPLOY_HOOK secret not set — skipping. See workflow header for setup."
+            exit 0
+          fi
+          echo "Pinging Vercel deploy hook..."
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$DEPLOY_HOOK")
+          echo "Deploy hook responded with HTTP $code"
+          case "$code" in
+            2*) echo "Deploy triggered." ;;
+            *) echo "Deploy hook failed (HTTP $code)"; exit 1 ;;
+          esac

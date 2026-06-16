@@ -15,11 +15,21 @@ import {
   requireRole,
   ROLES,
 } from '../auth.js';
+import { rateLimit, clientIp } from '../ratelimit.js';
 
 const router = Router();
 
+// Throttle login attempts to blunt brute-force / credential-spray against the
+// staff accounts. Keyed by IP + submitted email so one IP can't spray many
+// accounts and one account can't be hammered from one IP. Tunable via env.
+const loginLimiter = rateLimit({
+  windowMs: Number(process.env.LOGIN_RATE_WINDOW_MS || 15 * 60 * 1000),
+  max: Number(process.env.LOGIN_RATE_MAX || 10),
+  keyFn: (req) => `${clientIp(req)}|${String(req.body?.email || '').toLowerCase()}`,
+});
+
 // POST /api/auth/login { email, password } — public.
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
