@@ -4,10 +4,9 @@
 const SKUS = [
   { key: 'bin', label: 'Standard bin', price: 15, desc: '80 L tote — books, clothes, kitchenware' },
   { key: 'wardrobe', label: 'Wardrobe box', price: 25, desc: 'Hanging garments stay crease-free' },
-  { key: 'odd', label: 'Odd / bulky item', price: 20, desc: 'Bikes, skis, anything awkward' },
 ];
 
-const counts = { bin: 0, wardrobe: 0, odd: 0 };
+const counts = { bin: 0, wardrobe: 0 };
 let chosenArea = null;
 let chosenSlot = null;
 
