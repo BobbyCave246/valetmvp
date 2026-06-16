@@ -142,6 +142,27 @@
     .price-amt small { font-size: 14px; font-weight: 500; color: var(--muted); }
     .price-card .btn { margin: 0 22px 22px; }
 
+    /* delivery & collection fees */
+    .fees {
+      max-width: 760px; margin: 28px 0 0; background: #fff;
+      border: 1px solid var(--line); border-radius: 20px; padding: 8px 24px 12px;
+      box-shadow: var(--shadow);
+    }
+    .fees-title { font-size: 15px; font-weight: 700; letter-spacing: -.01em; margin: 16px 0 4px; }
+    .fees-list { list-style: none; margin: 0; padding: 0; }
+    .fee { display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+    .fee:last-child { border-bottom: none; }
+    .fee-ico {
+      width: 40px; height: 40px; flex: none; border-radius: 12px; background: var(--cream-2);
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .fee-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+    .fee-text strong { font-size: 15px; font-weight: 600; }
+    .fee-text small { font-size: 13px; color: var(--muted); }
+    .fee-amt { font-size: 18px; font-weight: 800; letter-spacing: -.02em; white-space: nowrap; }
+    .fee-amt small { font-size: 13px; font-weight: 500; color: var(--muted); }
+    .fee-amt.free { color: #2f7d32; }
+
     /* why us */
     .why-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
     .why-item .why-ico { width: 44px; height: 44px; border-radius: 12px; background: var(--cream-2); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; color: var(--clay); }
@@ -330,8 +351,9 @@
     <section id="pricing" class="pricing">
       <div class="wrap">
         <div class="section-head">
-          <h2>Simple, per-bin pricing</h2>
-          <p>Pick what you need — pay per bin, per month. No deposits, no long contracts.</p>
+          <h2>Simple, transparent pricing</h2>
+          <p>Pay per bin, per month for storage — plus a flat delivery fee only when
+            you want bins brought back. No deposits, no long contracts.</p>
         </div>
         <div class="price-grid">
           <div class="price-card">
@@ -339,7 +361,7 @@
             <div class="price-body">
               <h3>Standard bin</h3>
               <p>80 L tote — books, clothes, kitchenware.</p>
-              <div class="price-amt">£15<small> / month</small></div>
+              <div class="price-amt">$15<small> / month</small></div>
             </div>
             <a class="btn btn-primary" href="/booking/book.html">Book this</a>
           </div>
@@ -348,10 +370,40 @@
             <div class="price-body">
               <h3>Wardrobe box</h3>
               <p>Hanging garments stay crease-free.</p>
-              <div class="price-amt">£25<small> / month</small></div>
+              <div class="price-amt">$25<small> / month</small></div>
             </div>
             <a class="btn btn-primary" href="/booking/book.html">Book this</a>
           </div>
+        </div>
+
+        <div class="fees">
+          <h3 class="fees-title">Delivery &amp; collection</h3>
+          <ul class="fees-list">
+            <li class="fee">
+              <span class="fee-ico">🚪</span>
+              <span class="fee-text">
+                <strong>Drop-off of empty bins</strong>
+                <small>We bring your empty bins to your door.</small>
+              </span>
+              <span class="fee-amt free">Free</span>
+            </li>
+            <li class="fee">
+              <span class="fee-ico">🚚</span>
+              <span class="fee-text">
+                <strong>Pick-up of filled bins</strong>
+                <small>We collect your packed bins for storage.</small>
+              </span>
+              <span class="fee-amt free">Free</span>
+            </li>
+            <li class="fee">
+              <span class="fee-ico">📦</span>
+              <span class="fee-text">
+                <strong>Delivery back to you</strong>
+                <small>Request stored bins back whenever you need them.</small>
+              </span>
+              <span class="fee-amt">$30<small> / delivery</small></span>
+            </li>
+          </ul>
         </div>
       </div>
     </section>
