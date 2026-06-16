@@ -151,12 +151,28 @@ export function requireRole(...roles) {
 
 export async function seedStarterUsers() {
   const starters = [
-    { role: 'admin', email: process.env.SEED_ADMIN_EMAIL || 'admin@valet.local', password: process.env.SEED_ADMIN_PASSWORD || 'admin1234', name: 'Admin' },
-    { role: 'driver', email: process.env.SEED_DRIVER_EMAIL || 'driver@valet.local', password: process.env.SEED_DRIVER_PASSWORD || 'driver1234', name: 'Driver' },
-    { role: 'warehouse', email: process.env.SEED_WAREHOUSE_EMAIL || 'warehouse@valet.local', password: process.env.SEED_WAREHOUSE_PASSWORD || 'warehouse1234', name: 'Warehouse' },
+    { role: 'admin', email: process.env.SEED_ADMIN_EMAIL || 'admin@valet.local', password: process.env.SEED_ADMIN_PASSWORD, fallback: 'admin1234', name: 'Admin' },
+    { role: 'driver', email: process.env.SEED_DRIVER_EMAIL || 'driver@valet.local', password: process.env.SEED_DRIVER_PASSWORD, fallback: 'driver1234', name: 'Driver' },
+    { role: 'warehouse', email: process.env.SEED_WAREHOUSE_EMAIL || 'warehouse@valet.local', password: process.env.SEED_WAREHOUSE_PASSWORD, fallback: 'warehouse1234', name: 'Warehouse' },
   ];
+
+  // Guard against shipping the well-known default passwords to production.
+  // Default behaviour is a loud warning (so an existing deploy keeps working);
+  // set SEED_STRICT=1 to hard-fail boot until real passwords are supplied.
+  const usingDefaults = starters.filter((s) => !s.password).map((s) => s.role);
+  if (isProd && usingDefaults.length) {
+    const msg =
+      `Insecure default staff password(s) in use for: ${usingDefaults.join(', ')}. ` +
+      'Set SEED_ADMIN_PASSWORD / SEED_DRIVER_PASSWORD / SEED_WAREHOUSE_PASSWORD ' +
+      '(strong values) as environment variables.';
+    if (process.env.SEED_STRICT === '1') {
+      throw new Error(`[SECURITY] ${msg} (SEED_STRICT=1 refuses to boot.)`);
+    }
+    console.warn(`\n⚠️  [SECURITY WARNING] ${msg}\n`);
+  }
+
   for (const s of starters) {
     if (await getUserByEmail(s.email)) continue; // already seeded
-    await createUser({ email: s.email, passwordHash: await hashPassword(s.password), role: s.role, name: s.name });
+    await createUser({ email: s.email, passwordHash: await hashPassword(s.password || s.fallback), role: s.role, name: s.name });
   }
 }
