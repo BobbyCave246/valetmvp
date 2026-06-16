@@ -86,7 +86,7 @@ function renderSkus() {
     row.className = 'sku-row';
     row.innerHTML = `
       <div>
-        <div><strong>${sku.label}</strong> <span class="price">£${sku.price}/mo</span></div>
+        <div><strong>${sku.label}</strong> <span class="price">$${sku.price}/mo</span></div>
         <div class="muted">${sku.desc}</div>
       </div>
       <div class="stepper">
@@ -109,7 +109,7 @@ function renderSkus() {
 
 function updateTotal() {
   const total = SKUS.reduce((sum, s) => sum + counts[s.key] * s.price, 0);
-  $('#total').textContent = `£${total}`;
+  $('#total').textContent = `$${total}`;
 }
 
 // ---- delivery date + window -------------------------------------------------
