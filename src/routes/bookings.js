@@ -27,6 +27,7 @@ import { deriveBookingSummary, deriveNextAction } from '../summary.js';
 import { isCovered } from '../coverage.js';
 import { validateDateSlot, validateFutureDate, SLOT_CAPACITY } from '../slots.js';
 import { safeParse, VALID_SKUS } from '../util.js';
+import { sendBookingConfirmation } from '../notify.js';
 
 const router = Router();
 
@@ -112,6 +113,11 @@ router.post('/', async (req, res) => {
       await deleteBooking(booking.id);
       throw err;
     }
+
+    // Fire the confirmation email without blocking the response. notify is
+    // self-contained: it no-ops if email isn't configured and never throws, so
+    // a mail problem can't fail an otherwise-successful booking.
+    void sendBookingConfirmation({ booking, customer, skuBreakdown });
 
     res.status(201).json({ booking, customer, job });
   } catch (err) {
