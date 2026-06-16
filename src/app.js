@@ -17,7 +17,7 @@ import adminRouter from './routes/admin.js';
 import statsRouter from './routes/stats.js';
 import intakeRouter from './routes/intake.js';
 import authRouter from './routes/auth.js';
-import { ensureSchema } from './db.js';
+import { ensureSchema, pingDb } from './db.js';
 import { seedIfEmpty } from './seed.js';
 import { seedStarterUsers } from './auth.js';
 
@@ -31,13 +31,40 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const dbReady = ensureSchema()
   .then(() => seedIfEmpty())
   .then(() => seedStarterUsers());
+// Attach a no-op rejection handler so an init failure (e.g. DB unreachable at
+// startup) doesn't surface as an unhandledRejection before the first /api
+// request awaits it. The /api gate still awaits `dbReady` and re-throws.
+dbReady.catch(() => {});
 
 const app = express();
+// Behind Vercel's proxy — trust X-Forwarded-* so req.ip and protocol are right.
+app.set('trust proxy', true);
 // Raised from the ~100kb default so contents-photo data URLs fit (the client
 // downscales to a small thumbnail, so payloads stay well under this).
 app.use(express.json({ limit: '5mb' }));
 
-// Gate API requests on the DB being ready.
+// Concise request logging: one line per request on completion. Method, path,
+// status and duration only — never bodies (they can carry passwords / PII).
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    console.log(`${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - start}ms`);
+  });
+  next();
+});
+
+// Health probe — defined BEFORE the readiness gate so it reports true status
+// (including DB reachability) instead of hanging or 500-ing when the DB is down.
+app.get('/api/health', async (_req, res) => {
+  try {
+    await pingDb();
+    res.json({ ok: true, db: 'up' });
+  } catch (err) {
+    res.status(503).json({ ok: false, db: 'down', error: err.message });
+  }
+});
+
+// Gate the rest of the API on one-time init (schema + seed) being ready.
 app.use('/api', async (_req, res, next) => {
   try {
     await dbReady;
@@ -56,8 +83,6 @@ app.use('/api/admin', adminRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api', intakeRouter); // /serviceability, /availability, /leads
-
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 // --- Static frontends --------------------------------------------------------
 // On Vercel the files under public/ are also served directly by the CDN; this

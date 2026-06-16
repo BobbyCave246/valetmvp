@@ -111,11 +111,52 @@ CREATE TABLE IF NOT EXISTS users (
 ALTER TABLE bookings  ADD COLUMN IF NOT EXISTS delivery_slot  TEXT;
 ALTER TABLE jobs      ADD COLUMN IF NOT EXISTS scheduled_slot TEXT;
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS postcode       TEXT;
+
+-- Data-integrity constraints. Added idempotently and defensively: a constraint
+-- that already exists is silently skipped, and a constraint that pre-existing
+-- rows would violate degrades to a logged WARNING rather than crashing startup.
+DO $$ BEGIN
+  ALTER TABLE bins ADD CONSTRAINT bins_sku_type_chk
+    CHECK (sku_type IS NULL OR sku_type IN ('bin','wardrobe','odd'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+          WHEN others THEN RAISE WARNING 'skipped bins_sku_type_chk: %', SQLERRM;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE bookings ADD CONSTRAINT bookings_bin_count_chk
+    CHECK (bin_count IS NULL OR bin_count >= 0);
+EXCEPTION WHEN duplicate_object THEN NULL;
+          WHEN others THEN RAISE WARNING 'skipped bookings_bin_count_chk: %', SQLERRM;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE users ADD CONSTRAINT users_role_chk
+    CHECK (role IN ('admin','warehouse','driver'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+          WHEN others THEN RAISE WARNING 'skipped users_role_chk: %', SQLERRM;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE locations ADD CONSTRAINT locations_occupied_chk
+    CHECK (occupied IN (0,1));
+EXCEPTION WHEN duplicate_object THEN NULL;
+          WHEN others THEN RAISE WARNING 'skipped locations_occupied_chk: %', SQLERRM;
+END $$;
+-- At most one bin may occupy a given rack location: a DB-level backstop for the
+-- app's row-locked occupancy check in transitions.js.
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS bins_one_per_location
+    ON bins (location_id) WHERE location_id IS NOT NULL;
+EXCEPTION WHEN others THEN RAISE WARNING 'skipped bins_one_per_location: %', SQLERRM;
+END $$;
 `;
 
 // Run once on startup (idempotent). app.js awaits this before serving.
 export async function ensureSchema() {
   await sql.unsafe(SCHEMA_DDL);
+}
+
+// Lightweight liveness probe for the health endpoint — confirms the pool can
+// actually reach Postgres (a cheap round-trip), not just that the app booted.
+export async function pingDb() {
+  await sql`SELECT 1`;
 }
 
 // ----- customers -------------------------------------------------------------
