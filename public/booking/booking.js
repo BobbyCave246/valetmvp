@@ -426,7 +426,7 @@ const ref = params.get('ref');
 if (ref) {
   $('#lookup').value = ref;
   if (params.get('new') === '1') {
-    $('#confirmBanner').innerHTML = `<div class="banner">✅ Booking confirmed! Reference <code>${esc(ref)}</code>. We'll deliver your empty bins on the chosen date.</div>`;
+    $('#confirmBanner').innerHTML = `<div class="banner">✅ Booking confirmed! Reference <code>${esc(ref)}</code>. We'll deliver your empty bins on the chosen date.<br><span class="muted">Drop-off and collection are free — a flat $30 per delivery applies only when you request stored bins back.</span></div>`;
   }
   loadByRef(ref);
 }
