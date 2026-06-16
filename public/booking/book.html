@@ -20,7 +20,7 @@
       <h2>Where are you?</h2>
       <p class="muted">Let's check we deliver to your area.</p>
       <label for="area">Your area</label>
-      <select id="area"></select>
+      <select id="area" required aria-required="true"></select>
       <div style="margin-top:14px;">
         <button class="btn" id="areaContinue">Continue</button>
       </div>
@@ -28,7 +28,7 @@
       <div id="waitlist" style="display:none; margin-top:18px;">
         <p class="muted">We're not in your area just yet — leave your email and we'll let you know when we are.</p>
         <label for="leadEmail">Email</label>
-        <input type="text" id="leadEmail" placeholder="you@example.com" />
+        <input type="email" id="leadEmail" placeholder="you@example.com" autocomplete="email" />
         <div style="margin-top:12px;">
           <button class="btn ghost" id="leadSubmit">Join the waitlist</button>
         </div>
@@ -55,25 +55,25 @@
     <div class="card">
       <h3 style="margin-top:0;">Delivery & contact</h3>
       <label for="deliveryDate">Delivery date for empty bins</label>
-      <input type="date" id="deliveryDate" />
+      <input type="date" id="deliveryDate" required aria-required="true" />
 
-      <label>Delivery window</label>
-      <div id="slotList" class="muted">Pick a date to see available windows.</div>
+      <label id="slotLabel">Delivery window</label>
+      <div id="slotList" class="muted" role="group" aria-labelledby="slotLabel">Pick a date to see available windows.</div>
 
       <label for="name">Name</label>
-      <input type="text" id="name" placeholder="Your name" />
+      <input type="text" id="name" placeholder="Your name" autocomplete="name" required aria-required="true" />
 
       <label for="phone">Phone</label>
-      <input type="text" id="phone" placeholder="555-0123" />
+      <input type="tel" id="phone" placeholder="555-0123" inputmode="tel" autocomplete="tel" required aria-required="true" />
 
       <label for="email">Email</label>
-      <input type="text" id="email" placeholder="you@example.com" />
+      <input type="email" id="email" placeholder="you@example.com" autocomplete="email" required aria-required="true" />
 
       <label for="village">Village</label>
-      <select id="village"></select>
+      <select id="village" required aria-required="true"></select>
 
       <label for="houseNo">House / lot number</label>
-      <input type="text" id="houseNo" placeholder="e.g. 247" />
+      <input type="text" id="houseNo" placeholder="e.g. 247" autocomplete="address-line2" required aria-required="true" />
 
       <div style="margin-top:18px;">
         <button class="btn" id="submitBtn">Create booking</button>
@@ -81,7 +81,7 @@
     </div>
     </div><!-- /#bookingForm -->
   </main>
-  <div id="toast"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
   <script src="/shared/esc.js"></script>
   <script src="book.js"></script>
 </body>

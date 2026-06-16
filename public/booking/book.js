@@ -90,9 +90,9 @@ function renderSkus() {
         <div class="muted">${sku.desc}</div>
       </div>
       <div class="stepper">
-        <button data-act="dec" data-sku="${sku.key}">−</button>
-        <span id="count-${sku.key}">0</span>
-        <button data-act="inc" data-sku="${sku.key}">+</button>
+        <button type="button" data-act="dec" data-sku="${sku.key}" aria-label="Remove one ${sku.label}">−</button>
+        <span id="count-${sku.key}" aria-live="polite" aria-label="${sku.label} quantity">0</span>
+        <button type="button" data-act="inc" data-sku="${sku.key}" aria-label="Add one ${sku.label}">+</button>
       </div>`;
     box.appendChild(row);
   });
@@ -131,11 +131,16 @@ async function loadSlots() {
       chip.type = 'button';
       chip.className = 'slot-chip' + (s.available ? '' : ' full');
       chip.disabled = !s.available;
+      chip.setAttribute('aria-pressed', 'false');
       chip.textContent = s.available ? s.label : `${s.label} — Full`;
       chip.addEventListener('click', () => {
         chosenSlot = s.key;
-        box.querySelectorAll('.slot-chip').forEach((c) => c.classList.remove('selected'));
+        box.querySelectorAll('.slot-chip').forEach((c) => {
+          c.classList.remove('selected');
+          c.setAttribute('aria-pressed', 'false');
+        });
         chip.classList.add('selected');
+        chip.setAttribute('aria-pressed', 'true');
       });
       box.appendChild(chip);
     });
@@ -148,22 +153,32 @@ async function loadSlots() {
 $('#deliveryDate').addEventListener('change', loadSlots);
 
 // ---- submit -----------------------------------------------------------------
+// Report a validation problem: announce via toast and move focus to the field
+// so keyboard/screen-reader users land on what needs fixing.
+function fail(msg, selector) {
+  toast(msg, true);
+  if (selector) $(selector)?.focus();
+  return false;
+}
+
 $('#submitBtn').addEventListener('click', async () => {
   const skuBreakdown = {};
   for (const k of Object.keys(counts)) if (counts[k] > 0) skuBreakdown[k] = counts[k];
 
-  if (!chosenArea) return toast('Confirm your area first', true);
-  if (Object.keys(skuBreakdown).length === 0) return toast('Add at least one bin', true);
-  if (!$('#deliveryDate').value) return toast('Pick a delivery date', true);
-  if (!chosenSlot) return toast('Pick a delivery window', true);
+  if (!chosenArea) return fail('Confirm your area first', '#area');
+  if (Object.keys(skuBreakdown).length === 0) return fail('Add at least one bin', '#skuList button[data-act="inc"]');
+  if (!$('#deliveryDate').value) return fail('Pick a delivery date', '#deliveryDate');
+  if (!chosenSlot) return fail('Pick a delivery window', '#slotList button:not(:disabled)');
 
   // Structured address: village + house/lot number (no free-text street —
   // Coverley has no public address dataset to validate against, so we capture
   // structure instead).
   const village = $('#village').value;
   const houseNo = $('#houseNo').value.trim();
-  if (!village) return toast('Select your village', true);
-  if (!houseNo) return toast('Enter your house / lot number', true);
+  if (!$('#name').value.trim()) return fail('Enter your name', '#name');
+  if (!$('#phone').value.trim()) return fail('Enter your phone number', '#phone');
+  if (!village) return fail('Select your village', '#village');
+  if (!houseNo) return fail('Enter your house / lot number', '#houseNo');
 
   const payload = {
     name: $('#name').value.trim(),
