@@ -1,5 +1,5 @@
 // Integration tests for booking-level request-return (atomic multi-bin retrieval).
-import { test, before, after } from 'node:test';
+import { test, before, after, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 const RUN = process.env.RUN_DB_TESTS === '1';
@@ -61,39 +61,41 @@ async function makeBooking() {
   return { customer, booking };
 }
 
-test('performRequestReturn transitions all bins and creates one deliver_back job', { skip: !RUN }, async () => {
-  const { customer, booking } = await makeBooking();
-  const b1 = await storedBinOnBooking(booking.id, customer.id);
-  const b2 = await storedBinOnBooking(booking.id, customer.id);
+describe('request-return integration', { concurrency: 1 }, () => {
+  test('performRequestReturn transitions all bins and creates one deliver_back job', { skip: !RUN }, async () => {
+    const { customer, booking } = await makeBooking();
+    const b1 = await storedBinOnBooking(booking.id, customer.id);
+    const b2 = await storedBinOnBooking(booking.id, customer.id);
 
-  const job = await performRequestReturn(booking, [b1.id, b2.id], '2999-06-01');
-  assert.equal(job.type, 'deliver_back');
+    const job = await performRequestReturn(booking, [b1.id, b2.id], '2999-06-01');
+    assert.equal(job.type, 'deliver_back');
 
-  const bins = await db.listBinsForBooking(booking.id);
-  assert.ok(bins.every((b) => b.status === STATUS.RETRIEVAL_REQUESTED));
+    const bins = await db.listBinsForBooking(booking.id);
+    assert.ok(bins.every((b) => b.status === STATUS.RETRIEVAL_REQUESTED));
 
-  const jobs = (await db.listJobsForBooking(booking.id)).filter(
-    (j) => j.type === 'deliver_back' && j.status === 'Scheduled'
-  );
-  assert.equal(jobs.length, 1);
-  const binIds = JSON.parse(jobs[0].bin_ids);
-  assert.deepEqual(new Set(binIds), new Set([b1.id, b2.id]));
-});
-
-test('performRequestReturn rejects non-Stored bins before any transition', { skip: !RUN }, async () => {
-  const { customer, booking } = await makeBooking();
-  const stored = await storedBinOnBooking(booking.id, customer.id);
-  const bin2 = await db.createBin({ barcode: bc(), skuType: 'bin' });
-  await tx.transitionBin(bin2.id, STATUS.ASSIGNED, {
-    actor: 'admin',
-    binFields: { customer_id: customer.id, booking_id: booking.id },
+    const jobs = (await db.listJobsForBooking(booking.id)).filter(
+      (j) => j.type === 'deliver_back' && j.status === 'Scheduled'
+    );
+    assert.equal(jobs.length, 1);
+    const binIds = JSON.parse(jobs[0].bin_ids);
+    assert.deepEqual(new Set(binIds), new Set([b1.id, b2.id]));
   });
 
-  await assert.rejects(
-    () => performRequestReturn(booking, [stored.id, bin2.id], '2999-06-01'),
-    (e) => e.status === 409
-  );
+  test('performRequestReturn rejects non-Stored bins before any transition', { skip: !RUN }, async () => {
+    const { customer, booking } = await makeBooking();
+    const stored = await storedBinOnBooking(booking.id, customer.id);
+    const bin2 = await db.createBin({ barcode: bc(), skuType: 'bin' });
+    await tx.transitionBin(bin2.id, STATUS.ASSIGNED, {
+      actor: 'admin',
+      binFields: { customer_id: customer.id, booking_id: booking.id },
+    });
 
-  const refreshed = await db.getBin(stored.id);
-  assert.equal(refreshed.status, STATUS.STORED);
+    await assert.rejects(
+      () => performRequestReturn(booking, [stored.id, bin2.id], '2999-06-01'),
+      (e) => e.status === 409
+    );
+
+    const refreshed = await db.getBin(stored.id);
+    assert.equal(refreshed.status, STATUS.STORED);
+  });
 });

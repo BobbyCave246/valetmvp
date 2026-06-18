@@ -361,9 +361,10 @@ router.post('/:id/request-return', async (req, res) => {
 // Booking-level retrieval: transitions all requested Stored bins and creates or
 // reschedules a single deliver_back job. Exported for integration tests.
 export async function performRequestReturn(booking, binIds, deliveryBackDate) {
+  const sortedBinIds = [...binIds].sort();
   const bookingBins = await listBinsForBooking(booking.id);
   const byId = new Map(bookingBins.map((b) => [b.id, b]));
-  for (const id of binIds) {
+  for (const id of sortedBinIds) {
     const bin = byId.get(id);
     if (!bin) {
       throw Object.assign(new Error(`Bin ${id} does not belong to this booking`), { status: 409 });
@@ -377,7 +378,7 @@ export async function performRequestReturn(booking, binIds, deliveryBackDate) {
   }
 
   return sql.begin(async (tx) => {
-    for (const id of binIds) {
+    for (const id of sortedBinIds) {
       await transitionBinInTx(tx, id, STATUS.RETRIEVAL_REQUESTED, { actor: 'customer' });
     }
 
