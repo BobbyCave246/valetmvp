@@ -16,7 +16,7 @@ import {
   listMovementsForBin,
 } from '../db.js';
 import { transitionBin, STATUS } from '../transitions.js';
-import { validateFutureDate } from '../slots.js';
+import { validateFutureDate, SLOTS } from '../slots.js';
 import { VALID_SKUS } from '../util.js';
 import { requireAuth, requireRole } from '../auth.js';
 
@@ -123,14 +123,17 @@ router.post('/:barcode/scan-out', warehouse, async (req, res) => {
 });
 
 // POST /api/bins/:id/request-return — customer retrieval request (+deliver_back job).
-// Accepts a bin id or barcode. Body: { deliveryBackDate }.
+// Accepts a bin id or barcode. Body: { deliveryBackDate, deliveryBackSlot? }.
 router.post('/:id/request-return', async (req, res) => {
   const bin = (await getBin(req.params.id)) || (await getBinByBarcode(req.params.id));
   if (!bin) return res.status(404).json({ error: 'Bin not found' });
 
-  const { deliveryBackDate } = req.body || {};
+  const { deliveryBackDate, deliveryBackSlot } = req.body || {};
   const dateErr = validateFutureDate(deliveryBackDate);
   if (dateErr) return res.status(400).json({ error: dateErr });
+  if (deliveryBackSlot && !SLOTS.some((s) => s.key === deliveryBackSlot)) {
+    return res.status(400).json({ error: 'A valid delivery window is required' });
+  }
 
   try {
     const updated = await transitionBin(bin.id, STATUS.RETRIEVAL_REQUESTED, { actor: 'customer' });
@@ -138,6 +141,7 @@ router.post('/:id/request-return', async (req, res) => {
       bookingId: bin.booking_id,
       type: 'deliver_back',
       scheduledDate: deliveryBackDate,
+      scheduledSlot: deliveryBackSlot || null,
       binIds: [bin.id],
     });
     res.json({ bin: updated, job });
@@ -160,16 +164,20 @@ router.post('/:id/request-restore', async (req, res) => {
       .json({ error: `Only a "${STATUS.RETURNED_TO_CUSTOMER}" bin can be re-stored` });
   }
 
-  const { collectionDate } = req.body || {};
+  const { collectionDate, collectionSlot } = req.body || {};
   // Required: a null-dated job would land on the board with no dispatch date.
   const dateErr = validateFutureDate(collectionDate);
   if (dateErr) return res.status(400).json({ error: dateErr });
+  if (collectionSlot && !SLOTS.some((s) => s.key === collectionSlot)) {
+    return res.status(400).json({ error: 'A valid collection window is required' });
+  }
 
   try {
     const job = await createJob({
       bookingId: bin.booking_id,
       type: 'collect_full',
       scheduledDate: collectionDate,
+      scheduledSlot: collectionSlot || null,
       binIds: [bin.id],
     });
     res.json({ bin, job });

@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Valet — Admin / Warehouse Console</title>
+  <title>Store All Valet — Admin Console</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header>
-    <h1>🗄️ Store All Valet — Admin / Warehouse</h1>
+    <h1>🗄️ Store All Valet — Admin console</h1>
     <span class="spacer"></span>
     <span class="live-dot" title="Boards auto-refresh every few seconds">● live</span>
-    <a href="/booking/" style="color:var(--muted);font-size:13px;">Booking site ↗</a>
-    <a href="/guide/" style="color:var(--muted);font-size:13px;">Flow guide ↗</a>
-    <button class="btn danger" id="resetBtn">Reset demo</button>
+    <a href="/booking/" class="header-link">Booking site ↗</a>
+    <a href="/driver/" class="header-link">Driver app ↗</a>
+    <a href="/warehouse/" class="header-link">Warehouse app ↗</a>
+    <a href="/guide/" class="header-link">Flow guide ↗</a>
   </header>
 
   <nav>
@@ -21,19 +22,37 @@
     <button data-tab="assign">Assign bins</button>
     <button data-tab="warehouse">Warehouse scan</button>
     <button data-tab="explorer">Bin explorer</button>
+    <button data-tab="leads">Leads</button>
+    <button data-tab="settings">Settings</button>
     <button data-tab="staff">Staff</button>
   </nav>
 
   <div id="statsBar"></div>
 
   <main>
-    <!-- BOOKINGS & JOBS -->
     <section class="tab active" id="tab-queue">
       <h2>Bookings &amp; jobs</h2>
+      <div class="queue-toolbar card">
+        <input type="search" id="queueSearch" placeholder="Search name, phone, ref, barcode…" />
+        <div class="filter-chips" id="queueFilters">
+          <button type="button" class="chip-filter active" data-filter="all">All</button>
+          <button type="button" class="chip-filter" data-filter="assign">Needs assignment</button>
+          <button type="button" class="chip-filter" data-filter="wait">Awaiting customer</button>
+          <button type="button" class="chip-filter" data-filter="jobs">Scheduled jobs</button>
+          <button type="button" class="chip-filter" data-filter="stored">Stored</button>
+          <button type="button" class="chip-filter" data-filter="done">Complete</button>
+        </div>
+        <label class="inline-label">Sort
+          <select id="queueSort">
+            <option value="delivery">Delivery date</option>
+            <option value="urgency">Next action</option>
+            <option value="newest">Newest first</option>
+          </select>
+        </label>
+      </div>
       <div id="queueList"></div>
     </section>
 
-    <!-- ASSIGN -->
     <section class="tab" id="tab-assign">
       <h2>Assign bins to a booking</h2>
       <div class="card">
@@ -60,9 +79,25 @@
       </div>
     </section>
 
-    <!-- WAREHOUSE -->
     <section class="tab" id="tab-warehouse">
       <h2>Warehouse scan</h2>
+      <div class="card">
+        <h3 style="margin-top:0;font-size:15px;">Add new bins to inventory</h3>
+        <p class="muted">Register newly purchased bins before assigning them to bookings.</p>
+        <label>Barcode</label>
+        <div class="flex">
+          <input type="text" id="intakeBarcode" placeholder="BIN1020" />
+          <button class="btn ghost scan-btn" data-target="intakeBarcode">📷 Scan</button>
+        </div>
+        <label>SKU type</label>
+        <select id="intakeSku">
+          <option value="bin">Standard bin</option>
+          <option value="wardrobe">Wardrobe box</option>
+        </select>
+        <div style="margin-top:14px;">
+          <button class="btn green" id="intakeSubmit">Add bin</button>
+        </div>
+      </div>
       <div class="card">
         <h3 style="margin-top:0;font-size:15px;">Put-away (scan bin → scan location)</h3>
         <label>Bin barcode</label>
@@ -95,7 +130,6 @@
       </div>
     </section>
 
-    <!-- EXPLORER -->
     <section class="tab" id="tab-explorer">
       <h2>Bin explorer — chain of custody</h2>
       <div class="card">
@@ -108,12 +142,30 @@
       </div>
     </section>
 
-    <!-- STAFF -->
+    <section class="tab" id="tab-leads">
+      <h2>Waitlist leads</h2>
+      <div class="card">
+        <div class="flex" style="justify-content:space-between;">
+          <p class="muted" style="margin:0;">Out-of-area signups from the booking site.</p>
+          <button class="btn ghost" id="leadsExport">Export CSV</button>
+        </div>
+        <div id="leadsList" style="margin-top:14px;"></div>
+      </div>
+    </section>
+
+    <section class="tab" id="tab-settings">
+      <h2>Operational settings</h2>
+      <div class="card">
+        <p class="muted">Read-only view of environment configuration. Change these via server env vars and redeploy.</p>
+        <div id="settingsPanel"></div>
+      </div>
+    </section>
+
     <section class="tab" id="tab-staff">
       <h2>Staff accounts</h2>
       <div class="card">
         <h3 style="margin-top:0;font-size:15px;">Add a staff member</h3>
-        <p class="muted">They sign in at <code>/login</code>. Roles can only be set here — never self-selected. Ask new staff to change their temporary password.</p>
+        <p class="muted">They sign in at <code>/login</code>. Share temporary credentials securely and ask them to change their password.</p>
         <label>Email</label>
         <input type="email" id="staffEmail" placeholder="name@valet.local" />
         <label>Name</label>
@@ -125,7 +177,10 @@
           <option value="admin">Admin</option>
         </select>
         <label>Temporary password</label>
-        <input type="text" id="staffPassword" placeholder="at least 8 characters" />
+        <div class="flex">
+          <input type="password" id="staffPassword" placeholder="at least 8 characters" style="flex:1;" />
+          <button type="button" class="btn ghost" id="staffPwToggle">Show</button>
+        </div>
         <div style="margin-top:14px;">
           <button class="btn" id="staffCreate">Create staff account</button>
         </div>
@@ -133,6 +188,11 @@
       <div class="card">
         <h3 style="margin-top:0;font-size:15px;">Current staff</h3>
         <div id="staffList"></div>
+      </div>
+      <div class="card danger-zone">
+        <h3 style="margin-top:0;font-size:15px;">Demo reset</h3>
+        <p class="muted">Wipe all operational data and re-seed the demo. Staff accounts are preserved.</p>
+        <button class="btn danger" id="resetBtn">Reset demo data</button>
       </div>
     </section>
   </main>

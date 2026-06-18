@@ -9,6 +9,8 @@ const SKUS = [
 const counts = { bin: 0, wardrobe: 0 };
 let chosenArea = null;
 let chosenSlot = null;
+let earliestDate = null;
+let leadDays = 1;
 
 const $ = (s) => document.querySelector(s);
 
@@ -37,7 +39,13 @@ const OTHER = '__other__';
 async function loadAreas() {
   const sel = $('#area');
   sel.innerHTML = '<option value="" disabled selected>Loading areas…</option>';
-  const { areas, villages } = await api('GET', '/serviceability');
+  const data = await api('GET', '/serviceability');
+  const { areas, villages } = data;
+  if (data.earliestDate) {
+    earliestDate = data.earliestDate;
+    $('#deliveryDate').min = earliestDate;
+  }
+  if (data.leadDays != null) leadDays = data.leadDays;
   sel.innerHTML =
     '<option value="" disabled selected>Select your area…</option>' +
     areas.map((a) => `<option value="${esc(a)}">${esc(a)}</option>`).join('') +
@@ -70,8 +78,11 @@ $('#leadSubmit').addEventListener('click', async () => {
   if (!email) return toast('Enter your email', true);
   try {
     await api('POST', '/leads', { email, area: $('#area').value === OTHER ? null : $('#area').value });
-    toast("Thanks — we'll be in touch when we reach you");
-    $('#leadEmail').value = '';
+    $('#waitlist').innerHTML = `
+      <div class="waitlist-success">
+        <strong>You're on the list!</strong>
+        <p class="muted" style="margin:8px 0 0;">We'll email you when Store All Valet expands to your area. In the meantime, save our site — no account needed to book once we're nearby.</p>
+      </div>`;
   } catch (e) {
     toast(e.message, true);
   }
@@ -177,13 +188,15 @@ $('#submitBtn').addEventListener('click', async () => {
   const houseNo = $('#houseNo').value.trim();
   if (!$('#name').value.trim()) return fail('Enter your name', '#name');
   if (!$('#phone').value.trim()) return fail('Enter your phone number', '#phone');
+  const email = $('#email').value.trim();
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) return fail('Enter a valid email', '#email');
   if (!village) return fail('Select your village', '#village');
   if (!houseNo) return fail('Enter your house / lot number', '#houseNo');
 
   const payload = {
     name: $('#name').value.trim(),
     phone: $('#phone').value.trim(),
-    email: $('#email').value.trim(),
+    email,
     address: `House ${houseNo}, ${village}`,
     area: chosenArea,
     deliveryDate: $('#deliveryDate').value,
@@ -212,11 +225,17 @@ $('#submitBtn').addEventListener('click', async () => {
 });
 
 // ---- boot -------------------------------------------------------------------
-// Earliest selectable date = tomorrow (server enforces the real lead time).
-const tomorrow = new Date();
-tomorrow.setDate(tomorrow.getDate() + 1);
-$('#deliveryDate').min = tomorrow.toISOString().slice(0, 10);
+// Prefill SKU counts from ?sku= query param (landing pricing CTAs).
+const skuParam = new URLSearchParams(location.search).get('sku');
+if (skuParam === 'bin' || skuParam === 'standard') counts.bin = 1;
+if (skuParam === 'wardrobe') counts.wardrobe = 1;
 
 loadAreas().catch((e) => toast(e.message, true));
 renderSkus();
+if (skuParam) {
+  for (const sku of SKUS) {
+    const el = $(`#count-${sku.key}`);
+    if (el) el.textContent = counts[sku.key];
+  }
+}
 updateTotal();

@@ -17,15 +17,16 @@ import {
   listJobs,
   setJobBinIds,
   setJobScheduledDate,
+  setJobSchedule,
   countDeliveriesForSlot,
   createDeliveryJobIfCapacity,
   deleteBooking,
 } from '../db.js';
 import { transitionBin, cancelBooking, STATUS } from '../transitions.js';
 import { requireAuth, requireRole } from '../auth.js';
-import { deriveBookingSummary, deriveNextAction } from '../summary.js';
+import { deriveBookingSummary, deriveNextAction, deriveCustomerNextStep } from '../summary.js';
 import { isCovered } from '../coverage.js';
-import { validateDateSlot, validateFutureDate, SLOT_CAPACITY } from '../slots.js';
+import { validateDateSlot, validateFutureDate, SLOT_CAPACITY, SLOTS } from '../slots.js';
 import { safeParse, VALID_SKUS } from '../util.js';
 import { sendBookingConfirmation } from '../notify.js';
 
@@ -195,6 +196,7 @@ router.get('/:id', async (req, res) => {
     bins,
     summary,
     jobs,
+    customerNextStep: deriveCustomerNextStep(booking, bins, jobs),
   });
 });
 
@@ -285,14 +287,17 @@ router.post('/:id/auto-assign', requireAuth, requireRole('admin'), async (req, r
 // POST /api/bookings/:id/book-collection — customer schedules (or reschedules)
 // the pickup of their filled bins. Idempotent at the booking level: covers all
 // the booking's "Out for filling" bins on the chosen date.
-// Body: { collectionDate }.
+// Body: { collectionDate, collectionSlot? }.
 router.post('/:id/book-collection', async (req, res) => {
   const booking = await getBooking(req.params.id);
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
 
-  const { collectionDate } = req.body || {};
+  const { collectionDate, collectionSlot } = req.body || {};
   const dateErr = validateFutureDate(collectionDate);
   if (dateErr) return res.status(400).json({ error: dateErr });
+  if (collectionSlot && !SLOTS.some((s) => s.key === collectionSlot)) {
+    return res.status(400).json({ error: 'A valid collection window is required' });
+  }
 
   try {
     const binIds = (await listBinsForBooking(booking.id))
@@ -308,14 +313,15 @@ router.post('/:id/book-collection', async (req, res) => {
     );
     let job;
     if (existing) {
-      await setJobScheduledDate(existing.id, collectionDate);
+      await setJobSchedule(existing.id, collectionDate, collectionSlot || null);
       await setJobBinIds(existing.id, binIds);
-      job = { ...existing, scheduled_date: collectionDate, bin_ids: JSON.stringify(binIds) };
+      job = { ...existing, scheduled_date: collectionDate, scheduled_slot: collectionSlot || null, bin_ids: JSON.stringify(binIds) };
     } else {
       job = await createJob({
         bookingId: booking.id,
         type: 'collect_full',
         scheduledDate: collectionDate,
+        scheduledSlot: collectionSlot || null,
         binIds,
       });
     }

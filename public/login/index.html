@@ -4,22 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Staff sign in — Store All Valet</title>
+  <link rel="stylesheet" href="/booking/theme.css" />
   <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; background: #f8fafc; color: #0f172a;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px 24px;
-      width: 100%; max-width: 380px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    body { min-height: 100vh; background: var(--cream); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 28px 24px; width: 100%; max-width: 380px; box-shadow: var(--shadow); }
     h1 { font-size: 20px; margin: 0 0 2px; }
-    p.sub { color: #64748b; font-size: 14px; margin: 0 0 20px; }
+    p.sub { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
     label { display: block; font-size: 14px; font-weight: 600; margin: 14px 0 5px; }
-    input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 9px; font-size: 16px; }
-    button { width: 100%; margin-top: 20px; padding: 13px; border: none; border-radius: 10px;
-      background: #2563eb; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; min-height: 48px; }
-    button:disabled { opacity: .5; cursor: not-allowed; }
+    input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 9px; font-size: 16px; }
+    button[type=submit] { width: 100%; margin-top: 20px; min-height: 48px; }
     .err { color: #b91c1c; font-size: 14px; margin-top: 14px; min-height: 18px; }
-    a.book { margin-top: 22px; color: #64748b; font-size: 13px; text-decoration: none; }
+    a.book { margin-top: 22px; color: var(--muted); font-size: 13px; text-decoration: none; }
   </style>
 </head>
 <body>
@@ -31,7 +26,7 @@
       <input type="email" id="email" autocomplete="username" placeholder="you@valet.local" required />
       <label for="password">Password</label>
       <input type="password" id="password" autocomplete="current-password" required />
-      <button type="submit" id="submitBtn">Sign in</button>
+      <button type="submit" class="btn btn-primary" id="submitBtn">Sign in</button>
       <div class="err" id="err"></div>
     </form>
   </div>

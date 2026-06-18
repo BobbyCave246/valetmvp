@@ -5,62 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Store All Valet — Storage that comes to you</title>
   <meta name="description" content="Valet storage that comes to you. We drop off bins, you fill them, we collect, store and track them — and bring any bin back whenever you ask." />
+  <link rel="stylesheet" href="theme.css" />
   <style>
-    :root {
-      --bg: #ffffff;
-      --cream: #faf8f5;
-      --cream-2: #f4f0ea;
-      --text: #222222;
-      --muted: #6a6a6a;
-      --line: #ebebeb;
-      --ink: #222222;
-      --ink-hover: #000000;
-      --clay: #b06a4f;
-      --shadow: 0 6px 24px rgba(0,0,0,.08);
-      --shadow-lg: 0 16px 40px rgba(0,0,0,.12);
-      --radius: 16px;
-      --maxw: 1120px;
-    }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-    }
-    a { color: inherit; text-decoration: none; }
+    body { background: var(--bg); }
     .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
-
-    /* ---- header / nav ---- */
-    header {
-      position: sticky; top: 0; z-index: 50;
-      background: rgba(255,255,255,.86);
-      backdrop-filter: saturate(160%) blur(10px);
-      border-bottom: 1px solid var(--line);
-    }
-    .nav { display: flex; align-items: center; gap: 18px; height: 72px; }
-    .brand { font-size: 19px; font-weight: 800; letter-spacing: -.02em; }
-    .nav .spacer { flex: 1; }
-    .nav-links { display: flex; align-items: center; gap: 22px; }
-    .nav-links a { font-size: 15px; color: var(--text); font-weight: 500; }
-    .nav-links a:hover { color: var(--clay); }
-    .nav-links a.staff { color: var(--muted); font-size: 14px; }
-
-    /* ---- buttons ---- */
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      font-size: 16px; font-weight: 600; line-height: 1;
-      padding: 14px 22px; border-radius: 999px; cursor: pointer;
-      border: 1px solid transparent; transition: transform .12s ease, box-shadow .12s ease, background .15s ease;
-    }
-    .btn-primary { background: var(--ink); color: #fff; }
-    .btn-primary:hover { background: var(--ink-hover); transform: translateY(-1px); box-shadow: var(--shadow); }
-    .btn-ghost { background: #fff; color: var(--text); border-color: #cfcbc4; }
-    .btn-ghost:hover { border-color: var(--ink); transform: translateY(-1px); }
-    .btn-sm { padding: 10px 18px; font-size: 15px; }
 
     /* ---- hero ---- */
     .hero {
@@ -197,7 +145,6 @@
     @media (max-width: 820px) {
       .hero-grid { grid-template-columns: 1fr; gap: 36px; padding: 56px 0 64px; }
       .hero-art { order: -1; max-width: 460px; }
-      .nav-desktop { display: none; }
     }
     @media (max-width: 640px) {
       .wrap { padding: 0 18px; }
@@ -213,19 +160,7 @@
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap nav">
-      <a class="brand" href="/booking/">📦 Store All Valet</a>
-      <span class="spacer"></span>
-      <nav class="nav-links nav-desktop">
-        <a href="#how">How it works</a>
-        <a href="#pricing">Pricing</a>
-        <a href="/booking/booking.html">My booking</a>
-        <a class="staff" href="/login/">Staff sign in ↗</a>
-      </nav>
-      <a class="btn btn-primary btn-sm" href="/booking/book.html">Book bins</a>
-    </div>
-  </header>
+  <div id="siteHeader"></div>
 
   <main>
     <!-- HERO -->
@@ -363,7 +298,7 @@
               <p>80 L tote — books, clothes, kitchenware.</p>
               <div class="price-amt">$15<small> / month</small></div>
             </div>
-            <a class="btn btn-primary" href="/booking/book.html">Book this</a>
+            <a class="btn btn-primary" href="/booking/book.html?sku=bin">Book this</a>
           </div>
           <div class="price-card">
             <div class="price-thumb thumb-wardrobe">👕</div>
@@ -372,7 +307,7 @@
               <p>Hanging garments stay crease-free.</p>
               <div class="price-amt">$25<small> / month</small></div>
             </div>
-            <a class="btn btn-primary" href="/booking/book.html">Book this</a>
+            <a class="btn btn-primary" href="/booking/book.html?sku=wardrobe">Book this</a>
           </div>
         </div>
 
@@ -473,5 +408,10 @@
       <small>© Store All Valet — Storage that comes to you.</small>
     </div>
   </footer>
+  <script src="nav.js"></script>
+  <script>
+    document.getElementById('siteHeader').innerHTML = CustomerNav.renderHeader({ active: 'home' });
+    CustomerNav.bindNav();
+  </script>
 </body>
 </html>

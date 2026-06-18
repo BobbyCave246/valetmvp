@@ -7,12 +7,7 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header>
-    <h1>📦 Store All Valet</h1>
-    <span class="spacer"></span>
-    <a href="index.html">Home</a>
-    <a href="book.html">Book bins</a>
-  </header>
+  <div id="siteHeader"></div>
 
   <main>
     <div id="confirmBanner"></div>
@@ -28,10 +23,15 @@
       </div>
     </div>
 
-    <div id="result"></div>
+    <div id="result" aria-live="polite"></div>
   </main>
-  <div id="toast"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
   <script src="/shared/esc.js"></script>
+  <script src="nav.js"></script>
+  <script>
+    document.getElementById('siteHeader').innerHTML = CustomerNav.renderHeader({ active: 'track' });
+    CustomerNav.bindNav();
+  </script>
   <script src="/shared/barcode.js"></script>
   <script src="/vendor/html5-qrcode.min.js"></script>
   <script src="/shared/scanner.js"></script>

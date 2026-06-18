@@ -410,6 +410,10 @@ export async function createLead({ email = null, area = null }) {
   return rows[0];
 }
 
+export async function listLeads() {
+  return sql`SELECT * FROM leads ORDER BY created_at DESC`;
+}
+
 export async function getJob(id) {
   const rows = await sql`SELECT * FROM jobs WHERE id = ${id}`;
   return rows[0];
@@ -425,6 +429,10 @@ export async function setJobBinIds(id, binIds) {
 
 export async function setJobScheduledDate(id, scheduledDate) {
   await sql`UPDATE jobs SET scheduled_date = ${scheduledDate} WHERE id = ${id}`;
+}
+
+export async function setJobSchedule(id, scheduledDate, scheduledSlot = null) {
+  await sql`UPDATE jobs SET scheduled_date = ${scheduledDate}, scheduled_slot = ${scheduledSlot} WHERE id = ${id}`;
 }
 
 export async function setJobStatus(id, status) {
