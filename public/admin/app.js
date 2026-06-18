@@ -100,10 +100,11 @@ document.querySelectorAll('#queueFilters .chip-filter').forEach((btn) => {
 function bookingFilterKind(b) {
   const na = b.nextAction?.kind;
   if (na === 'assign') return 'assign';
-  if (na === 'wait' || na === 'idle') return 'wait';
-  if (na === 'job' || na === 'warehouse') return 'jobs';
   if (na === 'done') return 'done';
+  if (na === 'job' || na === 'warehouse') return 'jobs';
+  // Stored bookings surface as nextAction.kind === 'idle' — classify before generic wait.
   if (b.summary?.counts?.Stored) return 'stored';
+  if (na === 'wait' || na === 'idle') return 'wait';
   return 'all';
 }
 
@@ -200,7 +201,11 @@ function renderQueueFromCache() {
   bookings = sortBookings(bookings);
 
   if (bookings.length === 0) {
-    list.innerHTML = '<div class="empty">No bookings match your filters.</div>';
+    const msg =
+      queueBookingsCache.length === 0
+        ? 'No bookings yet. Create one on the booking site.'
+        : 'No bookings match your filters.';
+    list.innerHTML = `<div class="empty">${msg}</div>`;
     return;
   }
 

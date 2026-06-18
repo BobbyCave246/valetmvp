@@ -192,7 +192,7 @@ router.post('/:id/close', async (req, res) => {
   if (!bin) return res.status(404).json({ error: 'Bin not found' });
 
   try {
-    const updated = await transitionBin(bin.id, STATUS.RETURNED_CLOSED, { actor: 'admin' });
+    const updated = await transitionBin(bin.id, STATUS.RETURNED_CLOSED, { actor: 'customer' });
     res.json({ bin: updated });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });

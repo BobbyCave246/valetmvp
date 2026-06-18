@@ -49,7 +49,8 @@ function confirmModal(title, message) {
   });
 }
 
-let TODAY_ISO = new Date().toISOString().slice(0, 10);
+// Earliest pickable service date (collection/retrieval allow today; delivery uses lead days).
+const SERVICE_TODAY_ISO = new Date().toISOString().slice(0, 10);
 let SLOT_LABELS = { am: 'Morning (8am–12pm)', pm: 'Afternoon (12–5pm)' };
 (async () => {
   try {
@@ -57,7 +58,6 @@ let SLOT_LABELS = { am: 'Morning (8am–12pm)', pm: 'Afternoon (12–5pm)' };
     if (Array.isArray(data.slots)) {
       SLOT_LABELS = Object.fromEntries(data.slots.map((s) => [s.key, s.label]));
     }
-    if (data.earliestDate) TODAY_ISO = data.earliestDate;
   } catch { /* fallback */ }
 })();
 
@@ -126,7 +126,7 @@ function nextStepBanner(step) {
       .map((t) => `<div class="timeline-step ${t.state}"><span class="dot"></span><span>${esc(t.label)}</span></div>`)
       .join('')}</div>`;
   }
-  div.innerHTML = `<strong>${esc(step.title)}</strong><span class="muted">${esc(step.message)}</span>${timeline}`;
+  div.innerHTML = `<strong>${esc(step.title)}</strong><div class="muted" style="margin-top:4px;">${esc(step.message)}</div>${timeline}`;
   return div;
 }
 
@@ -157,38 +157,28 @@ function custodyDetails(bin) {
   return details;
 }
 
-async function loadSlotChips(container, date, selectedKey, onSelect) {
+// Collection/retrieval windows are preferences (no delivery capacity cap) — show
+// static AM/PM chips rather than reusing empty-bin delivery availability.
+function renderServiceSlotChips(container, selectedKey, onSelect) {
   container.className = 'slot-list';
-  container.innerHTML = '<span class="muted">Loading windows…</span>';
-  if (!date) {
-    container.className = 'muted';
-    container.textContent = 'Pick a date to see available windows.';
-    return;
-  }
-  try {
-    const { slots } = await api('GET', `/availability?date=${encodeURIComponent(date)}`);
-    container.innerHTML = '';
-    slots.forEach((s) => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'slot-chip' + (selectedKey === s.key ? ' selected' : '');
-      chip.textContent = s.label;
-      chip.setAttribute('aria-pressed', selectedKey === s.key ? 'true' : 'false');
-      chip.addEventListener('click', () => {
-        container.querySelectorAll('.slot-chip').forEach((c) => {
-          c.classList.remove('selected');
-          c.setAttribute('aria-pressed', 'false');
-        });
-        chip.classList.add('selected');
-        chip.setAttribute('aria-pressed', 'true');
-        onSelect(s.key);
+  container.innerHTML = '';
+  Object.entries(SLOT_LABELS).forEach(([key, label]) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'slot-chip' + (selectedKey === key ? ' selected' : '');
+    chip.textContent = label;
+    chip.setAttribute('aria-pressed', selectedKey === key ? 'true' : 'false');
+    chip.addEventListener('click', () => {
+      container.querySelectorAll('.slot-chip').forEach((c) => {
+        c.classList.remove('selected');
+        c.setAttribute('aria-pressed', 'false');
       });
-      container.appendChild(chip);
+      chip.classList.add('selected');
+      chip.setAttribute('aria-pressed', 'true');
+      onSelect(key);
     });
-  } catch (e) {
-    container.className = 'muted';
-    container.textContent = e.message;
-  }
+    container.appendChild(chip);
+  });
 }
 
 function binActions(bin) {
@@ -205,15 +195,14 @@ function binActions(bin) {
     const date = document.createElement('input');
     date.type = 'date';
     date.className = 'inline-date';
-    date.min = TODAY_ISO;
-    const slotBox = el('<div class="slot-list muted" style="margin-top:8px;">Pick a date first</div>');
+    date.min = SERVICE_TODAY_ISO;
+    const slotBox = el('<div class="slot-list"></div>');
     let chosenSlot = null;
-    date.addEventListener('change', () => {
-      chosenSlot = null;
-      loadSlotChips(slotBox, date.value, null, (k) => { chosenSlot = k; });
-    });
+    wrap.appendChild(el('<label>Collection date</label>'));
     wrap.appendChild(date);
+    wrap.appendChild(el('<label>Collection window</label>'));
     wrap.appendChild(slotBox);
+    renderServiceSlotChips(slotBox, null, (k) => { chosenSlot = k; });
     wrap.appendChild(
       mkBtn('', '📦 Store this again', async () => {
         if (!date.value) return toast('Pick a collection date', true);
@@ -375,20 +364,16 @@ function collectionPanel(booking) {
        <p class="muted">Filled your bins? Choose a date and window — collection is free.</p>`;
 
   const date = el('<input type="date" class="inline-date" />');
-  date.min = TODAY_ISO;
+  date.min = SERVICE_TODAY_ISO;
   if (scheduled?.scheduled_date) date.value = scheduled.scheduled_date;
   card.appendChild(el('<label>Collection date</label>'));
   card.appendChild(date);
 
-  const slotBox = el('<div class="slot-list muted">Pick a date to see windows</div>');
+  const slotBox = el('<div class="slot-list"></div>');
   let chosenSlot = scheduled?.scheduled_slot || null;
   card.appendChild(el('<label>Collection window</label>'));
   card.appendChild(slotBox);
-  date.addEventListener('change', () => {
-    chosenSlot = null;
-    loadSlotChips(slotBox, date.value, null, (k) => { chosenSlot = k; });
-  });
-  if (date.value) loadSlotChips(slotBox, date.value, chosenSlot, (k) => { chosenSlot = k; });
+  renderServiceSlotChips(slotBox, chosenSlot, (k) => { chosenSlot = k; });
 
   const btn = mkBtn('green', scheduled ? '📅 Change date' : '📅 Book collection', async () => {
     if (!date.value) return toast('Pick a collection date', true);
@@ -416,18 +401,15 @@ function retrievalPanel(stored) {
   checks.forEach((c) => card.appendChild(c));
 
   const date = el('<input type="date" class="inline-date" />');
-  date.min = TODAY_ISO;
+  date.min = SERVICE_TODAY_ISO;
   card.appendChild(el('<label>Delivery-back date</label>'));
   card.appendChild(date);
 
-  const slotBox = el('<div class="slot-list muted">Pick a date to see windows</div>');
+  const slotBox = el('<div class="slot-list"></div>');
   let chosenSlot = null;
   card.appendChild(el('<label>Delivery window</label>'));
   card.appendChild(slotBox);
-  date.addEventListener('change', () => {
-    chosenSlot = null;
-    loadSlotChips(slotBox, date.value, null, (k) => { chosenSlot = k; });
-  });
+  renderServiceSlotChips(slotBox, null, (k) => { chosenSlot = k; });
 
   const feeBox = el(`
     <div class="fee-notice">
