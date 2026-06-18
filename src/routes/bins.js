@@ -123,6 +123,7 @@ router.post('/:barcode/scan-out', warehouse, async (req, res) => {
 });
 
 // POST /api/bins/:id/request-return — customer retrieval request (+deliver_back job).
+// Prefer POST /api/bookings/:id/request-return for multi-bin requests (atomic).
 // Accepts a bin id or barcode. Body: { deliveryBackDate }.
 router.post('/:id/request-return', async (req, res) => {
   const bin = (await getBin(req.params.id)) || (await getBinByBarcode(req.params.id));

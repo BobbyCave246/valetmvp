@@ -588,12 +588,27 @@ $('#staffCreate').addEventListener('click', async () => {
 
 // ---- polling ----------------------------------------------------------------
 // Refresh the stats bar and the (read-mostly) Bookings & jobs board so the
-// console feels live next to the booking site. Deliberately skips
-// assign/warehouse so it never clobbers an in-progress selection or scan input.
-setInterval(() => {
+// console feels live next to the booking site. Assign tab gets a lightweight
+// idle-gated refresh; warehouse is skipped so scan input is never clobbered.
+function isAssignIdle() {
+  if (activeTab() !== 'assign') return false;
+  if (assignSelected.size > 0) return false;
+  const active = document.activeElement;
+  const zones = ['#assignSummary', '#assignSelected', '#assignBarcode', '#availableBins', '#assignBooking'];
+  if (active && zones.some((sel) => $(sel)?.contains(active))) return false;
+  return true;
+}
+
+setInterval(async () => {
   if (document.hidden) return;
-  loadStats(); // the stats bar is always visible, so refresh it every tick
+  loadStats();
   if (activeTab() === 'queue') loadQueue();
+  if (isAssignIdle()) {
+    try {
+      await updateAssignSummary();
+      await renderAvailableBins();
+    } catch { /* next tick */ }
+  }
 }, 4000);
 
 // ---- boot -------------------------------------------------------------------

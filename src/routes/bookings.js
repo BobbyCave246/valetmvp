@@ -15,15 +15,17 @@ import {
   listAvailableBins,
   setBinFields,
   listJobs,
+  listJobsForBooking,
   setJobBinIds,
   setJobScheduledDate,
   countDeliveriesForSlot,
   createDeliveryJobIfCapacity,
   deleteBooking,
+  sql,
 } from '../db.js';
-import { transitionBin, cancelBooking, STATUS } from '../transitions.js';
+import { transitionBin, transitionBinInTx, cancelBooking, STATUS } from '../transitions.js';
 import { requireAuth, requireRole } from '../auth.js';
-import { deriveBookingSummary, deriveNextAction } from '../summary.js';
+import { deriveBookingSummary, deriveNextAction, deriveCustomerNextStep } from '../summary.js';
 import { isCovered } from '../coverage.js';
 import { validateDateSlot, validateFutureDate, SLOT_CAPACITY } from '../slots.js';
 import { safeParse, VALID_SKUS } from '../util.js';
@@ -179,10 +181,11 @@ router.get('/:id', async (req, res) => {
   const booking = await getBooking(req.params.id);
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
 
-  const [customer, bins, summary, allJobs] = await Promise.all([
+  const [customer, bins, summary, customerNextStep, allJobs] = await Promise.all([
     getCustomer(booking.customer_id),
     listBinsForBooking(booking.id),
     deriveBookingSummary(booking.id),
+    deriveCustomerNextStep(booking.id),
     listJobs(),
   ]);
   const jobs = allJobs
@@ -194,6 +197,7 @@ router.get('/:id', async (req, res) => {
     customer,
     bins,
     summary,
+    customerNextStep,
     jobs,
   });
 });
@@ -326,7 +330,83 @@ router.post('/:id/book-collection', async (req, res) => {
   }
 });
 
+// POST /api/bookings/:id/request-return — customer retrieval request for one
+// or more Stored bins. Atomic at the booking level: all bins transition together
+// and share a single deliver_back job (mirrors book-collection).
+// Body: { binIds: string[], deliveryBackDate }.
+router.post('/:id/request-return', async (req, res) => {
+  const booking = await getBooking(req.params.id);
+  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+
+  const { binIds, deliveryBackDate } = req.body || {};
+  const dateErr = validateFutureDate(deliveryBackDate);
+  if (dateErr) return res.status(400).json({ error: dateErr });
+  if (!Array.isArray(binIds) || binIds.length === 0) {
+    return res.status(400).json({ error: 'binIds array is required' });
+  }
+  if (new Set(binIds).size !== binIds.length) {
+    return res.status(400).json({ error: 'Duplicate binIds in request' });
+  }
+
+  try {
+    const job = await performRequestReturn(booking, binIds, deliveryBackDate);
+    res.json({ job, summary: await deriveBookingSummary(booking.id) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 // --- helpers -----------------------------------------------------------------
+
+// Booking-level retrieval: transitions all requested Stored bins and creates or
+// reschedules a single deliver_back job. Exported for integration tests.
+export async function performRequestReturn(booking, binIds, deliveryBackDate) {
+  const sortedBinIds = [...binIds].sort();
+  const bookingBins = await listBinsForBooking(booking.id);
+  const byId = new Map(bookingBins.map((b) => [b.id, b]));
+  for (const id of sortedBinIds) {
+    const bin = byId.get(id);
+    if (!bin) {
+      throw Object.assign(new Error(`Bin ${id} does not belong to this booking`), { status: 409 });
+    }
+    if (bin.status !== STATUS.STORED) {
+      throw Object.assign(
+        new Error(`Bin ${bin.barcode} is not stored (status: ${bin.status ?? 'unassigned'})`),
+        { status: 409 }
+      );
+    }
+  }
+
+  return sql.begin(async (tx) => {
+    for (const id of sortedBinIds) {
+      await transitionBinInTx(tx, id, STATUS.RETRIEVAL_REQUESTED, { actor: 'customer' });
+    }
+
+    const retrievalBinIds = (await listBinsForBooking(booking.id, tx))
+      .filter((b) => b.status === STATUS.RETRIEVAL_REQUESTED)
+      .map((b) => b.id);
+
+    const existing = (await listJobsForBooking(booking.id, tx)).find(
+      (j) => j.type === 'deliver_back' && j.status === 'Scheduled'
+    );
+
+    if (existing) {
+      await setJobScheduledDate(existing.id, deliveryBackDate, tx);
+      await setJobBinIds(existing.id, retrievalBinIds, tx);
+      return { ...existing, scheduled_date: deliveryBackDate, bin_ids: JSON.stringify(retrievalBinIds) };
+    }
+
+    return createJob(
+      {
+        bookingId: booking.id,
+        type: 'deliver_back',
+        scheduledDate: deliveryBackDate,
+        binIds: retrievalBinIds,
+      },
+      tx
+    );
+  });
+}
 
 // Binds bins to a booking: sets ownership, transitions each to Assigned (which
 // logs a movement), and attaches them to the booking's deliver_empty job.

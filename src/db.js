@@ -250,8 +250,8 @@ export async function listAvailableBins() {
     ORDER BY barcode`;
 }
 
-export async function listBinsForBooking(bookingId) {
-  return sql`SELECT * FROM bins WHERE booking_id = ${bookingId} ORDER BY barcode`;
+export async function listBinsForBooking(bookingId, client = sql) {
+  return client`SELECT * FROM bins WHERE booking_id = ${bookingId} ORDER BY barcode`;
 }
 
 export async function setBinFields(id, fields, client = sql) {
@@ -330,15 +330,18 @@ export async function findBookingByPhone(phone) {
 
 // ----- jobs ------------------------------------------------------------------
 
-export async function createJob({
-  bookingId = null,
-  type = null,
-  scheduledDate = null,
-  scheduledSlot = null,
-  binIds = [],
-}) {
+export async function createJob(
+  {
+    bookingId = null,
+    type = null,
+    scheduledDate = null,
+    scheduledSlot = null,
+    binIds = [],
+  },
+  client = sql
+) {
   const id = newId('job');
-  const rows = await sql`
+  const rows = await client`
     INSERT INTO jobs (id, booking_id, type, status, scheduled_date, scheduled_slot, bin_ids)
     VALUES (${id}, ${bookingId}, ${type}, ${'Scheduled'}, ${scheduledDate}, ${scheduledSlot}, ${JSON.stringify(binIds)})
     RETURNING *`;
@@ -415,16 +418,20 @@ export async function getJob(id) {
   return rows[0];
 }
 
-export async function listJobs() {
-  return sql`SELECT * FROM jobs ORDER BY scheduled_date`;
+export async function listJobs(client = sql) {
+  return client`SELECT * FROM jobs ORDER BY scheduled_date`;
 }
 
-export async function setJobBinIds(id, binIds) {
-  await sql`UPDATE jobs SET bin_ids = ${JSON.stringify(binIds)} WHERE id = ${id}`;
+export async function listJobsForBooking(bookingId, client = sql) {
+  return client`SELECT * FROM jobs WHERE booking_id = ${bookingId}`;
 }
 
-export async function setJobScheduledDate(id, scheduledDate) {
-  await sql`UPDATE jobs SET scheduled_date = ${scheduledDate} WHERE id = ${id}`;
+export async function setJobBinIds(id, binIds, client = sql) {
+  await client`UPDATE jobs SET bin_ids = ${JSON.stringify(binIds)} WHERE id = ${id}`;
+}
+
+export async function setJobScheduledDate(id, scheduledDate, client = sql) {
+  await client`UPDATE jobs SET scheduled_date = ${scheduledDate} WHERE id = ${id}`;
 }
 
 export async function setJobStatus(id, status) {
