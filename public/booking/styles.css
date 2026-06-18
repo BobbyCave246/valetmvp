@@ -77,6 +77,23 @@ a.btn { display: inline-block; text-decoration: none; text-align: center; }
 .bin-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); gap: 12px; flex-wrap: wrap; }
 .pill { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #eef2ff; color: var(--accent); white-space: nowrap; }
 .banner { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 14px 16px; border-radius: 10px; margin-bottom: 18px; }
+.banner.next-step { background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a; }
+.picker-row {
+  display: block; width: 100%; text-align: left; padding: 12px 14px; margin-top: 8px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--bg); cursor: pointer;
+}
+.picker-row:hover { border-color: var(--accent); }
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, .45); display: flex;
+  align-items: center; justify-content: center; padding: 20px; z-index: 1000;
+}
+.modal {
+  background: var(--panel); border-radius: 14px; padding: 22px; max-width: 420px; width: 100%;
+  box-shadow: 0 8px 30px rgba(0,0,0,.15);
+}
+.modal h3 { margin: 0 0 10px; font-size: 18px; }
+.modal p { margin: 0 0 18px; color: var(--muted); font-size: 14px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 .flex { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 code { background: #f1f5f9; padding: 2px 6px; border-radius: 6px; font-family: ui-monospace, monospace; }
 #toast {

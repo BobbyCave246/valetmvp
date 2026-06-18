@@ -15,6 +15,55 @@ function toast(msg, isErr = false) {
   setTimeout(() => (t.className = ''), 2600);
 }
 
+// Accessible confirm dialog — Escape/backdrop dismiss, focus trap, restore focus.
+function confirmDialog({ title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel' }) {
+  return new Promise((resolve) => {
+    const overlay = el(`
+      <div class="modal-overlay" role="presentation">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+          <h3 id="modalTitle">${esc(title)}</h3>
+          <p>${message}</p>
+          <div class="modal-actions">
+            <button type="button" class="btn ghost modal-cancel">${esc(cancelLabel)}</button>
+            <button type="button" class="btn modal-confirm">${esc(confirmLabel)}</button>
+          </div>
+        </div>
+      </div>`);
+    const dialog = overlay.querySelector('.modal');
+    const prevFocus = document.activeElement;
+    const focusables = () => [...dialog.querySelectorAll('button')];
+
+    const close = (result) => {
+      document.removeEventListener('keydown', onKey);
+      overlay.remove();
+      if (prevFocus?.focus) prevFocus.focus();
+      resolve(result);
+    };
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); close(false); return; }
+      if (e.key !== 'Tab') return;
+      const items = focusables();
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(false); });
+    overlay.querySelector('.modal-cancel').addEventListener('click', () => close(false));
+    overlay.querySelector('.modal-confirm').addEventListener('click', () => close(true));
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(overlay);
+    overlay.querySelector('.modal-confirm').focus();
+  });
+}
+
 async function api(method, path, body) {
   const r = await fetch(`/api${path}`, {
     method,
@@ -29,6 +78,7 @@ async function api(method, path, body) {
 
 // Today (UTC calendar) — the earliest customer-pickable service date.
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
+const SAVED_REF_KEY = 'savBookingRef';
 
 // Delivery-window labels. Fallback values; refreshed from the API at boot so
 // the backend stays the single source of truth.
@@ -142,7 +192,12 @@ function binActions(bin) {
     );
     wrap.appendChild(
       mkBtn('ghost', '✓ Done with this bin', async () => {
-        if (!confirm('Close this bin for good?')) return;
+        const ok = await confirmDialog({
+          title: 'Close this bin?',
+          message: 'Close this bin for good? You will not be able to re-store it.',
+          confirmLabel: 'Close bin',
+        });
+        if (!ok) return;
         await api('POST', `/bins/${bin.id}/close`, {});
         toast('Bin closed');
         reloadCurrent();
@@ -224,6 +279,13 @@ function renderBooking(booking) {
     <div class="muted" style="margin-top:6px;"><strong>${esc(booking.summary.text)}</strong></div>`;
   box.appendChild(head);
 
+  if (booking.customerNextStep?.text) {
+    const next = document.createElement('div');
+    next.className = 'banner next-step';
+    next.innerHTML = `<strong>Next step:</strong> ${esc(booking.customerNextStep.text)}`;
+    box.appendChild(next);
+  }
+
   const binsCard = document.createElement('div');
   binsCard.className = 'card';
   binsCard.innerHTML = `<h3 style="margin-top:0;">Your bins</h3>`;
@@ -273,7 +335,7 @@ function renderBooking(booking) {
   // "Get bins back" panel — request one or more Stored bins in a single step.
   const stored = (booking.bins || []).filter((b) => b.status === 'Stored');
   if (stored.length) {
-    box.appendChild(retrievalPanel(stored));
+    box.appendChild(retrievalPanel(booking, stored));
   }
 }
 
@@ -308,11 +370,11 @@ function collectionPanel(booking) {
   return card;
 }
 
-function retrievalPanel(stored) {
+function retrievalPanel(booking, stored) {
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = `<h3 style="margin-top:0;">Get bins back</h3>
-    <p class="muted">Tick the bins you want returned and pick a delivery-back date.</p>`;
+    <p class="muted">Tick the bins you want returned and pick a delivery-back date. A flat $30 delivery fee applies per retrieval.</p>`;
 
   const checks = stored.map((bin) => {
     const wrap = el(`<label class="check-row"><input type="checkbox" value="${esc(bin.id)}" /> <strong>${esc(bin.barcode)}</strong> <span class="muted">${esc(bin.sku_type)}</span></label>`);
@@ -332,9 +394,16 @@ function retrievalPanel(stored) {
       .map((i) => i.value);
     if (ids.length === 0) return toast('Tick at least one bin', true);
     if (!date.value) return toast('Pick a delivery-back date', true);
-    for (const id of ids) {
-      await api('POST', `/bins/${id}/request-return`, { deliveryBackDate: date.value });
-    }
+    const ok = await confirmDialog({
+      title: 'Request bins back?',
+      message: `Request ${ids.length} bin${ids.length === 1 ? '' : 's'} back on ${date.value}? A flat $30 delivery fee applies.`,
+      confirmLabel: 'Request delivery',
+    });
+    if (!ok) return;
+    await api('POST', `/bookings/${booking.id}/request-return`, {
+      binIds: ids,
+      deliveryBackDate: date.value,
+    });
     toast(`Requested ${ids.length} bin${ids.length === 1 ? '' : 's'} back`);
     reloadCurrent();
   });
@@ -344,14 +413,52 @@ function retrievalPanel(stored) {
 }
 
 let currentRef = null;
-async function loadByRef(ref) {
+let loadSeq = 0;
+let isRefreshing = false;
+
+async function loadByRef(ref, { saveRef = true } = {}) {
+  const seq = ++loadSeq;
+  isRefreshing = true;
+  const lookupBtn = $('#lookupBtn');
+  if (lookupBtn) lookupBtn.disabled = true;
   try {
     const booking = await api('GET', `/bookings/${encodeURIComponent(ref)}`);
+    if (seq !== loadSeq) return;
     currentRef = ref;
+    if (saveRef) {
+      try { sessionStorage.setItem(SAVED_REF_KEY, ref); } catch { /* private mode */ }
+    }
     renderBooking(booking);
   } catch (e) {
+    if (seq !== loadSeq) return;
     $('#result').innerHTML = `<div class="card muted">${esc(e.message)}</div>`;
+  } finally {
+    if (seq === loadSeq) {
+      isRefreshing = false;
+      if (lookupBtn) lookupBtn.disabled = false;
+    }
   }
+}
+
+function renderBookingPicker(list) {
+  const box = $('#result');
+  box.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `<h2 style="margin-top:0;">Multiple bookings found</h2>
+    <p class="muted">Choose which booking to open:</p>`;
+  list.forEach((b) => {
+    const row = el(`<button type="button" class="picker-row">
+      <strong><code>${esc(b.id)}</code></strong>
+      <span class="muted">Delivery ${esc(b.delivery_date)} · ${esc(b.summary?.text || '')}</span>
+    </button>`);
+    row.addEventListener('click', () => {
+      $('#lookup').value = b.id;
+      loadByRef(b.id);
+    });
+    card.appendChild(row);
+  });
+  box.appendChild(card);
 }
 
 async function loadByPhone(phone) {
@@ -360,8 +467,17 @@ async function loadByPhone(phone) {
     $('#result').innerHTML = `<div class="card muted">No bookings found for that phone.</div>`;
     return;
   }
-  // Load full detail of the most recent booking.
-  await loadByRef(list[0].id);
+  let savedRef = null;
+  try { savedRef = sessionStorage.getItem(SAVED_REF_KEY); } catch { /* private mode */ }
+  if (savedRef && list.some((b) => b.id === savedRef)) {
+    await loadByRef(savedRef);
+    return;
+  }
+  if (list.length === 1) {
+    await loadByRef(list[0].id);
+    return;
+  }
+  renderBookingPicker(list);
 }
 
 function reloadCurrent() {
@@ -403,7 +519,7 @@ $('#scanLookupBtn').addEventListener('click', async () => {
 // without a manual lookup. Skips a tick if the user is typing/selecting inside
 // the result area (a date field or checkbox) so it never interrupts them.
 setInterval(() => {
-  if (!currentRef || document.hidden) return;
+  if (!currentRef || document.hidden || isRefreshing) return;
   const active = document.activeElement;
   if (active && $('#result')?.contains(active)) return;
   // Don't yank a chain-of-custody panel closed mid-read.

@@ -25,6 +25,82 @@ export async function deriveBookingSummary(bookingId) {
   return { total, counts, text };
 }
 
+// Customer-facing next-step banner. Pure helper accepts bins + jobs for tests.
+export function deriveCustomerNextStepFromBins(bins, jobs = []) {
+  if (!bins.length) {
+    return { kind: 'wait', text: 'Bins not assigned yet — we will bind them before delivery' };
+  }
+
+  const count = (status) => bins.filter((b) => b.status === status).length;
+  const has = (status) => count(status) > 0;
+  const scheduledOf = (type) => jobs.find((j) => j.type === type && j.status === 'Scheduled');
+
+  if (has(STATUS.OUT_FOR_FILLING)) {
+    const job = scheduledOf('collect_full');
+    if (job) {
+      return {
+        kind: 'scheduled',
+        text: `Collection booked for ${job.scheduled_date} — fill your bins and we will pick them up`,
+      };
+    }
+    return { kind: 'action', text: 'Empty bins delivered — book a collection date when you are ready' };
+  }
+
+  if (
+    has(STATUS.IN_TRANSIT_INBOUND) ||
+    has(STATUS.RETRIEVAL_REQUESTED) ||
+    has(STATUS.IN_TRANSIT_OUTBOUND)
+  ) {
+    const parts = [];
+    if (has(STATUS.IN_TRANSIT_INBOUND)) parts.push(`${count(STATUS.IN_TRANSIT_INBOUND)} on the way to storage`);
+    if (has(STATUS.RETRIEVAL_REQUESTED)) parts.push(`${count(STATUS.RETRIEVAL_REQUESTED)} retrieval requested`);
+    if (has(STATUS.IN_TRANSIT_OUTBOUND)) parts.push(`${count(STATUS.IN_TRANSIT_OUTBOUND)} on the way back to you`);
+    return { kind: 'transit', text: parts.join(' · ') };
+  }
+
+  const storedN = count(STATUS.STORED);
+  const returnedN = count(STATUS.RETURNED_TO_CUSTOMER);
+  const closedN = count(STATUS.RETURNED_CLOSED);
+
+  if (storedN > 0 && returnedN > 0) {
+    return {
+      kind: 'mixed',
+      text: `${storedN} bin${storedN === 1 ? '' : 's'} in storage · ${returnedN} back with you — see actions below`,
+    };
+  }
+
+  if (storedN > 0 && storedN === bins.length) {
+    return { kind: 'stored', text: 'Bins safely stored — request delivery back when ready' };
+  }
+
+  if (returnedN > 0 && returnedN === bins.length) {
+    return { kind: 'returned', text: 'Bins back with you — re-store or close when done' };
+  }
+
+  if (closedN > 0 && closedN === bins.length) {
+    return { kind: 'done', text: 'All bins closed' };
+  }
+
+  if (has(STATUS.ASSIGNED)) {
+    return { kind: 'wait', text: 'Bins reserved — delivery scheduled' };
+  }
+
+  const parts = Object.entries(
+    bins.reduce((acc, b) => {
+      const label = b.status ?? 'unassigned';
+      acc[label] = (acc[label] || 0) + 1;
+      return acc;
+    }, {})
+  ).map(([status, n]) => `${n} ${status}`);
+  return { kind: 'info', text: parts.join(', ') };
+}
+
+export async function deriveCustomerNextStep(bookingId) {
+  const [bins, allJobs] = await Promise.all([listBinsForBooking(bookingId), listJobs()]);
+  const jobs = allJobs.filter((j) => j.booking_id === bookingId);
+  return deriveCustomerNextStepFromBins(bins, jobs);
+}
+
 // Computes the single most useful "next step" for a booking, for the admin
 // queue. Derived from the booking's bin statuses + its scheduled jobs — bins
 // are the unit of truth, so this never relies on a booking status.
@@ -63,6 +139,9 @@ export async function deriveNextAction(bookingId, booking) {
     const job = scheduledOf('collect_full');
     if (job) return { kind: 'job', label: 'Mark collection done', jobId: job.id };
     return { kind: 'wait', label: 'Awaiting customer to book collection' };
+  }
+  if (has(STATUS.RETURNED_TO_CUSTOMER)) {
+    return { kind: 'idle', label: 'With customer — re-store or close' };
   }
   if (has(STATUS.STORED)) {
     return { kind: 'idle', label: 'Stored — awaiting customer' };

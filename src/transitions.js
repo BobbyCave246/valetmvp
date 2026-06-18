@@ -81,72 +81,68 @@ export class TransitionError extends Error {
  * @param {object} [opts.binFields]        extra bins.* fields to set atomically
  * @returns the updated bin row
  */
-export async function transitionBin(binId, toStatus, { actor, jobId = null, locationId = null, binFields = {} } = {}) {
-  // Status change + movement row in ONE transaction (spec §6 invariant). The
-  // begin() callback gives a transaction-scoped client; helpers take it so all
-  // their statements run on the same connection inside the transaction.
-  return sql.begin(async (tx) => {
-    // FOR UPDATE: concurrent transitions on the same bin serialise here, so the
-    // legality check below always sees the latest committed status (otherwise
-    // two racers could both pass it on a stale read and double-assign).
-    const bin = await getBinForUpdate(binId, tx);
-    if (!bin) throw new TransitionError(`Bin ${binId} not found`);
+/**
+ * Transition a bin inside an existing transaction (for batch routes).
+ * Caller must provide a transaction-scoped client from sql.begin().
+ */
+export async function transitionBinInTx(
+  tx,
+  binId,
+  toStatus,
+  { actor, jobId = null, locationId = null, binFields = {} } = {}
+) {
+  const bin = await getBinForUpdate(binId, tx);
+  if (!bin) throw new TransitionError(`Bin ${binId} not found`);
 
-    const fromStatus = bin.status;
-    if (!isLegalTransition(fromStatus, toStatus)) {
-      throw new TransitionError(
-        `Illegal transition: ${fromStatus ?? '(unassigned)'} → ${toStatus} (bin ${bin.barcode})`
-      );
-    }
-
-    // Apply the status change plus any caller-supplied fields atomically.
-    const fields = { status: toStatus, ...binFields };
-
-    // Location bookkeeping for the two warehouse scans.
-    if (toStatus === STATUS.STORED) {
-      if (!locationId) throw new TransitionError('Storing a bin requires a location');
-      // Row-locked re-check INSIDE the transaction — the route's early check is
-      // only a fast path, and two concurrent put-aways could otherwise both
-      // claim the same slot.
-      const location = await getLocationForUpdate(locationId, tx);
-      if (!location) throw new TransitionError('Location not found');
-      if (location.occupied) {
-        throw new TransitionError(`Location ${location.barcode} is occupied`);
-      }
-      fields.location_id = locationId;
-      await setLocationOccupied(locationId, true, tx);
-    }
-    if (toStatus === STATUS.IN_TRANSIT_OUTBOUND) {
-      // Pulled from the rack — free the slot it was in.
-      if (bin.location_id) await setLocationOccupied(bin.location_id, false, tx);
-      fields.location_id = null;
-    }
-
-    if (toStatus === STATUS.RETURNED_CLOSED) {
-      // Lifecycle complete — release the bin back to inventory. Clearing
-      // booking/customer/photo makes it appear in listAvailableBins again;
-      // the movements log preserves the full history.
-      fields.booking_id = null;
-      fields.customer_id = null;
-      fields.photo_ref = null;
-    }
-
-    await setBinFields(binId, fields, tx);
-
-    await insertMovement(
-      {
-        binId,
-        fromStatus,
-        toStatus,
-        locationId: toStatus === STATUS.STORED ? locationId : null,
-        actor,
-        jobId,
-      },
-      tx
+  const fromStatus = bin.status;
+  if (!isLegalTransition(fromStatus, toStatus)) {
+    throw new TransitionError(
+      `Illegal transition: ${fromStatus ?? '(unassigned)'} → ${toStatus} (bin ${bin.barcode})`
     );
+  }
 
-    return getBin(binId, tx);
-  });
+  const fields = { status: toStatus, ...binFields };
+
+  if (toStatus === STATUS.STORED) {
+    if (!locationId) throw new TransitionError('Storing a bin requires a location');
+    const location = await getLocationForUpdate(locationId, tx);
+    if (!location) throw new TransitionError('Location not found');
+    if (location.occupied) {
+      throw new TransitionError(`Location ${location.barcode} is occupied`);
+    }
+    fields.location_id = locationId;
+    await setLocationOccupied(locationId, true, tx);
+  }
+  if (toStatus === STATUS.IN_TRANSIT_OUTBOUND) {
+    if (bin.location_id) await setLocationOccupied(bin.location_id, false, tx);
+    fields.location_id = null;
+  }
+
+  if (toStatus === STATUS.RETURNED_CLOSED) {
+    fields.booking_id = null;
+    fields.customer_id = null;
+    fields.photo_ref = null;
+  }
+
+  await setBinFields(binId, fields, tx);
+
+  await insertMovement(
+    {
+      binId,
+      fromStatus,
+      toStatus,
+      locationId: toStatus === STATUS.STORED ? locationId : null,
+      actor,
+      jobId,
+    },
+    tx
+  );
+
+  return getBin(binId, tx);
+}
+
+export async function transitionBin(binId, toStatus, opts = {}) {
+  return sql.begin(async (tx) => transitionBinInTx(tx, binId, toStatus, opts));
 }
 
 /**
