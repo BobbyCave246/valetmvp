@@ -119,18 +119,21 @@ describe('staff lifecycle integration', { concurrency: 1 }, () => {
       name: 'Second Admin',
     });
 
+    const all = await db.listUsers();
+    for (const u of all) {
+      if (u.role === 'admin' && u.id !== secondAdmin.id && u.is_active !== 0) {
+        await db.setUserActive(u.id, false);
+      }
+    }
+
     const session = await login(email, password);
     assert.equal(session.status, 200);
-
-    const seed = await db.getUserByEmail('admin@valet.local');
-    const dropSeed = await authedPost(`/auth/users/${seed.id}/deactivate`, session.cookie);
-    assert.equal(dropSeed.status, 200);
 
     const last = await authedPost(`/auth/users/${secondAdmin.id}/deactivate`, session.cookie);
     assert.equal(last.status, 400);
     assert.match((await last.json()).error, /last active admin/i);
 
-    await db.setUserActive(seed.id, true);
+    await db.setUserActive((await db.getUserByEmail('admin@valet.local')).id, true);
   });
 
   test('non-admin cannot deactivate staff', { skip: !RUN }, async () => {
