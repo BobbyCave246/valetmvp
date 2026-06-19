@@ -379,6 +379,10 @@ export async function deleteJobsForBooking(bookingId, client) {
   await client`DELETE FROM jobs WHERE booking_id = ${bookingId}`;
 }
 
+export async function deleteJob(id, client = sql) {
+  await client`DELETE FROM jobs WHERE id = ${id}`;
+}
+
 export async function createLead({ email = null, area = null }) {
   const id = newId('lead');
   const rows = await sql`

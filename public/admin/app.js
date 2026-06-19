@@ -222,7 +222,7 @@ function renderQueueFromCache() {
           <div>
             <div><strong>${esc(b.customer?.name || 'Unknown')}</strong> · ${esc(b.bin_count)} bins <span class="muted">(${esc(sku)})</span> ${assignBadge}</div>
             <div class="muted">${phoneLink}${b.customer?.address ? ` · ${esc(b.customer.address)}` : ''}</div>
-            <div class="muted">Delivery: ${esc(b.delivery_date)}${b.delivery_slot ? ' · ' + esc(slotLabel(b.delivery_slot)) : ''} · ref <code>${esc(b.id)}</code> · <a href="#" class="cancel-link" style="color:#b91c1c;">cancel booking</a></div>
+            <div class="muted">Delivery: ${esc(b.delivery_date)}${b.delivery_slot ? ' · ' + esc(slotLabel(b.delivery_slot)) : ''} · ref <code>${esc(b.id)}</code> · <a href="#" class="cancel-link" style="color:#b91c1c;">${b.assignedCount === 0 ? 'cancel unassigned booking' : 'cancel booking'}</a></div>
             ${skuProgress(b)}
             <div class="summary" style="margin-top:6px;">${esc(b.summary.text)}</div>
           </div>
@@ -236,10 +236,15 @@ function renderQueueFromCache() {
     card.querySelector('.cancel-link').addEventListener('click', async (e) => {
       e.preventDefault();
       const n = b.assignedCount || 0;
-      if (!confirm(`Cancel booking ${b.id}?\nThis deletes its jobs and releases ${n} assigned bin${n === 1 ? '' : 's'} back to inventory.`)) return;
+      const unassigned = n === 0;
+      const msg = unassigned
+        ? `Cancel unassigned booking ${b.id}?\nThis deletes the booking and its delivery job (no bins to release).`
+        : `Cancel booking ${b.id}?\nThis deletes its jobs and releases ${n} assigned bin${n === 1 ? '' : 's'} back to inventory.`;
+      if (!confirm(msg)) return;
       try {
-        const res = await api.post(`/bookings/${b.id}/cancel`, {});
-        toast(`Booking cancelled — ${res.releasedBins} bin${res.releasedBins === 1 ? '' : 's'} released`);
+        const path = unassigned ? `/bookings/${b.id}/cancel-unassigned` : `/bookings/${b.id}/cancel`;
+        const res = await api.post(path, {});
+        toast(unassigned ? 'Unassigned booking cancelled' : `Booking cancelled — ${res.releasedBins} bin${res.releasedBins === 1 ? '' : 's'} released`);
         loadQueue();
         loadStats();
       } catch (err) {
@@ -300,9 +305,57 @@ function nextActionControl(b) {
     });
   }
   if (na.kind === 'warehouse') {
-    return mkActionBtn('btn', na.label, () =>
-      switchTab('warehouse', { binBarcode: na.binBarcode, mode: na.mode })
+    const wrap = document.createElement('div');
+    wrap.className = 'action-stack';
+    wrap.appendChild(
+      mkActionBtn('btn', na.label, () =>
+        switchTab('warehouse', { binBarcode: na.binBarcode, mode: na.mode })
+      )
     );
+    if (na.mode === 'scanout') {
+      const cancel = el('<a href="#" class="manual-link">cancel retrieval</a>');
+      cancel.addEventListener('click', async (e) => {
+        e.preventDefault();
+        if (!confirm(`Cancel retrieval for bin ${na.binBarcode}? It will return to Stored.`)) return;
+        try {
+          const detail = await api.get(`/bookings/${b.id}`);
+          const bin = (detail.bins || []).find((x) => x.barcode === na.binBarcode);
+          if (!bin) return toast('Bin not found on this booking', true);
+          await api.post(`/bookings/${b.id}/cancel-retrieval`, { binIds: [bin.id] });
+          toast('Retrieval cancelled — bin back in storage');
+          loadQueue();
+          loadStats();
+        } catch (err) {
+          toast(err.message, true);
+        }
+      });
+      wrap.appendChild(cancel);
+    }
+    return wrap;
+  }
+  if (na.kind === 'wait' && b.summary?.counts?.['Out for filling']) {
+    const wrap = document.createElement('div');
+    wrap.className = 'action-stack';
+    const span = document.createElement('span');
+    span.className = 'muted';
+    span.textContent = na.label;
+    wrap.appendChild(span);
+    const noShow = el('<a href="#" class="manual-link">mark no-show</a>');
+    noShow.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const code = prompt('Enter bin barcode to mark as no-show (customer never filled it):');
+      if (!code?.trim()) return;
+      try {
+        await api.post(`/bins/${encodeURIComponent(code.trim())}/no-show`, {});
+        toast('Bin marked no-show — released to inventory');
+        loadQueue();
+        loadStats();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    });
+    wrap.appendChild(noShow);
+    return wrap;
   }
   // wait / idle / done — no action, just a muted hint.
   const span = document.createElement('span');

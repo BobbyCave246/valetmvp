@@ -110,6 +110,18 @@ _Avoid_: Complete, finish, terminate
 An admin action that deletes a booking and releases all its bins back to inventory. Unlike a normal status change, cancellation is an explicit escape hatch that removes the booking entirely.
 _Avoid_: Void, refund, abort
 
+**Cancel unassigned booking**:
+An admin action that deletes a booking before any physical bins have been assigned. Removes the booking and its Deliver empty job without touching inventory.
+_Avoid_: Void booking, delete order
+
+**Cancel retrieval**:
+A customer or admin action that reverses a retrieval request. Bins in Retrieval requested return to Stored; the Scheduled Deliver back job is updated or removed.
+_Avoid_: Undo return, cancel delivery back
+
+**No-show**:
+An admin action for a bin in Out for filling that the customer never filled. The bin is released to unassigned inventory (same end state as Close, but from an earlier lifecycle stage) and any Scheduled Collect full job is reconciled.
+_Avoid_: Abandon, customer no-fill, release bin
+
 ## Jobs & field work
 
 **Job**:

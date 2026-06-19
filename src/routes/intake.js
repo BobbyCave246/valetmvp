@@ -3,7 +3,7 @@
 
 import { Router } from 'express';
 import { listAreas, listVillages } from '../coverage.js';
-import { availabilityForDate, validateDateSlot, SLOTS, LEAD_DAYS, earliestDateISO, SLOT_CAPACITY } from '../slots.js';
+import { availabilityForDate, validateDateSlot, SLOTS, LEAD_DAYS, earliestDateISO, todayDateISO, SERVICE_TZ, SLOT_CAPACITY } from '../slots.js';
 import { createLead, listLeads } from '../db.js';
 import { requireAuth, requireRole } from '../auth.js';
 
@@ -17,6 +17,8 @@ router.get('/serviceability', (_req, res) => {
     villages: listVillages(),
     slots: SLOTS,
     leadDays: LEAD_DAYS,
+    timezone: SERVICE_TZ,
+    todayDate: todayDateISO(),
     earliestDate: earliestDateISO(),
     slotCapacity: SLOT_CAPACITY,
   });

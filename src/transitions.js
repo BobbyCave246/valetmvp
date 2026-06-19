@@ -41,7 +41,7 @@ const LEGAL = {
   [STATUS.OUT_FOR_FILLING]: [STATUS.IN_TRANSIT_INBOUND],
   [STATUS.IN_TRANSIT_INBOUND]: [STATUS.STORED],
   [STATUS.STORED]: [STATUS.RETRIEVAL_REQUESTED],
-  [STATUS.RETRIEVAL_REQUESTED]: [STATUS.IN_TRANSIT_OUTBOUND],
+  [STATUS.RETRIEVAL_REQUESTED]: [STATUS.IN_TRANSIT_OUTBOUND, STATUS.STORED],
   [STATUS.IN_TRANSIT_OUTBOUND]: [STATUS.RETURNED_TO_CUSTOMER],
   // Returned to customer can either be re-stored (already filled, so it goes
   // straight back to In transit (inbound) — NOT through Out for filling) or
@@ -104,14 +104,19 @@ export async function transitionBinInTx(
   const fields = { status: toStatus, ...binFields };
 
   if (toStatus === STATUS.STORED) {
-    if (!locationId) throw new TransitionError('Storing a bin requires a location');
-    const location = await getLocationForUpdate(locationId, tx);
-    if (!location) throw new TransitionError('Location not found');
-    if (location.occupied) {
-      throw new TransitionError(`Location ${location.barcode} is occupied`);
+    // Cancel retrieval: bin still holds its rack slot — restore status only.
+    if (fromStatus === STATUS.RETRIEVAL_REQUESTED && bin.location_id) {
+      fields.location_id = bin.location_id;
+    } else {
+      if (!locationId) throw new TransitionError('Storing a bin requires a location');
+      const location = await getLocationForUpdate(locationId, tx);
+      if (!location) throw new TransitionError('Location not found');
+      if (location.occupied) {
+        throw new TransitionError(`Location ${location.barcode} is occupied`);
+      }
+      fields.location_id = locationId;
+      await setLocationOccupied(locationId, true, tx);
     }
-    fields.location_id = locationId;
-    await setLocationOccupied(locationId, true, tx);
   }
   if (toStatus === STATUS.IN_TRANSIT_OUTBOUND) {
     if (bin.location_id) await setLocationOccupied(bin.location_id, false, tx);
