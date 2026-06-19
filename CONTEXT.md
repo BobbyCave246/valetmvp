@@ -13,7 +13,7 @@ An internal operator who signs in to run the service. There are three roles: adm
 _Avoid_: Employee, operator, user
 
 **Admin**:
-Staff who manage bookings, assign bins, cancel bookings, view stats, reset demo data, and provision other staff accounts.
+Staff who manage bookings, assign bins, cancel bookings, view stats, supervise dispatch, explore bin custody, and provision other staff accounts. The admin surface orchestrates work — warehouse scanning and job completion happen in the dedicated warehouse and driver apps.
 _Avoid_: Manager, back-office
 
 **Warehouse**:
@@ -25,7 +25,7 @@ Staff who execute scheduled jobs on the jobs board — delivering empty bins, co
 _Avoid_: Courier, delivery person
 
 **Surface**:
-The UI a staff role sees after sign-in (`/admin`, `/warehouse`, or `/driver`). Each role only accesses its own surface.
+The UI a staff role sees after sign-in (`/admin`, `/warehouse`, or `/driver`). Each role only accesses its own surface. Admin is a supervisor console that deep-links into field apps for execution rather than duplicating warehouse scans or driver job completion.
 _Avoid_: Portal, dashboard, console
 
 ## Physical inventory

@@ -8,22 +8,28 @@
 </head>
 <body>
   <header>
-    <h1>🗄️ Store All Valet — Admin console</h1>
+    <h1>Store All Valet — Admin</h1>
     <span class="spacer"></span>
     <span class="live-dot" title="Boards auto-refresh every few seconds">● live</span>
     <a href="/booking/" class="header-link">Booking site ↗</a>
-    <a href="/driver/" class="header-link">Driver app ↗</a>
-    <a href="/warehouse/" class="header-link">Warehouse app ↗</a>
-    <a href="/guide/" class="header-link">Flow guide ↗</a>
+    <details class="field-apps-menu">
+      <summary class="header-link">Field apps ▾</summary>
+      <div class="field-apps-dropdown">
+        <a href="/driver/">Driver app</a>
+        <a href="/warehouse/">Warehouse app</a>
+      </div>
+    </details>
   </header>
 
-  <nav>
+  <nav id="mainNav">
     <button data-tab="queue" class="active">Bookings &amp; jobs</button>
     <button data-tab="assign">Assign bins</button>
-    <button data-tab="warehouse">Warehouse scan</button>
+    <button data-tab="dispatch">Dispatch</button>
+    <button data-tab="customers">Customers</button>
     <button data-tab="explorer">Bin explorer</button>
+    <button data-tab="inventory">Inventory</button>
     <button data-tab="leads">Leads</button>
-    <button data-tab="settings">Settings</button>
+    <button data-tab="config">Configuration</button>
     <button data-tab="staff">Staff</button>
   </nav>
 
@@ -59,6 +65,7 @@
         <label>Booking</label>
         <select id="assignBooking"></select>
         <div id="assignSummary" class="muted" style="margin-top:8px;"></div>
+        <div id="inventoryAlert" class="inventory-alert" hidden></div>
 
         <label>Scan / type a bin barcode</label>
         <div class="flex">
@@ -79,54 +86,17 @@
       </div>
     </section>
 
-    <section class="tab" id="tab-warehouse">
-      <h2>Warehouse scan</h2>
+    <section class="tab" id="tab-dispatch">
+      <h2>Today's dispatch</h2>
+      <p class="muted tab-lede">Supervisor view of scheduled jobs — drivers complete work in the <a href="/driver/">driver app</a>.</p>
+      <div id="dispatchList"></div>
+    </section>
+
+    <section class="tab" id="tab-customers">
+      <h2>Customers</h2>
       <div class="card">
-        <h3 style="margin-top:0;font-size:15px;">Add new bins to inventory</h3>
-        <p class="muted">Register newly purchased bins before assigning them to bookings.</p>
-        <label>Barcode</label>
-        <div class="flex">
-          <input type="text" id="intakeBarcode" placeholder="BIN1020" />
-          <button class="btn ghost scan-btn" data-target="intakeBarcode">📷 Scan</button>
-        </div>
-        <label>SKU type</label>
-        <select id="intakeSku">
-          <option value="bin">Standard bin</option>
-          <option value="wardrobe">Wardrobe box</option>
-        </select>
-        <div style="margin-top:14px;">
-          <button class="btn green" id="intakeSubmit">Add bin</button>
-        </div>
-      </div>
-      <div class="card">
-        <h3 style="margin-top:0;font-size:15px;">Put-away (scan bin → scan location)</h3>
-        <label>Bin barcode</label>
-        <div class="flex">
-          <input type="text" id="storeBin" placeholder="BIN1001" style="flex:1;" />
-          <button class="btn ghost scan-btn" data-target="storeBin">📷 Scan</button>
-        </div>
-        <label>Location — type or click a free slot below</label>
-        <div class="flex">
-          <input type="text" id="storeLoc" placeholder="A-01-1-01" style="flex:1;" />
-          <button class="btn ghost scan-btn" data-target="storeLoc">📷 Scan</button>
-        </div>
-        <div style="margin-top:14px;">
-          <button class="btn green" id="storeSubmit">Store bin</button>
-        </div>
-      </div>
-      <div class="card">
-        <h3 style="margin-top:0;font-size:15px;">Rack map</h3>
-        <div class="muted" style="margin-bottom:10px;">Green = free (click to select) · filled = occupied.</div>
-        <div id="rackMap"></div>
-      </div>
-      <div class="card">
-        <h3 style="margin-top:0;font-size:15px;">Scan-out (pull from rack)</h3>
-        <label>Bin barcode</label>
-        <div class="flex">
-          <input type="text" id="scanOutBin" placeholder="BIN1001" />
-          <button class="btn ghost scan-btn" data-target="scanOutBin">📷 Scan</button>
-          <button class="btn" id="scanOutSubmit">Scan out</button>
-        </div>
+        <input type="search" id="customerSearch" placeholder="Search name, phone, email, address…" />
+        <div id="customerList" style="margin-top:14px;"></div>
       </div>
     </section>
 
@@ -142,6 +112,16 @@
       </div>
     </section>
 
+    <section class="tab" id="tab-inventory">
+      <h2>Inventory &amp; rack</h2>
+      <div id="inventorySummary" class="card"></div>
+      <div class="card">
+        <h3 style="margin-top:0;font-size:15px;">Rack map <span class="badge readonly">read-only</span></h3>
+        <div class="muted" style="margin-bottom:10px;">Green = free · filled = occupied. Warehouse staff scan bins in the <a href="/warehouse/">warehouse app</a>.</div>
+        <div id="rackMap"></div>
+      </div>
+    </section>
+
     <section class="tab" id="tab-leads">
       <h2>Waitlist leads</h2>
       <div class="card">
@@ -153,10 +133,10 @@
       </div>
     </section>
 
-    <section class="tab" id="tab-settings">
-      <h2>Operational settings</h2>
+    <section class="tab" id="tab-config">
+      <h2>Configuration <span class="badge readonly">read-only</span></h2>
       <div class="card">
-        <p class="muted">Read-only view of environment configuration. Change these via server env vars and redeploy.</p>
+        <p class="muted">Environment configuration. Change these via server env vars and redeploy.</p>
         <div id="settingsPanel"></div>
       </div>
     </section>
@@ -201,6 +181,11 @@
   <script src="/shared/esc.js"></script>
   <script src="/shared/barcode.js"></script>
   <script src="/shared/session.js"></script>
+  <script src="/shared/client.js"></script>
+  <script src="/shared/labels.js"></script>
+  <script src="/shared/modal.js"></script>
+  <script src="/shared/field-links.js"></script>
+  <script src="/shared/driver-jobs.js"></script>
   <script src="/vendor/html5-qrcode.min.js"></script>
   <script src="/shared/scanner.js"></script>
   <script src="app.js"></script>

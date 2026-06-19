@@ -175,7 +175,7 @@ router.get('/by-phone/:phone', async (req, res) => {
 // GET /api/bookings/:id — customer lookup + admin detail (bins + statuses).
 // POST /api/bookings/:id/cancel — admin cancel. Releases the booking's bins
 // back to inventory (freeing rack slots), logs the release per bin, deletes
-// the booking's jobs and the booking itself. Gated by ADMIN_TOKEN if set.
+// the booking's jobs and the booking itself. Requires admin session.
 // POST /api/bookings/:id/cancel-unassigned — admin cancel when no bins assigned.
 router.post('/:id/cancel-unassigned', requireAuth, requireRole('admin'), async (req, res) => {
   try {

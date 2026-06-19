@@ -1,91 +1,12 @@
-// Driver app — a phone-first view of the jobs board. Reads /api/jobs (which
-// carries bins + booking + customer) and completes jobs via /api/jobs/:id/done.
-// The scan-to-confirm checklist is purely client-side reassurance; the server's
-// transition module remains the authority on what may advance.
+// Driver app — phone-first jobs board. Scan-to-confirm checklist is client-side;
+// the server's transition module remains authoritative.
 
-// A lost session (expired cookie) surfaces as 401/403 — bounce to login.
-function guard401(r) {
-  if (r.status === 401 || r.status === 403) Session.onUnauthorized();
-}
-const api = {
-  async get(path) {
-    const r = await fetch(`/api${path}`, { credentials: 'same-origin' });
-    if (!r.ok) { guard401(r); throw new Error((await r.json().catch(() => ({}))).error || r.statusText); }
-    return r.json();
-  },
-  async post(path, body) {
-    const r = await fetch(`/api${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify(body || {}),
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) { guard401(r); throw new Error(data.error || r.statusText); }
-    return data;
-  },
-};
+let jobs = [];
+let openJobId = null;
+let scanned = new Set();
 
-const $ = (sel) => document.querySelector(sel);
-const el = (html) => {
-  const t = document.createElement('template');
-  t.innerHTML = html.trim();
-  return t.content.firstChild;
-};
-
-function toast(msg, isErr = false) {
-  const t = $('#toast');
-  t.textContent = msg;
-  t.className = `show${isErr ? ' err' : ''}`;
-  setTimeout(() => (t.className = ''), 2600);
-}
-
-const JOB_LABEL = {
-  deliver_empty: 'Deliver empty bins',
-  collect_full: 'Collect filled bins',
-  deliver_back: 'Deliver bins back',
-};
-const JOB_ICON = { deliver_empty: '📦', collect_full: '🔄', deliver_back: '🏠' };
-
-let SLOT_LABELS = { am: 'Morning (8am–12pm)', pm: 'Afternoon (12–5pm)' };
-(async () => {
-  try {
-    const data = await api.get('/serviceability');
-    if (Array.isArray(data.slots)) {
-      SLOT_LABELS = Object.fromEntries(data.slots.map((s) => [s.key, s.label]));
-    }
-  } catch { /* fallback labels stand */ }
-})();
-const slotLabel = (key) => (key ? SLOT_LABELS[key] || key : '');
-
-// Keep in sync with src/driver-jobs.js (unit-tested there).
-const SLOT_ORDER = { am: 0, pm: 1 };
-function customerAddress(customer) {
-  if (!customer) return '';
-  return [customer.address, customer.postcode].filter(Boolean).join(', ');
-}
-function sortTodayJobs(list) {
-  return [...list].sort((a, b) => {
-    const sa = SLOT_ORDER[a.scheduled_slot] ?? 9;
-    const sb = SLOT_ORDER[b.scheduled_slot] ?? 9;
-    if (sa !== sb) return sa - sb;
-    return customerAddress(a.booking?.customer).localeCompare(customerAddress(b.booking?.customer));
-  });
-}
-function mapsUrl(customer) {
-  const dest = customerAddress(customer);
-  if (!dest) return null;
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}`;
-}
-
-const TODAY = new Date().toISOString().slice(0, 10);
-
-let jobs = [];          // latest fetch
-let openJobId = null;   // job currently shown in detail view
-let scanned = new Set(); // barcodes confirmed for the open job
-
-// ---- list view ----------------------------------------------------------------
 async function loadJobs() {
+  await refreshServiceToday();
   jobs = await api.get('/jobs');
   renderList();
 }
@@ -97,8 +18,9 @@ function renderList() {
     return;
   }
   const open = jobs.filter((j) => j.status !== 'Done');
-  const today = open.filter((j) => j.scheduled_date === TODAY);
-  const upcoming = open.filter((j) => j.scheduled_date !== TODAY);
+  const todayKey = serviceToday();
+  const today = open.filter((j) => j.scheduled_date === todayKey);
+  const upcoming = open.filter((j) => j.scheduled_date !== todayKey);
   const done = jobs.filter((j) => j.status === 'Done');
 
   box.innerHTML = '';
@@ -122,7 +44,7 @@ function jobCard(j) {
   const isDone = j.status === 'Done';
   const pill = isDone
     ? '<span class="pill done">Done</span>'
-    : j.scheduled_date === TODAY
+    : j.scheduled_date === serviceToday()
     ? '<span class="pill today">Today</span>'
     : `<span class="pill">${esc(j.scheduled_date || '—')}</span>`;
   const navUrl = mapsUrl(cust);
@@ -142,7 +64,6 @@ function jobCard(j) {
   return card;
 }
 
-// ---- detail view ----------------------------------------------------------------
 function openDetail(jobId) {
   openJobId = jobId;
   scanned = new Set();
@@ -156,7 +77,6 @@ function closeDetail() {
   openJobId = null;
   $('#detailView').hidden = true;
   $('#listView').hidden = false;
-  // Remove the sticky action bar, if present.
   document.querySelector('.action-bar')?.remove();
   loadJobs();
 }
@@ -212,7 +132,6 @@ function renderDetail() {
 
   if (isDone || !bins.length) return;
 
-  // Sticky action bar: Scan bin + Mark done.
   const bar = el(`
     <div class="action-bar">
       <button class="btn ghost" id="scanBtn">📷 Scan bin</button>
@@ -263,16 +182,20 @@ function renderDetail() {
   updateTicks();
 }
 
-// ---- polling (list view only, so it never clobbers an in-progress checklist) ---
 setInterval(() => {
   if (document.hidden || openJobId !== null) return;
   loadJobs();
 }, 5000);
 
-// ---- boot ----------------------------------------------------------------------
-// Gate on a signed-in driver first; Session.guard redirects if not.
+async function boot() {
+  await initSlotLabels();
+  await loadJobs();
+  const jobId = new URLSearchParams(location.search).get('job');
+  if (jobId && jobs.some((j) => j.id === jobId)) openDetail(jobId);
+}
+
 Session.guard('driver').then(() => {
-  loadJobs().catch((e) => {
+  boot().catch((e) => {
     $('#jobGroups').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
   });
 });

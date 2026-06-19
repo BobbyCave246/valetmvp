@@ -11,9 +11,12 @@ scanning is best-effort). Staff sign in with role-based access (see
 
 - **Datastore:** Postgres (Supabase) via [`postgres`](https://github.com/porsager/postgres) (postgres.js)
 - **Backend:** Node + Express (plain JS / ESM, fully async data layer)
-- **Frontends:** two vanilla HTML/JS/CSS apps served by Express
+- **Frontends:** four vanilla HTML/JS/CSS staff/customer apps served by Express
   - Public booking site → `/booking/`
-  - Combined admin / warehouse console → `/admin/`
+  - Admin supervisor console → `/admin/`
+  - Warehouse scan station → `/warehouse/`
+  - Driver jobs board → `/driver/`
+  - Unified staff login → `/login/`
 
 **Architectural rule:** the frontend never touches the DB. All reads/writes go
 through `/api`, and *every* bin-status change goes through one transition module
@@ -62,7 +65,7 @@ only ever sees their own surface:
 |---|---|---|
 | `driver` | `/driver` | the jobs board (`/api/jobs`) |
 | `warehouse` | `/warehouse` | put-away, pull-out, bin intake, rack/locations |
-| `admin` | `/admin` | bookings queue, assign, cancel, stats, demo reset, **staff management** |
+| `admin` | `/admin` | bookings queue, assign, cancel, stats, customers, dispatch, bin explorer, inventory view, demo reset, **staff management** |
 
 Sessions are a signed httpOnly cookie (Node `crypto` only — no auth deps). The
 **API is the security boundary**: every protected `/api` route checks the
@@ -130,13 +133,13 @@ old "data disappears" behaviour from the ephemeral per-instance SQLite).
 1. **Booking site → Book bins:** pick a SKU mix, a delivery date, contact details → creates a booking + a `deliver_empty` job.
 2. **Admin → Bookings queue:** the new booking appears with a derived bin-status summary.
 3. **Admin → Assign bins:** pick the booking, scan/click bin barcodes → bins become `Assigned`.
-4. **Admin → Jobs board:** mark the `deliver_empty` job **Done** → bins become `Out for filling`.
+4. **Driver app → Deliver empty:** open the job from the driver app and mark it **Done** → bins become `Out for filling`.
 5. **Booking site → My booking:** add a contents photo to each bin → schedules a `collect_full` job.
-6. **Admin → Jobs board:** mark `collect_full` **Done** → bins become `In transit (inbound)`.
-7. **Admin → Warehouse scan:** put-away each bin (scan bin → scan location) → bins become `Stored`.
+6. **Driver app → Collect full:** mark the collection job **Done** → bins become `In transit (inbound)`.
+7. **Warehouse app → Put away:** scan each bin and rack location → bins become `Stored`.
 8. **Booking site → My booking:** request a bin back with a date → bin becomes `Retrieval requested` + a `deliver_back` job is scheduled.
-9. **Admin → Warehouse scan:** scan the bin out → `In transit (outbound)`, location freed.
-10. **Admin → Jobs board:** mark `deliver_back` **Done** → bin becomes `Returned to customer`.
+9. **Warehouse app → Pull out:** scan the bin out → `In transit (outbound)`, location freed.
+10. **Driver app → Deliver back:** mark the return job **Done** → bin becomes `Returned to customer`.
 
 A returned bin can then be **re-stored** (Store this again → `In transit (inbound)` → `Stored`,
 skipping `Out for filling` because it's already filled) or **closed** (`Returned / closed`).
@@ -194,14 +197,9 @@ All under `/api`. Handlers are thin; the rules live in the transition module.
 
 Recorded omissions, per the spec — the build does not silently paper over them:
 
-- **Cancellation before assignment** — no path.
-- **No-show / unfilled bins** — no path.
-- **Cancel a retrieval** — once `Retrieval requested` there's no path back to
-  `Stored`. The transition table simply doesn't contain that move, so any
-  attempt fails loudly rather than being worked around.
-
 Also out of scope: real payments, SiteLink integration, real camera scanning,
-customer login, SMS/email, route optimisation, multi-site.
+customer login, SMS/email (see [Phase 1 roadmap](docs/agents/phase-roadmap.md)),
+route optimisation, multi-site, staff deactivate/password-reset UI.
 
 ## Notes
 

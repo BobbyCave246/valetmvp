@@ -113,7 +113,7 @@
       <div class="role-card">
         <span class="icon">🗄️</span>
         <b>Ops / admin <span class="who sys">ADMIN</span></b>
-        <span class="muted">Desktop console: live dashboard, booking queue, bin assignment, rack map and the full chain-of-custody explorer for any bin.</span><br />
+        <span class="muted">Desktop supervisor console: live dashboard, booking queue, bin assignment, customers, dispatch, inventory view, and chain-of-custody explorer. Warehouse scans and job completion happen in the field apps.</span><br />
         <a href="/admin/">Open the admin console ↗</a>
       </div>
     </div>
@@ -267,15 +267,15 @@
         <li><span class="who driver">DRIVER</span> On the phone: open the delivery job, scan both bins (off the laptop's Bin explorer), mark done.</li>
         <li><span class="who cust">CUSTOMER</span> Add a contents photo to a bin, then book a collection.</li>
         <li><span class="who driver">DRIVER</span> Complete the collection job with scans.</li>
-        <li><span class="who wh">WAREHOUSE</span> Put away: scan each bin, then scan a rack slot off the laptop's rack map. Watch the admin dashboard update.</li>
+        <li><span class="who wh">WAREHOUSE</span> Put away: on the phone, open Put away, scan each bin then tap a free rack slot (or scan the location barcode).</li>
         <li><span class="who cust">CUSTOMER</span> Request one bin back for tomorrow.</li>
-        <li><span class="who wh">WAREHOUSE</span> Pull out: scan the bin — its slot frees on the rack map.</li>
+        <li><span class="who wh">WAREHOUSE</span> Pull out: scan the bin on the warehouse app — the admin Inventory rack map frees the slot on the next refresh.</li>
         <li><span class="who driver">DRIVER</span> Run the return job, confirm with a scan.</li>
         <li><span class="who cust">CUSTOMER</span> Close the bin — then open <em>Track this bin</em> and show the full chain of custody, end to end.</li>
       </ol>
       <div class="callout green">
-        <strong>Tip for presenting:</strong> keep the admin dashboard visible on the laptop the whole
-        time — watching the stats bar and rack map react live to each phone scan is the most
+        <strong>Tip for presenting:</strong> keep the admin console on the laptop (queue + Inventory rack map) while phones run the field apps —
+        watching the stats bar and read-only rack map update after each scan is the most
         convincing 10 seconds of the demo.
       </div>
     </div>

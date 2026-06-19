@@ -1,47 +1,8 @@
-// Warehouse phone scan station. Two flows over the same endpoints the admin
-// console uses: put-away (POST /bins/:barcode/store) and pull-out
-// (POST /bins/:barcode/scan-out). After each result it auto-resets for the
-// next bin, scan-gun style.
+// Warehouse phone scan station — put-away, pull-out, and bin intake.
+// After each result it auto-resets for the next bin, scan-gun style.
 
-// A lost session (expired cookie) surfaces as 401/403 — bounce to login.
-function guard401(r) {
-  if (r.status === 401 || r.status === 403) Session.onUnauthorized();
-}
-const api = {
-  async get(path) {
-    const r = await fetch(`/api${path}`, { credentials: 'same-origin' });
-    if (!r.ok) { guard401(r); throw new Error((await r.json().catch(() => ({}))).error || r.statusText); }
-    return r.json();
-  },
-  async post(path, body) {
-    const r = await fetch(`/api${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify(body || {}),
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) { guard401(r); throw new Error(data.error || r.statusText); }
-    return data;
-  },
-};
-
-const $ = (sel) => document.querySelector(sel);
-const el = (html) => {
-  const t = document.createElement('template');
-  t.innerHTML = html.trim();
-  return t.content.firstChild;
-};
-
-function toast(msg, isErr = false) {
-  const t = $('#toast');
-  t.textContent = msg;
-  t.className = `show${isErr ? ' err' : ''}`;
-  setTimeout(() => (t.className = ''), 2600);
-}
-
-let mode = null; // 'putaway' | 'pullout' | 'intake'
-let lastResult = null; // { ok, text } banner from the previous bin
+let mode = null;
+let lastResult = null;
 
 $('#modePutaway').addEventListener('click', () => openFlow('putaway'));
 $('#modePullout').addEventListener('click', () => openFlow('pullout'));
@@ -53,13 +14,13 @@ $('#backBtn').addEventListener('click', () => {
   $('#modeView').hidden = false;
 });
 
-function openFlow(m) {
+function openFlow(m, binBarcode = null) {
   mode = m;
   lastResult = null;
-  if (m === 'intake') intakeSku = null; // fresh run: re-pick the bin type
+  if (m === 'intake') intakeSku = null;
   $('#modeView').hidden = true;
   $('#flowView').hidden = false;
-  renderFlow();
+  renderFlow(m, binBarcode);
 }
 
 function bannerHtml() {
@@ -67,11 +28,10 @@ function bannerHtml() {
   return `<div class="banner ${lastResult.ok ? 'ok' : 'err'}">${esc(lastResult.text)}</div>`;
 }
 
-// ---- put-away: scan bin → scan/tap location → store --------------------------
-async function renderFlow() {
-  if (mode === 'putaway') renderPutaway();
-  else if (mode === 'intake') renderIntake();
-  else renderPullout();
+async function renderFlow(m, binBarcode = null) {
+  if (m === 'putaway') renderPutaway(binBarcode);
+  else if (m === 'intake') renderIntake();
+  else renderPullout(binBarcode);
 }
 
 async function renderPutaway(binBarcode = null) {
@@ -106,7 +66,6 @@ async function renderPutaway(binBarcode = null) {
   });
 
   if (binBarcode) {
-    // Tappable free-slot fallback (rack-location barcodes may not be printed).
     try {
       const locations = await api.get('/locations');
       const free = locations.filter((l) => !l.occupied);
@@ -135,18 +94,16 @@ async function storeBin(bin, loc) {
   } catch (e) {
     lastResult = { ok: false, text: `✗ ${bin}: ${e.message}` };
   }
-  renderPutaway(); // reset for the next bin, banner on top
+  renderPutaway();
 }
 
-// ---- intake: register newly purchased bins into the pool -----------------------
-// Pick the bin type once, then scan each new bin in a loop — one POST per scan.
 const SKU_LABELS = {
   bin: { label: 'Standard bin', icon: '📦' },
   wardrobe: { label: 'Wardrobe box', icon: '👔' },
   odd: { label: 'Odd / bulky item', icon: '🚲' },
 };
-let intakeSku = null;     // chosen SKU for this intake run
-let intakeCount = 0;      // bins added this session
+let intakeSku = null;
+let intakeCount = 0;
 
 function renderIntake() {
   const body = $('#flowBody');
@@ -205,19 +162,18 @@ function renderIntake() {
   });
 }
 
-// ---- pull-out: scan bin → scan-out --------------------------------------------
-function renderPullout() {
+function renderPullout(prefillBin = null) {
   const body = $('#flowBody');
   body.innerHTML = `
     ${bannerHtml()}
     <div class="card">
       <h2>📤 Pull out</h2>
       <p class="muted">Scan a stored bin to pull it from the rack for return delivery.</p>
+      ${prefillBin ? `<p>Bin <code>${esc(prefillBin)}</code> from admin queue.</p><button class="btn green" id="confirmPull">Pull out ${esc(prefillBin)}</button>` : ''}
       <button class="btn" id="scanStep">📷 Scan bin</button>
     </div>
   `;
-  $('#scanStep').addEventListener('click', async () => {
-    const code = await Scanner.scan({ title: 'Scan the bin barcode' });
+  const runScanOut = async (code) => {
     if (!code) return;
     try {
       const res = await api.post(`/bins/${code}/scan-out`, {});
@@ -229,8 +185,24 @@ function renderPullout() {
       lastResult = { ok: false, text: `✗ ${code}: ${e.message}` };
     }
     renderPullout();
+  };
+  $('#scanStep').addEventListener('click', async () => {
+    const code = await Scanner.scan({ title: 'Scan the bin barcode' });
+    await runScanOut(code);
   });
+  if (prefillBin) {
+    $('#confirmPull').addEventListener('click', () => runScanOut(prefillBin));
+  }
 }
 
-// ---- boot: gate on a signed-in warehouse user (redirects if not) -------------
-Session.guard('warehouse');
+function applyDeepLink() {
+  const params = new URLSearchParams(location.search);
+  const modeParam = params.get('mode');
+  const bin = params.get('bin')?.trim().toUpperCase() || null;
+  if (!modeParam) return;
+  const allowed = ['putaway', 'pullout', 'intake'];
+  if (!allowed.includes(modeParam)) return;
+  openFlow(modeParam, bin);
+}
+
+Session.guard('warehouse').then(applyDeepLink);
