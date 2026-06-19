@@ -71,11 +71,12 @@ describe('staff lifecycle integration', { concurrency: 1 }, () => {
     const admin = await login('admin@valet.local', 'admin1234');
     assert.equal(admin.status, 200);
 
+    const activeSession = await login(email, password);
+    assert.equal(activeSession.status, 200);
+
     const deactivate = await authedPost(`/auth/users/${user.id}/deactivate`, admin.cookie);
     assert.equal(deactivate.status, 200);
 
-    const activeSession = await login(email, password);
-    assert.equal(activeSession.status, 200);
     const stale = await authedGet('/auth/me', activeSession.cookie);
     assert.equal(stale.status, 401);
 
@@ -90,6 +91,14 @@ describe('staff lifecycle integration', { concurrency: 1 }, () => {
   });
 
   test('cannot deactivate own account', { skip: !RUN }, async () => {
+    const extraEmail = `${uid('admin_extra')}@test.local`;
+    await db.createUser({
+      email: extraEmail,
+      passwordHash: await auth.hashPassword('testpass123'),
+      role: 'admin',
+      name: 'Extra Admin',
+    });
+
     const admin = await login('admin@valet.local', 'admin1234');
     assert.equal(admin.status, 200);
     const me = await authedGet('/auth/me', admin.cookie);

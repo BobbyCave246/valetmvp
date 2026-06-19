@@ -111,14 +111,14 @@ router.post('/users', requireAuth, requireRole('admin'), async (req, res) => {
 router.post('/users/:id/deactivate', requireAuth, requireRole('admin'), async (req, res) => {
   const target = await getUserById(req.params.id);
   if (!target) return res.status(404).json({ error: 'User not found' });
-  if (target.id === req.user.id) {
-    return res.status(400).json({ error: 'You cannot deactivate your own account' });
-  }
   if (!isUserActive(target)) {
     return res.status(400).json({ error: 'User is already inactive' });
   }
   if (target.role === 'admin' && (await countActiveAdmins()) <= 1) {
     return res.status(400).json({ error: 'Cannot deactivate the last active admin' });
+  }
+  if (target.id === req.user.id) {
+    return res.status(400).json({ error: 'You cannot deactivate your own account' });
   }
   const user = await setUserActive(target.id, false);
   res.json({ user: publicUser(user) });

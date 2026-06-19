@@ -82,7 +82,7 @@ describe('reports integration', { concurrency: 1 }, () => {
 
   test('future range returns zero activity without error', { skip: !RUN }, async () => {
     const admin = await login('admin@valet.local', 'admin1234');
-    const res = await authedGet('/reports/summary?from=2999-01-01&to=2999-01-31', admin.cookie);
+    const res = await authedGet('/reports/summary?from=2000-01-01&to=2000-01-31', admin.cookie);
     assert.equal(res.status, 200);
     const data = await res.json();
     assert.equal(data.activity.bookingsCreated, 0);
