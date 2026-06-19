@@ -31,6 +31,7 @@ import { isCovered } from '../coverage.js';
 import { validateDateSlot, validateFutureDate, SLOT_CAPACITY, SLOTS } from '../slots.js';
 import { safeParse, VALID_SKUS } from '../util.js';
 import { sendBookingConfirmation } from '../notify.js';
+import { enrichBins } from '../storage.js';
 
 const COOKIE_NAME = 'valet_session';
 
@@ -223,12 +224,13 @@ router.get('/:id', async (req, res) => {
   const booking = await getBooking(req.params.id);
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
 
-  const [customer, bins, summary, allJobs] = await Promise.all([
+  const [customer, rawBins, summary, allJobs] = await Promise.all([
     getCustomer(booking.customer_id),
     listBinsForBooking(booking.id),
     deriveBookingSummary(booking.id),
     listJobs(),
   ]);
+  const bins = enrichBins(rawBins);
   const jobs = allJobs
     .filter((j) => j.booking_id === booking.id)
     .map((j) => ({ ...j, bin_ids: safeParse(j.bin_ids) || [] }));

@@ -225,7 +225,7 @@ function binActions(bin) {
   // Out for filling → upload a real contents photo (downscaled to a thumbnail).
   if (bin.status === 'Out for filling') {
     wrap.appendChild(
-      mkBtn('green', bin.photo_ref ? '📷 Replace photo' : '📷 Add contents photo', () => pickPhoto(bin))
+      mkBtn('green', bin.photo_ref || bin.photoUrl ? '📷 Replace photo' : '📷 Add contents photo', () => pickPhoto(bin))
     );
   }
 
@@ -288,8 +288,7 @@ function binActions(bin) {
   return wrap;
 }
 
-// Opens a file picker, downscales the chosen image to a small thumbnail data
-// URL, and posts it as the bin's contents photo.
+// Opens a file picker, downscales the image, and posts it as the bin's contents photo.
 function pickPhoto(bin) {
   const input = document.createElement('input');
   input.type = 'file';
@@ -298,7 +297,7 @@ function pickPhoto(bin) {
     const file = input.files?.[0];
     if (!file) return;
     try {
-      const photoRef = await downscaleToDataURL(file, 320, 0.6);
+      const photoRef = await downscaleToDataURL(file, 1024, 0.75);
       await api('POST', `/bins/${bin.barcode}/photo`, { photoRef });
       toast('Photo added');
       reloadCurrent();
@@ -328,6 +327,12 @@ function downscaleToDataURL(file, maxDim, quality) {
     reader.onerror = () => reject(new Error('Could not read that file'));
     reader.readAsDataURL(file);
   });
+}
+
+function binPhotoSrc(bin) {
+  if (bin.photoUrl) return bin.photoUrl;
+  if (bin.photo_ref?.startsWith('data:image/')) return bin.photo_ref;
+  return null;
 }
 
 function mkBtn(variant, label, onClick) {
@@ -377,8 +382,7 @@ function renderBooking(booking) {
     binsCard.innerHTML += `<p class="muted">No bins assigned yet — we'll bind physical bins to your booking before delivery.</p>`;
   } else {
     booking.bins.forEach((bin) => {
-      // Only render data-URL images we expect (guards src attribute injection).
-      const hasThumb = bin.photo_ref && bin.photo_ref.startsWith('data:image/');
+      const thumbSrc = binPhotoSrc(bin);
       const block = document.createElement('div');
       block.className = 'bin-block';
 
@@ -388,9 +392,9 @@ function renderBooking(booking) {
       row.innerHTML = `
         <div>
           <strong>${esc(bin.barcode)}</strong> <span class="muted">${esc(bin.sku_type)}</span>
-          <div class="muted">${esc(STATUS_COPY[bin.status] || bin.status || 'pending')}${bin.photo_ref && !hasThumb ? ' · 📷 photo on file' : ''}</div>
+          <div class="muted">${esc(STATUS_COPY[bin.status] || bin.status || 'pending')}${(bin.photo_ref || bin.photoUrl) && !thumbSrc ? ' · 📷 photo on file' : ''}</div>
           <div class="bc-block">${barcode}</div>
-          ${hasThumb ? `<img class="thumb" src="${esc(bin.photo_ref)}" alt="contents photo" />` : ''}
+          ${thumbSrc ? `<img class="thumb" src="${esc(thumbSrc)}" alt="contents photo" />` : ''}
         </div>`;
       block.appendChild(row);
 

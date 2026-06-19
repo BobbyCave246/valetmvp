@@ -180,7 +180,7 @@ All under `/api`. Handlers are thin; the rules live in the transition module.
 | `/jobs` | GET | Jobs board |
 | `/jobs/:id/done` | POST | Advance the job's bins to their next state |
 | `/bins/available` | GET | Unassigned bins (for assign screen) |
-| `/bins/:barcode/photo` | POST | Attach contents-photo stub (+collect_full job) |
+| `/bins/:barcode/photo` | POST | Upload contents photo to Supabase Storage (Out for filling only) |
 | `/bins/:barcode/store` | POST | Put-away: bin + location → `Stored` |
 | `/bins/:barcode/scan-out` | POST | Pull from location → `In transit (outbound)` |
 | `/bins/:id/request-return` | POST | Retrieval request (+deliver_back job) |
