@@ -24,8 +24,8 @@ function confirmDialog({ title, message, confirmLabel = 'Confirm', cancelLabel =
           <h3 id="modalTitle">${esc(title)}</h3>
           <p>${message}</p>
           <div class="modal-actions">
-            <button type="button" class="btn ghost modal-cancel">${esc(cancelLabel)}</button>
-            <button type="button" class="btn modal-confirm">${esc(confirmLabel)}</button>
+            <button type="button" class="btn btn-ghost modal-cancel">${esc(cancelLabel)}</button>
+            <button type="button" class="btn btn-primary modal-confirm">${esc(confirmLabel)}</button>
           </div>
         </div>
       </div>`);
@@ -251,8 +251,10 @@ function downscaleToDataURL(file, maxDim, quality) {
 }
 
 function mkBtn(variant, label, onClick) {
+  const cls = variant === 'ghost' ? 'btn btn-ghost' : 'btn btn-primary';
   const b = document.createElement('button');
-  b.className = `btn ${variant}`.trim();
+  b.type = 'button';
+  b.className = cls;
   b.textContent = label;
   b.addEventListener('click', async () => {
     b.disabled = true;
@@ -542,7 +544,7 @@ const ref = params.get('ref');
 if (ref) {
   $('#lookup').value = ref;
   if (params.get('new') === '1') {
-    $('#confirmBanner').innerHTML = `<div class="banner">✅ Booking confirmed! Reference <code>${esc(ref)}</code>. We'll deliver your empty bins on the chosen date.<br><span class="muted">Drop-off and collection are free — a flat $30 per delivery applies only when you request stored bins back.</span></div>`;
+    $('#confirmBanner').innerHTML = `<div class="banner">✅ <strong>Booking confirmed!</strong> Reference <code>${esc(ref)}</code>. We'll deliver your empty bins on the chosen date.<br><span class="muted">Drop-off and collection are free — a flat $30 per delivery applies only when you request stored bins back.</span></div>`;
   }
   loadByRef(ref);
 }

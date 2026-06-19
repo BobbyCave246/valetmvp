@@ -2,8 +2,8 @@
 // → contact → submit. Submits area + delivery window to /api/bookings.
 
 const SKUS = [
-  { key: 'bin', label: 'Standard bin', price: 15, desc: '80 L tote — books, clothes, kitchenware' },
-  { key: 'wardrobe', label: 'Wardrobe box', price: 25, desc: 'Hanging garments stay crease-free' },
+  { key: 'bin', label: 'Standard bin', price: 15, desc: '80 L tote — books, clothes, kitchenware', emoji: '📦' },
+  { key: 'wardrobe', label: 'Wardrobe box', price: 25, desc: 'Hanging garments stay crease-free', emoji: '👕' },
 ];
 
 const counts = { bin: 0, wardrobe: 0 };
@@ -51,6 +51,18 @@ $('#area').addEventListener('change', () => {
   $('#waitlist').style.display = $('#area').value === OTHER ? 'block' : 'none';
 });
 
+function setFlowStep(activeId) {
+  const order = ['stepArea', 'stepBins', 'stepDelivery'];
+  const activeIdx = order.indexOf(activeId);
+  order.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('active', 'done');
+    if (i < activeIdx) el.classList.add('done');
+    else if (i === activeIdx) el.classList.add('active');
+  });
+}
+
 $('#areaContinue').addEventListener('click', () => {
   const v = $('#area').value;
   if (!v) return toast('Pick your area', true);
@@ -62,6 +74,7 @@ $('#areaContinue').addEventListener('click', () => {
   $('#areaCard').querySelector('h2').textContent = `Delivering to ${v} ✓`;
   $('#waitlist').style.display = 'none';
   $('#bookingForm').style.display = 'block';
+  setFlowStep('stepBins');
   $('#bookingForm').scrollIntoView({ behavior: 'smooth' });
 });
 
@@ -84,10 +97,14 @@ function renderSkus() {
   SKUS.forEach((sku) => {
     const row = document.createElement('div');
     row.className = 'sku-row';
+    row.dataset.sku = sku.key;
     row.innerHTML = `
-      <div>
-        <div><strong>${sku.label}</strong> <span class="price">$${sku.price}/mo</span></div>
-        <div class="muted">${sku.desc}</div>
+      <div class="sku-info">
+        <div class="sku-thumb" aria-hidden="true">${sku.emoji}</div>
+        <div>
+          <div><strong>${sku.label}</strong> <span class="price">$${sku.price}/mo</span></div>
+          <div class="muted">${sku.desc}</div>
+        </div>
       </div>
       <div class="stepper">
         <button type="button" data-act="dec" data-sku="${sku.key}" aria-label="Remove one ${sku.label}">−</button>
@@ -150,7 +167,10 @@ async function loadSlots() {
   }
 }
 
-$('#deliveryDate').addEventListener('change', loadSlots);
+$('#deliveryDate').addEventListener('change', () => {
+  setFlowStep('stepDelivery');
+  loadSlots();
+});
 
 // ---- submit -----------------------------------------------------------------
 // Report a validation problem: announce via toast and move focus to the field

@@ -4,83 +4,123 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Book bins — Store All Valet</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="site.css" />
+  <link rel="stylesheet" href="flow.css" />
 </head>
-<body>
+<body class="flow-page">
   <header>
-    <h1>📦 Store All Valet</h1>
-    <span class="spacer"></span>
-    <a href="index.html">Home</a>
-    <a href="booking.html">My booking</a>
+    <div class="wrap nav">
+      <a class="brand" href="index.html">📦 Store All Valet</a>
+      <span class="spacer"></span>
+      <nav class="nav-links nav-desktop">
+        <a href="index.html">Home</a>
+        <a href="booking.html">My booking</a>
+        <a href="book.html" class="active">Book bins</a>
+        <a class="staff" href="/login/">Staff sign in ↗</a>
+      </nav>
+      <a class="btn btn-primary btn-sm" href="book.html">Book bins</a>
+    </div>
   </header>
 
-  <main>
-    <!-- Step 0: serviceability gate -->
+  <main class="wrap flow-main">
+    <section class="flow-hero">
+      <span class="eyebrow">📦 Book in minutes</span>
+      <h1>Book your bins</h1>
+      <p class="lead">Choose what you need, pick a delivery date, and we'll bring empty bins to your door.</p>
+    </section>
+
+    <div class="flow-steps" aria-label="Booking progress">
+      <div class="flow-step active" id="stepArea">
+        <span class="dot">1</span>
+        <span class="label">Area</span>
+      </div>
+      <span class="flow-step-sep" aria-hidden="true">→</span>
+      <div class="flow-step" id="stepBins">
+        <span class="dot">2</span>
+        <span class="label">Choose bins</span>
+      </div>
+      <span class="flow-step-sep" aria-hidden="true">→</span>
+      <div class="flow-step" id="stepDelivery">
+        <span class="dot">3</span>
+        <span class="label">Delivery &amp; contact</span>
+      </div>
+    </div>
+
+    <!-- Step 1: serviceability gate -->
     <div class="card" id="areaCard">
       <h2>Where are you?</h2>
       <p class="muted">Let's check we deliver to your area.</p>
       <label for="area">Your area</label>
       <select id="area" required aria-required="true"></select>
-      <div style="margin-top:14px;">
-        <button class="btn" id="areaContinue">Continue</button>
+      <div class="card-actions">
+        <button type="button" class="btn btn-primary" id="areaContinue">Continue</button>
       </div>
-      <!-- out-of-area waitlist (hidden until "not listed") -->
       <div id="waitlist" style="display:none; margin-top:18px;">
         <p class="muted">We're not in your area just yet — leave your email and we'll let you know when we are.</p>
         <label for="leadEmail">Email</label>
         <input type="email" id="leadEmail" placeholder="you@example.com" autocomplete="email" />
-        <div style="margin-top:12px;">
-          <button class="btn ghost" id="leadSubmit">Join the waitlist</button>
+        <div class="card-actions">
+          <button type="button" class="btn btn-ghost" id="leadSubmit">Join the waitlist</button>
         </div>
       </div>
     </div>
 
-    <!-- Booking form (revealed once an area is confirmed) -->
+    <!-- Steps 2–3: booking form (revealed once an area is confirmed) -->
     <div id="bookingForm" style="display:none;">
-    <div class="card">
-      <h2>Book your bins</h2>
-      <p class="muted">Choose how many of each you need. Pricing is per bin, per month.</p>
-
-      <div id="skuList"></div>
-
-      <div class="total">
-        <span>Estimated monthly total</span>
-        <span id="total">$0</span>
+      <div class="card">
+        <h2>Choose your bins</h2>
+        <p class="muted">Pricing is per bin, per month.</p>
+        <div id="skuList"></div>
+        <div class="total">
+          <span>Estimated monthly total</span>
+          <span id="total">$0</span>
+        </div>
+        <p class="fee-note">Drop-off of empty bins and pick-up of your filled bins are free. A flat $30 per delivery applies only when you request stored bins back.</p>
       </div>
-      <p class="muted" style="margin-top:10px;">Drop-off of empty bins and pick-up of your
-        filled bins are free. A flat $30 per delivery applies only when you request stored
-        bins back.</p>
-    </div>
 
-    <div class="card">
-      <h3 style="margin-top:0;">Delivery & contact</h3>
-      <label for="deliveryDate">Delivery date for empty bins</label>
-      <input type="date" id="deliveryDate" required aria-required="true" />
+      <div class="card">
+        <h3 style="margin-top:0;">Delivery &amp; contact</h3>
+        <label for="deliveryDate">Delivery date for empty bins</label>
+        <input type="date" id="deliveryDate" required aria-required="true" />
 
-      <label id="slotLabel">Delivery window</label>
-      <div id="slotList" class="muted" role="group" aria-labelledby="slotLabel">Pick a date to see available windows.</div>
+        <label id="slotLabel">Delivery window</label>
+        <div id="slotList" class="muted" role="group" aria-labelledby="slotLabel">Pick a date to see available windows.</div>
 
-      <label for="name">Name</label>
-      <input type="text" id="name" placeholder="Your name" autocomplete="name" required aria-required="true" />
+        <label for="name">Name</label>
+        <input type="text" id="name" placeholder="Your name" autocomplete="name" required aria-required="true" />
 
-      <label for="phone">Phone</label>
-      <input type="tel" id="phone" placeholder="555-0123" inputmode="tel" autocomplete="tel" required aria-required="true" />
+        <label for="phone">Phone</label>
+        <input type="tel" id="phone" placeholder="555-0123" inputmode="tel" autocomplete="tel" required aria-required="true" />
 
-      <label for="email">Email</label>
-      <input type="email" id="email" placeholder="you@example.com" autocomplete="email" required aria-required="true" />
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email" required aria-required="true" />
 
-      <label for="village">Village</label>
-      <select id="village" required aria-required="true"></select>
+        <label for="village">Village</label>
+        <select id="village" required aria-required="true"></select>
 
-      <label for="houseNo">House / lot number</label>
-      <input type="text" id="houseNo" placeholder="e.g. 247" autocomplete="address-line2" required aria-required="true" />
+        <label for="houseNo">House / lot number</label>
+        <input type="text" id="houseNo" placeholder="e.g. 247" autocomplete="address-line2" required aria-required="true" />
 
-      <div style="margin-top:18px;">
-        <button class="btn" id="submitBtn">Create booking</button>
+        <div class="card-actions">
+          <button type="button" class="btn btn-primary" id="submitBtn">Create booking</button>
+        </div>
       </div>
     </div>
-    </div><!-- /#bookingForm -->
   </main>
+
+  <footer>
+    <div class="wrap foot">
+      <span class="brand">📦 Store All Valet</span>
+      <span class="spacer"></span>
+      <a href="book.html">Book bins</a>
+      <a href="booking.html">My booking</a>
+      <a href="/login/">Staff sign in ↗</a>
+    </div>
+    <div class="wrap foot-copy">
+      <small>© Store All Valet — Storage that comes to you.</small>
+    </div>
+  </footer>
+
   <div id="toast" role="status" aria-live="polite"></div>
   <script src="/shared/esc.js"></script>
   <script src="book.js"></script>
