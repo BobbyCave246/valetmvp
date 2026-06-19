@@ -15,7 +15,7 @@ import {
   listMovementsForBin,
 } from '../db.js';
 import { transitionBin, STATUS } from '../transitions.js';
-import { scheduleCollection, requestRetrieval } from '../jobs-lifecycle.js';
+import { scheduleCollection, requestRetrieval, markBinNoShow } from '../jobs-lifecycle.js';
 import { validateFutureDate, SLOTS } from '../slots.js';
 import { VALID_SKUS } from '../util.js';
 import { requireAuth, requireRole } from '../auth.js';
@@ -185,6 +185,20 @@ router.post('/:id/request-restore', async (req, res) => {
       binIds: [bin.id],
     });
     res.json({ bin, job });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+// POST /api/bins/:id/no-show — admin marks an Out for filling bin as no-show;
+// releases it to unassigned inventory and reconciles Collect full Jobs.
+router.post('/:id/no-show', requireAuth, requireRole('admin'), async (req, res) => {
+  const bin = (await getBin(req.params.id)) || (await getBinByBarcode(req.params.id));
+  if (!bin) return res.status(404).json({ error: 'Bin not found' });
+
+  try {
+    const result = await markBinNoShow(bin.id, { actor: 'admin' });
+    res.json(result);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }

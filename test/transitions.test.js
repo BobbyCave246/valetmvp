@@ -42,6 +42,11 @@ test('a closed bin re-enters inventory only via assignment', () => {
   assert.ok(!isLegalTransition(STATUS.RETURNED_CLOSED, STATUS.STORED));
 });
 
+test('retrieval can be cancelled back to stored', () => {
+  assert.ok(isLegalTransition(STATUS.RETRIEVAL_REQUESTED, STATUS.STORED));
+  assert.ok(isLegalTransition(STATUS.RETRIEVAL_REQUESTED, STATUS.IN_TRANSIT_OUTBOUND));
+});
+
 test('illegal jumps are rejected', () => {
   assert.ok(!isLegalTransition(STATUS.ASSIGNED, STATUS.STORED));
   assert.ok(!isLegalTransition(STATUS.STORED, STATUS.ASSIGNED));

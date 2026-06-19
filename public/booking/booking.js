@@ -10,6 +10,7 @@ const el = (html) => {
 
 const SKU_PRICES = { bin: 15, wardrobe: 25 };
 
+function toast(msg, isErr = false) {
   const t = $('#toast');
   t.textContent = msg;
   t.className = `show${isErr ? ' err' : ''}`;
@@ -77,8 +78,8 @@ async function api(method, path, body) {
   return data;
 }
 
-// Earliest pickable service date (collection/retrieval allow today; delivery uses lead days).
-const SERVICE_TODAY_ISO = new Date().toISOString().slice(0, 10);
+// Earliest pickable service date (from API — Barbados calendar).
+let SERVICE_TODAY_ISO = new Date().toISOString().slice(0, 10);
 const SAVED_REF_KEY = 'savBookingRef';
 
 // Delivery-window labels. Fallback values; refreshed from the API at boot so
@@ -91,6 +92,7 @@ let SLOT_LABELS = { am: 'Morning (8am–12pm)', pm: 'Afternoon (12–5pm)' };
     if (Array.isArray(data.slots)) {
       SLOT_LABELS = Object.fromEntries(data.slots.map((s) => [s.key, s.label]));
     }
+    if (data.todayDate) SERVICE_TODAY_ISO = data.todayDate;
   } catch { /* fallback labels stand */ }
 })();
 
@@ -266,6 +268,23 @@ function binActions(bin) {
     );
   }
 
+  // Retrieval requested → customer can cancel the return request.
+  if (bin.status === 'Retrieval requested') {
+    wrap.appendChild(
+      mkBtn('ghost', '↩ Cancel return request', async () => {
+        const ok = await confirmDialog({
+          title: 'Cancel return request?',
+          message: `Cancel the return request for bin ${bin.barcode}? It will stay in storage.`,
+          confirmLabel: 'Cancel return',
+        });
+        if (!ok) return;
+        await api('POST', `/bookings/${bin.booking_id}/cancel-retrieval`, { binIds: [bin.id] });
+        toast('Return request cancelled');
+        reloadCurrent();
+      })
+    );
+  }
+
   return wrap;
 }
 
@@ -400,6 +419,12 @@ function renderBooking(booking) {
   if (stored.length) {
     box.appendChild(retrievalPanel(booking, stored));
   }
+
+  // Pending retrievals — show scheduled deliver-back and cancel option.
+  const pendingRetrieval = (booking.bins || []).filter((b) => b.status === 'Retrieval requested');
+  if (pendingRetrieval.length) {
+    box.appendChild(pendingRetrievalPanel(booking, pendingRetrieval));
+  }
 }
 
 function collectionPanel(booking) {
@@ -499,6 +524,49 @@ function retrievalPanel(booking, stored) {
       deliveryBackSlot: chosenSlot,
     });
     toast(`Requested ${ids.length} bin${ids.length === 1 ? '' : 's'} back`);
+    reloadCurrent();
+  });
+  btn.style.marginTop = '12px';
+  card.appendChild(btn);
+  return card;
+}
+
+function pendingRetrievalPanel(booking, pending) {
+  const scheduled = (booking.jobs || []).find(
+    (j) => j.type === 'deliver_back' && j.status === 'Scheduled'
+  );
+  const slotLabel = scheduled?.scheduled_slot
+    ? ` · ${SLOT_LABELS[scheduled.scheduled_slot] || scheduled.scheduled_slot}`
+    : '';
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = scheduled
+    ? `<h3 style="margin-top:0;">Return in progress</h3>
+       <p class="muted">Delivery back scheduled for <strong>${esc(scheduled.scheduled_date)}${esc(slotLabel)}</strong>.</p>`
+    : `<h3 style="margin-top:0;">Return in progress</h3>
+       <p class="muted">Your return request is being processed.</p>`;
+
+  const checks = pending.map((bin) => {
+    const wrap = el(`<label class="check-row"><input type="checkbox" value="${esc(bin.id)}" /> <strong>${esc(bin.barcode)}</strong> <span class="muted">${esc(bin.sku_type)}</span></label>`);
+    return wrap;
+  });
+  checks.forEach((c) => card.appendChild(c));
+
+  const btn = mkBtn('ghost', 'Cancel selected return requests', async () => {
+    const ids = checks
+      .map((c) => c.querySelector('input'))
+      .filter((i) => i.checked)
+      .map((i) => i.value);
+    if (ids.length === 0) return toast('Tick at least one bin', true);
+    const ok = await confirmDialog({
+      title: 'Cancel return requests?',
+      message: `Cancel ${ids.length} return request${ids.length === 1 ? '' : 's'}? Those bins will stay in storage.`,
+      confirmLabel: 'Cancel returns',
+    });
+    if (!ok) return;
+    await api('POST', `/bookings/${booking.id}/cancel-retrieval`, { binIds: ids });
+    toast('Return request cancelled');
     reloadCurrent();
   });
   btn.style.marginTop = '12px';

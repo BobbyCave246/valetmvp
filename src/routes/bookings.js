@@ -21,16 +21,23 @@ import {
   createDeliverEmpty,
   scheduleCollection,
   requestRetrieval,
+  cancelRetrieval,
+  cancelUnassignedBooking,
   syncDeliverEmptyBins,
 } from '../jobs-lifecycle.js';
-import { requireAuth, requireRole } from '../auth.js';
+import { requireAuth, requireRole, verifyToken, readCookie } from '../auth.js';
 import { deriveBookingSummary, deriveNextAction, deriveCustomerNextStep } from '../summary.js';
 import { isCovered } from '../coverage.js';
 import { validateDateSlot, validateFutureDate, SLOT_CAPACITY, SLOTS } from '../slots.js';
 import { safeParse, VALID_SKUS } from '../util.js';
 import { sendBookingConfirmation } from '../notify.js';
 
-const router = Router();
+const COOKIE_NAME = 'valet_session';
+
+function staffActor(req) {
+  const claims = verifyToken(readCookie(req, COOKIE_NAME));
+  return claims?.role === 'admin' ? 'admin' : 'customer';
+}
 
 const MAX_PER_SKU = 50;
 
@@ -166,10 +173,45 @@ router.get('/by-phone/:phone', async (req, res) => {
 // POST /api/bookings/:id/cancel — admin cancel. Releases the booking's bins
 // back to inventory (freeing rack slots), logs the release per bin, deletes
 // the booking's jobs and the booking itself. Gated by ADMIN_TOKEN if set.
+// POST /api/bookings/:id/cancel-unassigned — admin cancel when no bins assigned.
+router.post('/:id/cancel-unassigned', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const result = await cancelUnassignedBooking(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 router.post('/:id/cancel', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const result = await cancelBooking(req.params.id, { actor: 'admin' });
     res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+// POST /api/bookings/:id/cancel-retrieval — customer or admin cancels retrieval
+// for one or more bins in Retrieval requested. Body: { binIds: string[] }.
+router.post('/:id/cancel-retrieval', async (req, res) => {
+  const booking = await getBooking(req.params.id);
+  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+
+  const { binIds } = req.body || {};
+  if (!Array.isArray(binIds) || binIds.length === 0) {
+    return res.status(400).json({ error: 'binIds array is required' });
+  }
+  if (new Set(binIds).size !== binIds.length) {
+    return res.status(400).json({ error: 'Duplicate binIds in request' });
+  }
+
+  // Actor is admin when signed-in staff calls; otherwise customer.
+  const actor = staffActor(req);
+
+  try {
+    const result = await cancelRetrieval(booking.id, { binIds, actor });
+    res.json({ ...result, summary: await deriveBookingSummary(booking.id) });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
