@@ -5,14 +5,12 @@
 import {
   sql,
   getBooking,
-  getBin,
   getBinForUpdate,
   listBinsForBooking,
   listJobs,
   listJobsForBooking,
   createJob,
   setJobBinIds,
-  setJobScheduledDate,
   setJobSchedule,
   setJobStatus,
 } from './db.js';
@@ -142,7 +140,7 @@ export async function scheduleCollection(bookingId, { date, slot = null, binIds 
  * Customer retrieval request: transition bins to Retrieval requested and
  * find-or-create a single Scheduled Deliver back Job for the Booking.
  */
-export async function requestRetrieval(bookingId, { binIds, date }) {
+export async function requestRetrieval(bookingId, { binIds, date, slot = null }) {
   if (!Array.isArray(binIds) || binIds.length === 0) {
     throw err409('binIds array is required');
   }
@@ -179,9 +177,9 @@ export async function requestRetrieval(bookingId, { binIds, date }) {
     );
 
     if (existing) {
-      await setJobScheduledDate(existing.id, date, tx);
+      await setJobSchedule(existing.id, date, slot, tx);
       await setJobBinIds(existing.id, retrievalBinIds, tx);
-      return { ...existing, scheduled_date: date, bin_ids: JSON.stringify(retrievalBinIds) };
+      return { ...existing, scheduled_date: date, scheduled_slot: slot, bin_ids: JSON.stringify(retrievalBinIds) };
     }
 
     return createJob(
@@ -189,6 +187,7 @@ export async function requestRetrieval(bookingId, { binIds, date }) {
         bookingId,
         type: 'deliver_back',
         scheduledDate: date,
+        scheduledSlot: slot,
         binIds: retrievalBinIds,
       },
       tx

@@ -321,14 +321,17 @@ router.post('/:id/book-collection', async (req, res) => {
 // POST /api/bookings/:id/request-return — customer retrieval request for one
 // or more Stored bins. Atomic at the booking level: all bins transition together
 // and share a single deliver_back job (mirrors book-collection).
-// Body: { binIds: string[], deliveryBackDate }.
+// Body: { binIds: string[], deliveryBackDate, deliveryBackSlot? }.
 router.post('/:id/request-return', async (req, res) => {
   const booking = await getBooking(req.params.id);
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
 
-  const { binIds, deliveryBackDate } = req.body || {};
+  const { binIds, deliveryBackDate, deliveryBackSlot } = req.body || {};
   const dateErr = validateFutureDate(deliveryBackDate);
   if (dateErr) return res.status(400).json({ error: dateErr });
+  if (deliveryBackSlot && !SLOTS.some((s) => s.key === deliveryBackSlot)) {
+    return res.status(400).json({ error: 'A valid delivery window is required' });
+  }
   if (!Array.isArray(binIds) || binIds.length === 0) {
     return res.status(400).json({ error: 'binIds array is required' });
   }
@@ -337,7 +340,11 @@ router.post('/:id/request-return', async (req, res) => {
   }
 
   try {
-    const job = await requestRetrieval(booking.id, { binIds, date: deliveryBackDate });
+    const job = await requestRetrieval(booking.id, {
+      binIds,
+      date: deliveryBackDate,
+      slot: deliveryBackSlot || null,
+    });
     res.json({ job, summary: await deriveBookingSummary(booking.id) });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });

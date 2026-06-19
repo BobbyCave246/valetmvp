@@ -144,6 +144,7 @@ router.post('/:id/request-return', async (req, res) => {
     const job = await requestRetrieval(bin.booking_id, {
       binIds: [bin.id],
       date: deliveryBackDate,
+      slot: deliveryBackSlot || null,
     });
     const updated = await getBin(bin.id);
     res.json({ bin: updated, job });
