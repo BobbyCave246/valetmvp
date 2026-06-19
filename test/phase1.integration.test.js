@@ -23,8 +23,11 @@ after(async () => {
 
 const uid = (p) => `${p}_${Math.random().toString(36).slice(2, 10)}`;
 const bc = () => uid('BC').toUpperCase();
+let bookingSeq = 0;
 
-async function makeBooking() {
+async function makeBooking({ withDeliverJob = true } = {}) {
+  bookingSeq += 1;
+  const deliveryDate = `2999-02-${String(bookingSeq).padStart(2, '0')}`;
   const customer = await db.createCustomer({
     name: 'Test',
     phone: uid('ph'),
@@ -36,14 +39,16 @@ async function makeBooking() {
     customerId: customer.id,
     binCount: 2,
     skuBreakdown: { bin: 2 },
-    deliveryDate: '2999-01-01',
+    deliveryDate,
     deliverySlot: 'am',
   });
-  await jobs.createDeliverEmpty(booking.id, {
-    date: '2999-01-01',
-    slot: 'am',
-    capacity: 4,
-  });
+  if (withDeliverJob) {
+    await jobs.createDeliverEmpty(booking.id, {
+      date: deliveryDate,
+      slot: 'am',
+      capacity: 4,
+    });
+  }
   return { customer, booking };
 }
 
@@ -111,7 +116,7 @@ describe('Phase 1 lifecycle integration', { concurrency: 1 }, () => {
   });
 
   test('markBinNoShow releases bin and removes it from collect_full job', { skip: !RUN }, async () => {
-    const { customer, booking } = await makeBooking();
+    const { customer, booking } = await makeBooking({ withDeliverJob: false });
     const bin = await db.createBin({ barcode: bc(), skuType: 'bin' });
     await tx.transitionBin(bin.id, STATUS.ASSIGNED, {
       actor: 'admin',
