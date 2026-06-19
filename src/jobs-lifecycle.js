@@ -330,17 +330,62 @@ export async function markBinNoShow(binId, { actor = 'admin' } = {}) {
   });
 }
 
-/** Recompute the Scheduled Deliver empty Job's bin list from Assigned bins. */
-export async function syncDeliverEmptyBins(bookingId) {
-  const job = (await listJobs()).find(
-    (j) => j.booking_id === bookingId && j.type === 'deliver_empty' && j.status === 'Scheduled'
+/** Recompute the Scheduled Deliver empty Job's bin list from Assigned bins (in tx). */
+export async function syncDeliverEmptyBinsInTx(bookingId, tx) {
+  const job = (await listJobsForBooking(bookingId, tx)).find(
+    (j) => j.type === 'deliver_empty' && j.status === 'Scheduled'
   );
   if (!job) return;
 
-  const binIds = (await listBinsForBooking(bookingId))
+  const binIds = (await listBinsForBooking(bookingId, tx))
     .filter((b) => b.status === STATUS.ASSIGNED)
     .map((b) => b.id);
-  await setJobBinIds(job.id, binIds);
+  await setJobBinIds(job.id, binIds, tx);
+}
+
+/** Recompute the Scheduled Deliver empty Job's bin list from Assigned bins. */
+export async function syncDeliverEmptyBins(bookingId) {
+  return sql.begin(async (tx) => syncDeliverEmptyBinsInTx(bookingId, tx));
+}
+
+/**
+ * Bind inventory bins to a booking atomically: all bins transition to Assigned,
+ * movements logged, and the Deliver empty Job pick list synced — all or nothing.
+ */
+export async function assignBinsToBooking(bookingId, binIds, { actor = 'admin' } = {}) {
+  if (!Array.isArray(binIds) || binIds.length === 0) {
+    throw err409('binIds array is required');
+  }
+  if (new Set(binIds).size !== binIds.length) {
+    throw err409('Duplicate binIds in request');
+  }
+
+  const booking = await getBooking(bookingId);
+  if (!booking) throw err404('Booking not found');
+
+  return sql.begin(async (tx) => {
+    const assigned = [];
+    for (const binId of binIds) {
+      const bin = await getBinForUpdate(binId, tx);
+      if (!bin) throw err409(`Bin ${binId} not found`);
+      if (bin.booking_id) {
+        throw err409(`Bin ${bin.barcode} is already assigned`);
+      }
+      if (!isLegalTransition(bin.status, STATUS.ASSIGNED)) {
+        throw err409(
+          `Bin ${bin.barcode} cannot be assigned (status: ${bin.status ?? 'unassigned'})`
+        );
+      }
+      assigned.push(
+        await transitionBinInTx(tx, bin.id, STATUS.ASSIGNED, {
+          actor,
+          binFields: { customer_id: booking.customer_id, booking_id: bookingId },
+        })
+      );
+    }
+    await syncDeliverEmptyBinsInTx(bookingId, tx);
+    return assigned;
+  });
 }
 
 /**

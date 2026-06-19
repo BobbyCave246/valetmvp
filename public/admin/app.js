@@ -42,6 +42,7 @@ function toast(msg, isErr = false) {
 // Context handed from a queue card's action button to the destination tab.
 let pendingAssign = null;     // { bookingId }
 let pendingWarehouse = null;  // { binBarcode, mode: 'store' | 'scanout' }
+let pendingQueueFocus = null; // { bookingId, jobId } — scroll/highlight nested job
 
 function activeTab() {
   return document.querySelector('nav button.active').dataset.tab;
@@ -61,7 +62,17 @@ document.querySelectorAll('nav button').forEach((btn) => {
 function switchTab(name, ctx = {}) {
   if (name === 'assign') pendingAssign = ctx;
   if (name === 'warehouse') pendingWarehouse = ctx;
+  if (name === 'queue' && ctx.jobId) pendingQueueFocus = { bookingId: ctx.bookingId, jobId: ctx.jobId };
   [...document.querySelectorAll('nav button')].find((b) => b.dataset.tab === name)?.click();
+}
+
+function focusQueueJob({ bookingId, jobId }) {
+  pendingQueueFocus = { bookingId, jobId };
+  if (activeTab() === 'queue') {
+    renderQueueFromCache();
+    return;
+  }
+  switchTab('queue');
 }
 
 function refreshTab(tab) {
@@ -217,7 +228,7 @@ function renderQueueFromCache() {
       ? `<a href="tel:${esc(b.customer.phone)}" class="contact-link">${esc(b.customer.phone)}</a>`
       : '';
     const card = el(`
-      <div class="card">
+      <div class="card" data-booking-id="${esc(b.id)}">
         <div class="row">
           <div>
             <div><strong>${esc(b.customer?.name || 'Unknown')}</strong> · ${esc(b.bin_count)} bins <span class="muted">(${esc(sku)})</span> ${assignBadge}</div>
@@ -266,17 +277,42 @@ function renderQueueFromCache() {
     }
     list.appendChild(card);
   }
+  applyQueueFocus();
+}
+
+function applyQueueFocus() {
+  if (!pendingQueueFocus) return;
+  const { bookingId, jobId } = pendingQueueFocus;
+  pendingQueueFocus = null;
+  requestAnimationFrame(() => {
+    const card = document.querySelector(`[data-booking-id="${bookingId}"]`);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      card.classList.add('queue-focus');
+      setTimeout(() => card.classList.remove('queue-focus'), 2400);
+    }
+    const jobEl = document.querySelector(`[data-job-id="${jobId}"]`);
+    if (jobEl) {
+      jobEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      jobEl.classList.add('job-focus');
+      setTimeout(() => jobEl.classList.remove('job-focus'), 2400);
+    }
+  });
 }
 
 // Renders the contextual "next step" control for a queue card from b.nextAction.
 function nextActionControl(b) {
   const na = b.nextAction || { kind: 'idle', label: '' };
   if (na.kind === 'assign') {
-    // Primary path: one-click auto-assign matching free bins. Manual is a fallback.
     const wrap = document.createElement('div');
     wrap.className = 'action-stack';
     wrap.appendChild(
-      mkActionBtn('btn', 'Auto-assign bins', async () => {
+      mkActionBtn('btn', na.label, () => switchTab('assign', { bookingId: b.id }))
+    );
+    const auto = el('<a href="#" class="manual-link">auto-assign</a>');
+    auto.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
         const res = await api.post(`/bookings/${b.id}/auto-assign`, {});
         const n = res.assigned.length;
         toast(n ? `Reserved ${n} bin${n === 1 ? '' : 's'} — pick list shown below` : 'Nothing to assign');
@@ -286,23 +322,23 @@ function nextActionControl(b) {
         }
         loadQueue();
         loadStats();
-      })
-    );
-    const manual = el('<a href="#" class="manual-link">assign manually</a>');
-    manual.addEventListener('click', (e) => {
-      e.preventDefault();
-      switchTab('assign', { bookingId: b.id });
+      } catch (err) {
+        toast(err.message, true);
+      }
     });
-    wrap.appendChild(manual);
+    wrap.appendChild(auto);
     return wrap;
   }
   if (na.kind === 'job' && na.jobId) {
-    return mkActionBtn('btn green', na.label, async () => {
-      await api.post(`/jobs/${na.jobId}/done`, {});
-      toast(`Done — ${na.label}`);
-      loadQueue();
-      loadStats();
-    });
+    return mkActionBtn('btn green', na.label, () =>
+      focusQueueJob({ bookingId: b.id, jobId: na.jobId })
+    );
+  }
+  if (na.kind === 'job') {
+    const span = document.createElement('span');
+    span.className = 'muted';
+    span.textContent = `${na.label} — no scheduled job found`;
+    return span;
   }
   if (na.kind === 'warehouse') {
     const wrap = document.createElement('div');
@@ -539,7 +575,7 @@ function jobCard(j, isDone, primaryJobId = null) {
         .join('')}</div>`
     : '';
   const card = el(`
-    <div class="job-item">
+    <div class="job-item" data-job-id="${esc(j.id)}">
       <div class="row">
         <div>
           <div><strong>${esc(JOB_LABEL[j.type] || j.type)}</strong> <span class="status-pill">${esc(j.status)}</span> ${todayPill}</div>

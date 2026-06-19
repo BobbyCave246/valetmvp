@@ -16,14 +16,14 @@ import {
   countDeliveriesForSlot,
   deleteBooking,
 } from '../db.js';
-import { transitionBin, cancelBooking, STATUS } from '../transitions.js';
+import { cancelBooking, STATUS } from '../transitions.js';
 import {
   createDeliverEmpty,
   scheduleCollection,
   requestRetrieval,
   cancelRetrieval,
   cancelUnassignedBooking,
-  syncDeliverEmptyBins,
+  assignBinsToBooking,
 } from '../jobs-lifecycle.js';
 import { requireAuth, requireRole, verifyToken, readCookie } from '../auth.js';
 import { deriveBookingSummary, deriveNextAction, deriveCustomerNextStep } from '../summary.js';
@@ -270,7 +270,11 @@ router.post('/:id/assign-bins', requireAuth, requireRole('admin'), async (req, r
       bins.push(bin);
     }
 
-    const assigned = await bindBinsToBooking(booking, bins);
+    const assigned = await assignBinsToBooking(
+      booking.id,
+      bins.map((b) => b.id),
+      { actor: 'admin' }
+    );
     res.json({ assigned, summary: await deriveBookingSummary(booking.id) });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
@@ -310,7 +314,13 @@ router.post('/:id/auto-assign', requireAuth, requireRole('admin'), async (req, r
       if (picked.length < need) shortages[sku] = need - picked.length;
     }
 
-    const assigned = toAssign.length ? await bindBinsToBooking(booking, toAssign) : [];
+    const assigned = toAssign.length
+      ? await assignBinsToBooking(
+          booking.id,
+          toAssign.map((b) => b.id),
+          { actor: 'admin' }
+        )
+      : [];
     const pickList = (await listBinsForBooking(booking.id))
       .filter((b) => b.status === STATUS.ASSIGNED)
       .map((b) => ({ barcode: b.barcode, sku_type: b.sku_type }));
@@ -392,32 +402,5 @@ router.post('/:id/request-return', async (req, res) => {
     res.status(err.status || 500).json({ error: err.message });
   }
 });
-
-// --- helpers -----------------------------------------------------------------
-
-// Binds bins to a booking: sets ownership, transitions each to Assigned (which
-// logs a movement), and attaches them to the booking's deliver_empty job.
-// Shared by manual assign-bins and auto-assign.
-async function bindBinsToBooking(booking, bins, actor = 'admin') {
-  const assigned = [];
-  try {
-    for (const bin of bins) {
-      // Ownership + status change in ONE row-locked transaction (via
-      // transitionBin's binFields) so a concurrent assign that loses the
-      // legality check can't leave ownership pointing at the losing booking.
-      assigned.push(
-        await transitionBin(bin.id, STATUS.ASSIGNED, {
-          actor,
-          binFields: { customer_id: booking.customer_id, booking_id: booking.id },
-        })
-      );
-    }
-  } finally {
-    // Sync the job's pick list even if the loop aborted partway (a lost race),
-    // so already-won bins are never missing from the deliver_empty job.
-    await syncDeliverEmptyBins(booking.id).catch(() => {});
-  }
-  return assigned;
-}
 
 export default router;
