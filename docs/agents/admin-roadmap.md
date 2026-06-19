@@ -5,12 +5,14 @@ See also [phase-roadmap.md](./phase-roadmap.md) for cross-cutting customer/staff
 
 ## Implemented in admin slim-down
 
-- Customers tab (search by name, phone, email; bookings per customer)
+- Customers tab (search by name, phone, email; bookings per customer with bin barcodes/status)
 - Dispatch tab (today/upcoming jobs grouped by delivery window; links to driver app)
 - Inventory tab (bin counts by status/SKU, low-pool alerts on assign, read-only rack map)
 - Hash routing for bookmarkable tabs (`#assign?booking=…`, `#explorer?barcode=…`)
-- Deep links to warehouse and driver apps from queue next-actions
-- Shared client modules in `public/shared/`
+- Deep links to warehouse and driver apps from queue next-actions (open in new tab)
+- Shared client modules in `public/shared/` including `driver-jobs.js`
+- Service calendar: dispatch/queue “Today” uses Barbados `todayDate` from `/api/serviceability`
+- Single-pass tab routing (no duplicate API refresh on nav click)
 
 ## Phase 1 — Ops reality (GitHub #20–#26)
 

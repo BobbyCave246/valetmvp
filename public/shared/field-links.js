@@ -1,5 +1,7 @@
 // Deep links from the admin supervisor console into field staff apps.
 
+const FIELD_LINK_ATTRS = 'target="_blank" rel="noopener noreferrer"';
+
 function warehouseFieldUrl({ mode, binBarcode }) {
   const modeMap = { store: 'putaway', scanout: 'pullout' };
   const params = new URLSearchParams();

@@ -2,7 +2,6 @@
 // scanning and job completion happen in the dedicated staff apps.
 
 const VALID_TABS = ['queue', 'assign', 'dispatch', 'customers', 'explorer', 'inventory', 'leads', 'config', 'staff'];
-const TODAY = () => new Date().toISOString().slice(0, 10);
 
 let pendingAssign = null;
 let pendingExplorerBarcode = null;
@@ -35,6 +34,22 @@ function activeTab() {
   return document.querySelector('nav button.active')?.dataset.tab || 'queue';
 }
 
+function showTab(tab) {
+  document.querySelectorAll('nav button').forEach((b) => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab').forEach((t) => {
+    t.classList.toggle('active', t.id === `tab-${tab}`);
+  });
+}
+
+function applyRoute() {
+  const { tab, params } = parseHash();
+  applyHashContext(tab, params);
+  showTab(tab);
+  refreshTab(tab);
+}
+
 function switchTab(name, ctx = {}, params = {}) {
   if (name === 'assign' && ctx.bookingId) {
     pendingAssign = ctx;
@@ -49,35 +64,16 @@ function switchTab(name, ctx = {}, params = {}) {
     pendingCustomerSearch = ctx.q;
     params.q = ctx.q;
   }
+  const before = location.hash.slice(1);
   setHash(name, params);
-  const btn = [...document.querySelectorAll('nav button')].find((b) => b.dataset.tab === name);
-  if (btn && !btn.classList.contains('active')) btn.click();
-  else refreshTab(name);
+  if (location.hash.slice(1) === before) applyRoute();
 }
 
 document.querySelectorAll('nav button').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('nav button').forEach((b) => b.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
-    btn.classList.add('active');
-    $(`#tab-${btn.dataset.tab}`).classList.add('active');
-    setHash(btn.dataset.tab);
-    refreshTab(btn.dataset.tab);
-  });
+  btn.addEventListener('click', () => setHash(btn.dataset.tab));
 });
 
-window.addEventListener('hashchange', () => {
-  const { tab, params } = parseHash();
-  applyHashContext(tab, params);
-  const btn = [...document.querySelectorAll('nav button')].find((b) => b.dataset.tab === tab);
-  if (btn && !btn.classList.contains('active')) {
-    document.querySelectorAll('nav button').forEach((b) => b.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
-    btn.classList.add('active');
-    $(`#tab-${tab}`).classList.add('active');
-  }
-  refreshTab(tab);
-});
+window.addEventListener('hashchange', applyRoute);
 
 function refreshTab(tab) {
   if (tab === 'queue') loadQueue();
@@ -203,6 +199,7 @@ function skuProgress(b) {
 }
 
 async function loadQueue() {
+  await refreshServiceToday();
   const [bookings, allJobs] = await Promise.all([api.get('/bookings'), api.get('/jobs')]);
   queueBookingsCache = bookings;
   queueJobsCache = allJobs;
@@ -282,10 +279,10 @@ function renderQueueFromCache() {
     const jobs = jobsByBooking[b.id] || [];
     const open = jobs.filter((j) => j.status !== 'Done');
     const done = jobs.filter((j) => j.status === 'Done');
-    open.forEach((j) => jobsBox.appendChild(jobCard(j, false, b)));
+    open.forEach((j) => jobsBox.appendChild(jobCard(j, false)));
     if (done.length) {
       const details = el(`<details class="done-group"><summary>${done.length} done</summary></details>`);
-      done.forEach((j) => details.appendChild(jobCard(j, true, b)));
+      done.forEach((j) => details.appendChild(jobCard(j, true)));
       jobsBox.appendChild(details);
     }
     list.appendChild(card);
@@ -342,7 +339,7 @@ function nextActionControl(b) {
   if (na.kind === 'job' && na.jobId) {
     const wrap = document.createElement('div');
     wrap.className = 'action-stack';
-    const link = el(`<a class="btn green" href="${esc(driverFieldUrl({ jobId: na.jobId }))}">${esc(na.label)} ↗</a>`);
+    const link = el(`<a class="btn green" href="${esc(driverFieldUrl({ jobId: na.jobId }))}" ${FIELD_LINK_ATTRS}>${esc(na.label)} ↗</a>`);
     wrap.appendChild(link);
     const focus = el('<a href="#" class="manual-link">show in queue</a>');
     focus.addEventListener('click', (e) => {
@@ -363,7 +360,7 @@ function nextActionControl(b) {
     const wrap = document.createElement('div');
     wrap.className = 'action-stack';
     const url = warehouseFieldUrl({ mode: na.mode, binBarcode: na.binBarcode });
-    wrap.appendChild(el(`<a class="btn" href="${esc(url)}">${esc(na.label)} ↗</a>`));
+    wrap.appendChild(el(`<a class="btn" href="${esc(url)}" ${FIELD_LINK_ATTRS}>${esc(na.label)} ↗</a>`));
     if (na.mode === 'scanout') {
       const cancel = el('<a href="#" class="manual-link">cancel retrieval</a>');
       cancel.addEventListener('click', async (e) => {
@@ -443,8 +440,8 @@ function mkActionBtn(cls, label, onClick) {
   return btn;
 }
 
-function jobCard(j, isDone, booking) {
-  const todayPill = j.scheduled_date === TODAY() ? '<span class="pill-today">Today</span>' : '';
+function jobCard(j, isDone) {
+  const todayPill = j.scheduled_date === serviceToday() ? '<span class="pill-today">Today</span>' : '';
   const bins = j.bins || [];
   const pickLabel = j.type === 'deliver_empty' ? 'Pick list — collect these empties' : 'Bins';
   const picklist = bins.length
@@ -466,7 +463,7 @@ function jobCard(j, isDone, booking) {
   `);
   const actions = card.querySelector('.job-actions');
   if (!isDone) {
-    actions.appendChild(el(`<a class="btn ghost btn-sm" href="${esc(driverFieldUrl({ jobId: j.id }))}">Open in driver app ↗</a>`));
+    actions.appendChild(el(`<a class="btn ghost btn-sm" href="${esc(driverFieldUrl({ jobId: j.id }))}" ${FIELD_LINK_ATTRS}>Open in driver app ↗</a>`));
     const override = el('<a href="#" class="manual-link">admin override: mark done</a>');
     override.addEventListener('click', async (e) => {
       e.preventDefault();
@@ -581,7 +578,7 @@ async function renderInventoryAlert() {
     if (shortages.length) {
       box.hidden = false;
       box.className = 'inventory-alert warn';
-      box.innerHTML = `<strong>Inventory shortage:</strong> ${esc(shortages.join(' · '))}. <a href="/warehouse/?mode=intake">Add bins in warehouse app ↗</a>`;
+      box.innerHTML = `<strong>Inventory shortage:</strong> ${esc(shortages.join(' · '))}. <a href="/warehouse/?mode=intake" ${FIELD_LINK_ATTRS}>Add bins in warehouse app ↗</a>`;
     } else if (bins.length <= 3) {
       box.hidden = false;
       box.className = 'inventory-alert';
@@ -599,7 +596,7 @@ async function renderAvailableBins() {
   availableSku = {};
   const box = $('#availableBins');
   if (bins.length === 0) {
-    box.innerHTML = '<span class="muted">No unassigned bins left — <a href="/warehouse/?mode=intake">add bins in warehouse app ↗</a>.</span>';
+    box.innerHTML = `<span class="muted">No unassigned bins left — <a href="/warehouse/?mode=intake" ${FIELD_LINK_ATTRS}>add bins in warehouse app ↗</a>.</span>`;
     return;
   }
   box.innerHTML = '';
@@ -670,10 +667,12 @@ $('#assignSubmit').addEventListener('click', async () => {
 async function loadDispatch() {
   const box = $('#dispatchList');
   try {
+    await refreshServiceToday();
     const jobs = await api.get('/jobs');
     const open = jobs.filter((j) => j.status !== 'Done');
-    const today = open.filter((j) => j.scheduled_date === TODAY());
-    const upcoming = open.filter((j) => j.scheduled_date !== TODAY());
+    const todayKey = serviceToday();
+    const today = open.filter((j) => j.scheduled_date === todayKey);
+    const upcoming = open.filter((j) => j.scheduled_date !== todayKey);
 
     if (!open.length) {
       box.innerHTML = '<div class="empty">No open jobs scheduled.</div>';
@@ -697,7 +696,7 @@ async function loadDispatch() {
       }
     };
 
-    renderGroup(`Today (${TODAY()})`, today);
+    renderGroup(`Today (${todayKey})`, sortTodayJobs(today));
     renderGroup('Upcoming', upcoming);
   } catch (e) {
     box.innerHTML = `<div class="muted">${esc(e.message)}</div>`;
@@ -714,7 +713,7 @@ function dispatchCard(j) {
           <div class="muted">${esc(cust?.name || 'Unknown')}${cust?.address ? ' · ' + esc(cust.address) : ''}${cust?.phone ? ' · ' + esc(cust.phone) : ''}</div>
           <div class="muted">${esc(j.scheduled_date || '—')}${j.scheduled_slot ? ' · ' + esc(slotLabel(j.scheduled_slot)) : ''} · ${(j.bin_ids || []).length} bins · ref ${esc(j.booking_id)}</div>
         </div>
-        <div><a class="btn ghost btn-sm" href="${esc(driverFieldUrl({ jobId: j.id }))}">Driver app ↗</a></div>
+        <div><a class="btn ghost btn-sm" href="${esc(driverFieldUrl({ jobId: j.id }))}" ${FIELD_LINK_ATTRS}>Driver app ↗</a></div>
       </div>
     </div>
   `);
@@ -723,6 +722,7 @@ function dispatchCard(j) {
 
 // ---- customers --------------------------------------------------------------
 let customersCache = [];
+let customerBinsByBooking = {};
 
 $('#customerSearch')?.addEventListener('input', (e) => {
   renderCustomers(e.target.value.trim().toLowerCase());
@@ -735,15 +735,22 @@ async function loadCustomers() {
   }
   try {
     const bookings = await api.get('/bookings');
+    const details = await Promise.all(
+      bookings.map((b) => api.get(`/bookings/${b.id}`).catch(() => null))
+    );
+    customerBinsByBooking = {};
+    for (const d of details) {
+      if (d?.id) customerBinsByBooking[d.id] = d.bins || [];
+    }
+
     const byCustomer = new Map();
     for (const b of bookings) {
       const c = b.customer;
-      if (!c) continue;
-      const key = c.phone || c.email || c.name || b.id;
-      if (!byCustomer.has(key)) {
-        byCustomer.set(key, { customer: c, bookings: [] });
+      if (!c?.id) continue;
+      if (!byCustomer.has(c.id)) {
+        byCustomer.set(c.id, { customer: c, bookings: [] });
       }
-      byCustomer.get(key).bookings.push(b);
+      byCustomer.get(c.id).bookings.push(b);
     }
     customersCache = [...byCustomer.values()];
     renderCustomers($('#customerSearch').value.trim().toLowerCase());
@@ -764,6 +771,7 @@ function renderCustomers(query) {
         customer.address,
         customer.postcode,
         ...bookings.map((b) => b.id),
+        ...bookings.flatMap((b) => (customerBinsByBooking[b.id] || []).map((bin) => bin.barcode)),
       ]
         .filter(Boolean)
         .join(' ')
@@ -777,14 +785,27 @@ function renderCustomers(query) {
   }
   box.innerHTML = rows
     .map(({ customer, bookings }) => {
-      const refs = bookings.map((b) => `<code>${esc(b.id)}</code> (${esc(b.delivery_date)})`).join(', ');
+      const bookingBlocks = bookings
+        .map((b) => {
+          const bins = customerBinsByBooking[b.id] || [];
+          const binLine = bins.length
+            ? bins
+                .map((bin) => `<code>${esc(bin.barcode)}</code> <span class="muted">${esc(bin.status || 'unassigned')}</span>`)
+                .join(' · ')
+            : '<span class="muted">no bins assigned</span>';
+          return `<div class="customer-booking">
+            <div><code>${esc(b.id)}</code> · ${esc(b.delivery_date)} · ${esc(b.summary?.text || '')}</div>
+            <div class="muted" style="margin-top:2px;">${binLine}</div>
+          </div>`;
+        })
+        .join('');
       return `<div class="bin-row customer-row">
         <div>
           <strong>${esc(customer.name || 'Unknown')}</strong>
           ${customer.phone ? `<span class="muted"> · <a href="tel:${esc(customer.phone)}">${esc(customer.phone)}</a></span>` : ''}
           ${customer.email ? `<span class="muted"> · ${esc(customer.email)}</span>` : ''}
           <div class="muted">${esc(customer.address || '')}${customer.postcode ? ', ' + esc(customer.postcode) : ''}</div>
-          <div class="muted" style="margin-top:4px;">${bookings.length} booking${bookings.length === 1 ? '' : 's'}: ${refs}</div>
+          <div style="margin-top:8px;">${bookingBlocks}</div>
         </div>
       </div>`;
     })
@@ -1049,17 +1070,6 @@ setInterval(async () => {
 // ---- boot -------------------------------------------------------------------
 Session.guard('admin').then(async () => {
   await initSlotLabels();
-  const { tab, params } = parseHash();
-  applyHashContext(tab, params);
-  if (tab !== 'queue') {
-    const btn = [...document.querySelectorAll('nav button')].find((b) => b.dataset.tab === tab);
-    if (btn) {
-      document.querySelectorAll('nav button').forEach((b) => b.classList.remove('active'));
-      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
-      btn.classList.add('active');
-      $(`#tab-${tab}`).classList.add('active');
-    }
-  }
   loadStats();
-  refreshTab(tab);
+  applyRoute();
 });

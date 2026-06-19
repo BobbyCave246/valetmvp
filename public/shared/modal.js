@@ -1,5 +1,22 @@
 // In-app confirm and pick dialogs — replaces native confirm/prompt on admin.
 
+function bindModalDismiss(overlay, close) {
+  const onKey = (e) => {
+    if (e.key === 'Escape') {
+      document.removeEventListener('keydown', onKey);
+      close();
+    }
+  };
+  document.addEventListener('keydown', onKey);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      document.removeEventListener('keydown', onKey);
+      close();
+    }
+  });
+  return onKey;
+}
+
 function confirmDialog({ title, message, confirmLabel = 'Confirm', danger = false }) {
   return new Promise((resolve) => {
     const overlay = el(`
@@ -14,15 +31,15 @@ function confirmDialog({ title, message, confirmLabel = 'Confirm', danger = fals
         </div>
       </div>
     `);
+    let onKey;
     const close = (val) => {
+      document.removeEventListener('keydown', onKey);
       overlay.remove();
       resolve(val);
     };
+    onKey = bindModalDismiss(overlay, () => close(false));
     overlay.querySelector('.modal-cancel').addEventListener('click', () => close(false));
     overlay.querySelector('.modal-confirm').addEventListener('click', () => close(true));
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) close(false);
-    });
     document.body.appendChild(overlay);
     overlay.querySelector('.modal-confirm').focus();
   });
@@ -49,20 +66,21 @@ function pickDialog({ title, message, options }) {
       options.forEach((opt) => {
         const btn = el(`<button type="button" class="btn ghost modal-pick-item">${esc(opt.label)}</button>`);
         btn.addEventListener('click', () => {
+          document.removeEventListener('keydown', onKey);
           overlay.remove();
           resolve(opt.value);
         });
         list.appendChild(btn);
       });
     }
+    let onKey;
     const close = () => {
+      document.removeEventListener('keydown', onKey);
       overlay.remove();
       resolve(null);
     };
+    onKey = bindModalDismiss(overlay, close);
     overlay.querySelector('.modal-cancel').addEventListener('click', close);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) close();
-    });
     document.body.appendChild(overlay);
   });
 }

@@ -1,32 +1,12 @@
 // Driver app — phone-first jobs board. Scan-to-confirm checklist is client-side;
 // the server's transition module remains authoritative.
 
-const SLOT_ORDER = { am: 0, pm: 1 };
-function customerAddress(customer) {
-  if (!customer) return '';
-  return [customer.address, customer.postcode].filter(Boolean).join(', ');
-}
-function sortTodayJobs(list) {
-  return [...list].sort((a, b) => {
-    const sa = SLOT_ORDER[a.scheduled_slot] ?? 9;
-    const sb = SLOT_ORDER[b.scheduled_slot] ?? 9;
-    if (sa !== sb) return sa - sb;
-    return customerAddress(a.booking?.customer).localeCompare(customerAddress(b.booking?.customer));
-  });
-}
-function mapsUrl(customer) {
-  const dest = customerAddress(customer);
-  if (!dest) return null;
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}`;
-}
-
-const TODAY = new Date().toISOString().slice(0, 10);
-
 let jobs = [];
 let openJobId = null;
 let scanned = new Set();
 
 async function loadJobs() {
+  await refreshServiceToday();
   jobs = await api.get('/jobs');
   renderList();
 }
@@ -38,8 +18,9 @@ function renderList() {
     return;
   }
   const open = jobs.filter((j) => j.status !== 'Done');
-  const today = open.filter((j) => j.scheduled_date === TODAY);
-  const upcoming = open.filter((j) => j.scheduled_date !== TODAY);
+  const todayKey = serviceToday();
+  const today = open.filter((j) => j.scheduled_date === todayKey);
+  const upcoming = open.filter((j) => j.scheduled_date !== todayKey);
   const done = jobs.filter((j) => j.status === 'Done');
 
   box.innerHTML = '';
@@ -63,7 +44,7 @@ function jobCard(j) {
   const isDone = j.status === 'Done';
   const pill = isDone
     ? '<span class="pill done">Done</span>'
-    : j.scheduled_date === TODAY
+    : j.scheduled_date === serviceToday()
     ? '<span class="pill today">Today</span>'
     : `<span class="pill">${esc(j.scheduled_date || '—')}</span>`;
   const navUrl = mapsUrl(cust);

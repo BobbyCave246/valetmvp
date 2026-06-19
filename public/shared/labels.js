@@ -1,4 +1,4 @@
-// Job type and delivery-window labels — slot labels refresh from the API at boot.
+// Job type and delivery-window labels — refreshed from the API at boot.
 
 const JOB_LABEL = {
   deliver_empty: 'Deliver empty bins',
@@ -13,18 +13,28 @@ const JOB_ICON = {
 };
 
 let SLOT_LABELS = { am: 'Morning (8am–12pm)', pm: 'Afternoon (12–5pm)' };
+let SERVICE_TODAY = new Date().toISOString().slice(0, 10);
 
 function slotLabel(key) {
   return key ? SLOT_LABELS[key] || key : '';
 }
 
-async function initSlotLabels() {
+function serviceToday() {
+  return SERVICE_TODAY;
+}
+
+async function refreshServiceToday() {
   try {
     const data = await api.get('/serviceability');
+    if (data.todayDate) SERVICE_TODAY = data.todayDate;
     if (Array.isArray(data.slots)) {
       SLOT_LABELS = Object.fromEntries(data.slots.map((s) => [s.key, s.label]));
     }
   } catch {
-    /* fallback labels stand */
+    /* keep last known today */
   }
+}
+
+async function initSlotLabels() {
+  await refreshServiceToday();
 }
