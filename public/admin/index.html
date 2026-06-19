@@ -23,6 +23,7 @@
     <button data-tab="warehouse">Warehouse scan</button>
     <button data-tab="explorer">Bin explorer</button>
     <button data-tab="leads">Leads</button>
+    <button data-tab="reports">Reports</button>
     <button data-tab="settings">Settings</button>
     <button data-tab="staff">Staff</button>
   </nav>
@@ -153,6 +154,26 @@
       </div>
     </section>
 
+    <section class="tab" id="tab-reports">
+      <h2>Reports</h2>
+      <div class="card reports-toolbar">
+        <label>From <input type="date" id="reportsFrom" /></label>
+        <label>To <input type="date" id="reportsTo" /></label>
+        <button class="btn" id="reportsApply">Apply range</button>
+        <button class="btn ghost" id="reportsExportActivity">Export activity CSV</button>
+      </div>
+      <div class="card">
+        <h3 class="section-title">Operational snapshot</h3>
+        <p class="muted">Live counts — same source as the stats bar above.</p>
+        <div id="reportsSnapshot" class="reports-grid"></div>
+      </div>
+      <div class="card">
+        <h3 class="section-title">Activity summary</h3>
+        <p class="muted">Filtered by scheduled job date and movement timestamps. Jobs use scheduled date until completion timestamps exist.</p>
+        <div id="reportsActivity"></div>
+      </div>
+    </section>
+
     <section class="tab" id="tab-settings">
       <h2>Operational settings</h2>
       <div class="card">
@@ -164,7 +185,7 @@
     <section class="tab" id="tab-staff">
       <h2>Staff accounts</h2>
       <div class="card">
-        <h3 style="margin-top:0;font-size:15px;">Add a staff member</h3>
+        <h3 class="section-title">Add a staff member</h3>
         <p class="muted">They sign in at <code>/login</code>. Share temporary credentials securely and ask them to change their password.</p>
         <label>Email</label>
         <input type="email" id="staffEmail" placeholder="name@valet.local" />
@@ -178,19 +199,19 @@
         </select>
         <label>Temporary password</label>
         <div class="flex">
-          <input type="password" id="staffPassword" placeholder="at least 8 characters" style="flex:1;" />
+          <input type="password" id="staffPassword" placeholder="at least 8 characters" class="flex-grow" />
           <button type="button" class="btn ghost" id="staffPwToggle">Show</button>
         </div>
-        <div style="margin-top:14px;">
+        <div class="section-actions">
           <button class="btn" id="staffCreate">Create staff account</button>
         </div>
       </div>
       <div class="card">
-        <h3 style="margin-top:0;font-size:15px;">Current staff</h3>
+        <h3 class="section-title">Current staff</h3>
         <div id="staffList"></div>
       </div>
       <div class="card danger-zone">
-        <h3 style="margin-top:0;font-size:15px;">Demo reset</h3>
+        <h3 class="section-title">Demo reset</h3>
         <p class="muted">Wipe all operational data and re-seed the demo. Staff accounts are preserved.</p>
         <button class="btn danger" id="resetBtn">Reset demo data</button>
       </div>

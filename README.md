@@ -62,7 +62,7 @@ only ever sees their own surface:
 |---|---|---|
 | `driver` | `/driver` | the jobs board (`/api/jobs`) |
 | `warehouse` | `/warehouse` | put-away, pull-out, bin intake, rack/locations |
-| `admin` | `/admin` | bookings queue, assign, cancel, stats, demo reset, **staff management** |
+| `admin` | `/admin` | bookings queue, assign, cancel, stats, reports, demo reset, **staff management** (create, deactivate, reactivate) |
 
 Sessions are a signed httpOnly cookie (Node `crypto` only — no auth deps). The
 **API is the security boundary**: every protected `/api` route checks the
@@ -71,8 +71,9 @@ unauthorised visitor just gets 401/403 on every call). After login the client
 redirects each role to its surface and bounces anyone who lands on the wrong one.
 
 Accounts are **admin-provisioned** — roles are never self-selected. An admin
-creates staff in the admin console's **Staff** tab. Starter accounts are seeded
-on first boot (idempotent; they survive `POST /api/admin/reset`).
+creates staff in the admin console's **Staff** tab and can **deactivate** or
+**reactivate** accounts without deleting them (inactive staff cannot sign in).
+Starter accounts are seeded on first boot (idempotent; they survive `POST /api/admin/reset`).
 
 | Var | Default | Purpose |
 |---|---|---|

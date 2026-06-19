@@ -111,6 +111,8 @@ CREATE TABLE IF NOT EXISTS users (
 ALTER TABLE bookings  ADD COLUMN IF NOT EXISTS delivery_slot  TEXT;
 ALTER TABLE jobs      ADD COLUMN IF NOT EXISTS scheduled_slot TEXT;
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS postcode       TEXT;
+ALTER TABLE users     ADD COLUMN IF NOT EXISTS is_active      INTEGER DEFAULT 1;
+ALTER TABLE users     ADD COLUMN IF NOT EXISTS deactivated_at TEXT;
 
 -- Data-integrity constraints. Added idempotently and defensively: a constraint
 -- that already exists is silently skipped, and a constraint that pre-existing
@@ -209,7 +211,28 @@ export async function getUserById(id) {
 
 // Never selects password_hash — safe to return to the admin staff list.
 export async function listUsers() {
-  return sql`SELECT id, email, role, name, created_at FROM users ORDER BY created_at`;
+  return sql`
+    SELECT id, email, role, name, created_at,
+           COALESCE(is_active, 1) AS is_active, deactivated_at
+    FROM users ORDER BY created_at`;
+}
+
+export async function setUserActive(id, active) {
+  const rows = await sql`
+    UPDATE users SET
+      is_active = ${active ? 1 : 0},
+      deactivated_at = ${active ? null : nowISO()}
+    WHERE id = ${id}
+    RETURNING id, email, role, name, created_at,
+              COALESCE(is_active, 1) AS is_active, deactivated_at`;
+  return rows[0];
+}
+
+export async function countActiveAdmins() {
+  const rows = await sql`
+    SELECT COUNT(*)::int AS n FROM users
+    WHERE role = 'admin' AND COALESCE(is_active, 1) = 1`;
+  return rows[0].n;
 }
 
 // ----- bins ------------------------------------------------------------------
@@ -456,6 +479,44 @@ export async function countBinsByStatus() {
   const out = {};
   for (const r of rows) out[r.status ?? 'unassigned'] = r.n;
   return out;
+}
+
+export async function countBinsBySku() {
+  const rows = await sql`SELECT sku_type, COUNT(*)::int AS n FROM bins GROUP BY sku_type`;
+  const out = {};
+  for (const r of rows) out[r.sku_type ?? 'unknown'] = r.n;
+  return out;
+}
+
+export async function countLeads() {
+  const rows = await sql`SELECT COUNT(*)::int AS n FROM leads`;
+  return rows[0].n;
+}
+
+export async function countBookingsInRange(from, to) {
+  const rows = await sql`
+    SELECT COUNT(*)::int AS n FROM bookings
+    WHERE created_at >= ${from} AND created_at < ${to}`;
+  return rows[0].n;
+}
+
+export async function countJobsCompletedByTypeInRange(from, to) {
+  const rows = await sql`
+    SELECT type, COUNT(*)::int AS n FROM jobs
+    WHERE status = 'Done' AND scheduled_date >= ${from} AND scheduled_date <= ${to}
+    GROUP BY type`;
+  const out = {};
+  for (const r of rows) out[r.type] = r.n;
+  return out;
+}
+
+export async function countMovementsByTransitionInRange(from, to) {
+  return sql`
+    SELECT from_status AS "from", to_status AS "to", COUNT(*)::int AS count
+    FROM movements
+    WHERE ts >= ${from} AND ts < ${to}
+    GROUP BY from_status, to_status
+    ORDER BY count DESC`;
 }
 
 export async function wipeAll() {

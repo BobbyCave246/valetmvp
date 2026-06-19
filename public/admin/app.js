@@ -80,6 +80,7 @@ function refreshTab(tab) {
   if (tab === 'assign') loadAssign();
   if (tab === 'warehouse') loadWarehouse();
   if (tab === 'leads') loadLeads();
+  if (tab === 'reports') loadReports();
   if (tab === 'settings') loadSettings();
   if (tab === 'staff') loadStaff();
 }
@@ -233,7 +234,7 @@ function renderQueueFromCache() {
           <div>
             <div><strong>${esc(b.customer?.name || 'Unknown')}</strong> · ${esc(b.bin_count)} bins <span class="muted">(${esc(sku)})</span> ${assignBadge}</div>
             <div class="muted">${phoneLink}${b.customer?.address ? ` · ${esc(b.customer.address)}` : ''}</div>
-            <div class="muted">Delivery: ${esc(b.delivery_date)}${b.delivery_slot ? ' · ' + esc(slotLabel(b.delivery_slot)) : ''} · ref <code>${esc(b.id)}</code> · <a href="#" class="cancel-link" style="color:#b91c1c;">${b.assignedCount === 0 ? 'cancel unassigned booking' : 'cancel booking'}</a></div>
+            <div class="muted">Delivery: ${esc(b.delivery_date)}${b.delivery_slot ? ' · ' + esc(slotLabel(b.delivery_slot)) : ''} · ref <code>${esc(b.id)}</code> · <a href="#" class="cancel-link">${b.assignedCount === 0 ? 'cancel unassigned booking' : 'cancel booking'}</a></div>
             ${skuProgress(b)}
             <div class="summary" style="margin-top:6px;">${esc(b.summary.text)}</div>
           </div>
@@ -807,6 +808,7 @@ document.querySelectorAll('.scan-btn').forEach((btn) => {
 
 // ---- staff accounts ----------------------------------------------------------
 const ROLE_LABEL = { admin: 'Admin', warehouse: 'Warehouse', driver: 'Driver' };
+let currentAdminUser = null;
 
 async function loadStaff() {
   const box = $('#staffList');
@@ -814,13 +816,52 @@ async function loadStaff() {
     const users = await api.get('/auth/users');
     if (!users.length) { box.innerHTML = '<div class="empty">No staff yet.</div>'; return; }
     box.innerHTML = users
-      .map(
-        (u) => `<div class="bin-row">
+      .map((u) => {
+        const active = u.is_active !== 0;
+        const roleBadge = active
+          ? `<span class="badge ok">${esc(ROLE_LABEL[u.role] || u.role)}</span>`
+          : `<span class="badge inactive">Inactive</span>`;
+        const action = active
+          ? (u.id === currentAdminUser?.id
+            ? '<span class="muted">(you)</span>'
+            : `<a href="#" class="action-link staff-deactivate" data-id="${esc(u.id)}" data-email="${esc(u.email)}">Deactivate</a>`)
+          : `<a href="#" class="action-link staff-reactivate" data-id="${esc(u.id)}" data-email="${esc(u.email)}">Reactivate</a>`;
+        return `<div class="bin-row staff-row${active ? '' : ' inactive'}">
           <div><strong>${esc(u.email)}</strong> ${u.name ? `<span class="muted">${esc(u.name)}</span>` : ''}</div>
-          <div><span class="badge ok">${esc(ROLE_LABEL[u.role] || u.role)}</span></div>
-        </div>`
-      )
+          <div class="staff-actions">${roleBadge} ${action}</div>
+        </div>`;
+      })
       .join('');
+
+    box.querySelectorAll('.staff-deactivate').forEach((link) => {
+      link.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const email = link.dataset.email;
+        if (!confirm(`Deactivate ${email}? They will not be able to sign in.`)) return;
+        try {
+          await api.post(`/auth/users/${link.dataset.id}/deactivate`, {});
+          toast(`Deactivated ${email}`);
+          loadStaff();
+        } catch (err) {
+          toast(err.message, true);
+        }
+      });
+    });
+
+    box.querySelectorAll('.staff-reactivate').forEach((link) => {
+      link.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const email = link.dataset.email;
+        if (!confirm(`Reactivate ${email}?`)) return;
+        try {
+          await api.post(`/auth/users/${link.dataset.id}/reactivate`, {});
+          toast(`Reactivated ${email}`);
+          loadStaff();
+        } catch (err) {
+          toast(err.message, true);
+        }
+      });
+    });
   } catch (e) {
     box.innerHTML = `<div class="muted">${esc(e.message)}</div>`;
   }
@@ -854,6 +895,108 @@ $('#staffPwToggle')?.addEventListener('click', () => {
   btn.textContent = show ? 'Hide' : 'Show';
 });
 
+// ---- reports ---------------------------------------------------------------
+let reportsCache = null;
+
+function defaultReportRange() {
+  const to = new Date();
+  const from = new Date(to);
+  from.setUTCDate(from.getUTCDate() - 29);
+  return {
+    from: from.toISOString().slice(0, 10),
+    to: to.toISOString().slice(0, 10),
+  };
+}
+
+function renderReportSnapshot(snapshot) {
+  const bs = snapshot.bins.byStatus;
+  const inTransit = (bs['In transit (inbound)'] || 0) + (bs['In transit (outbound)'] || 0);
+  const withCustomer = (bs['Out for filling'] || 0) + (bs['Returned to customer'] || 0);
+  const skuMix = Object.entries(snapshot.bins.bySku || {})
+    .map(([sku, n]) => `${sku}: ${n}`)
+    .join(' · ') || '—';
+  const tiles = [
+    ['Bins', snapshot.bins.total],
+    ['Stored', bs['Stored'] || 0],
+    ['Out for filling', bs['Out for filling'] || 0],
+    ['In transit', inTransit],
+    ['With customer', withCustomer],
+    ['Rack', `${snapshot.locations.occupied}/${snapshot.locations.total} · ${snapshot.locations.occupancyPct}%`],
+    ['Bookings', snapshot.bookings.total],
+    ['Jobs scheduled', snapshot.jobs.scheduled],
+    ['Jobs done', snapshot.jobs.done],
+    ['Leads', snapshot.leads.total],
+    ['SKU mix', skuMix],
+  ];
+  $('#reportsSnapshot').innerHTML = tiles
+    .map(([label, val]) => `<div class="stat"><div class="stat-val">${esc(String(val))}</div><div class="stat-label">${esc(label)}</div></div>`)
+    .join('');
+}
+
+function renderReportActivity(activity) {
+  const jobRows = Object.entries(activity.jobsCompleted || {});
+  const transitionRows = activity.transitions || [];
+  const jobsHtml = jobRows.length
+    ? `<table class="reports-table"><thead><tr><th>Job type</th><th>Completed</th></tr></thead><tbody>${jobRows
+        .map(([type, n]) => `<tr><td>${esc(type)}</td><td>${n}</td></tr>`)
+        .join('')}</tbody></table>`
+    : '<div class="empty">No completed jobs in this range.</div>';
+  const transHtml = transitionRows.length
+    ? `<table class="reports-table" style="margin-top:14px;"><thead><tr><th>From</th><th>To</th><th>Count</th></tr></thead><tbody>${transitionRows
+        .map((t) => `<tr><td>${esc(t.from || '—')}</td><td>${esc(t.to || '—')}</td><td>${t.count}</td></tr>`)
+        .join('')}</tbody></table>`
+    : '<div class="empty" style="margin-top:14px;">No bin movements in this range.</div>';
+
+  $('#reportsActivity').innerHTML = `
+    <p><strong>${activity.bookingsCreated}</strong> new booking(s) in range</p>
+    <h4 style="margin:16px 0 8px;font-size:14px;">Jobs completed</h4>
+    ${jobsHtml}
+    <h4 style="margin:16px 0 8px;font-size:14px;">Bin status transitions</h4>
+    ${transHtml}
+  `;
+}
+
+async function loadReports() {
+  const defaults = defaultReportRange();
+  const fromEl = $('#reportsFrom');
+  const toEl = $('#reportsTo');
+  if (fromEl && !fromEl.value) fromEl.value = defaults.from;
+  if (toEl && !toEl.value) toEl.value = defaults.to;
+
+  const from = fromEl?.value || defaults.from;
+  const to = toEl?.value || defaults.to;
+  const box = $('#reportsActivity');
+  if (box) box.innerHTML = '<div class="muted">Loading…</div>';
+
+  try {
+    const data = await api.get(`/reports/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+    reportsCache = data;
+    renderReportSnapshot(data.snapshot);
+    renderReportActivity(data.activity);
+  } catch (e) {
+    if (box) box.innerHTML = `<div class="muted">${esc(e.message)}</div>`;
+  }
+}
+
+$('#reportsApply')?.addEventListener('click', () => loadReports());
+
+$('#reportsExportActivity')?.addEventListener('click', () => {
+  if (!reportsCache) return toast('Load a report first', true);
+  const rows = [
+    ['section', 'key', 'value'],
+    ['bookings_created', 'count', reportsCache.activity.bookingsCreated],
+    ...Object.entries(reportsCache.activity.jobsCompleted || {}).map(([type, n]) => ['job_completed', type, n]),
+    ...(reportsCache.activity.transitions || []).map((t) => ['transition', `${t.from || ''} -> ${t.to || ''}`, t.count]),
+  ];
+  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `report-activity-${reportsCache.range.from}-to-${reportsCache.range.to}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
 // ---- polling ----------------------------------------------------------------
 // Refresh the stats bar and the (read-mostly) Bookings & jobs board so the
 // console feels live next to the booking site. Assign tab gets a lightweight
@@ -882,7 +1025,8 @@ setInterval(async () => {
 
 // ---- boot -------------------------------------------------------------------
 // Gate on a signed-in admin first; Session.guard redirects anyone else.
-Session.guard('admin').then(() => {
+Session.guard('admin').then((user) => {
+  currentAdminUser = user;
   loadStats();
   loadQueue();
 });
