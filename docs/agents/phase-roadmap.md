@@ -32,10 +32,11 @@ Published from the customer/staff improvement plan. Each issue body includes `**
 | Issue | Title | Blocked by |
 |-------|-------|------------|
 | [#32](https://github.com/BobbyCave246/valetmvp/issues/32) | Real Contents photo upload and display | — |
-| [#33](https://github.com/BobbyCave246/valetmvp/issues/33) | Stripe payment for Deliver back fee | — (also **ready-for-human**) |
+
+**Deferred:** [#33](https://github.com/BobbyCave246/valetmvp/issues/33) Stripe payment for Deliver back fee — not planned for MVP; fee remains copy-only until Stripe account is ready.
 
 ## Notes
 
 - Issue #19 is a stray test issue — close manually if still open.
 - Phase 2 and 3 slice issues include an **Agent Brief** section in the body. Phase 1 slices have detailed acceptance criteria only (same token could not add follow-up comments).
-- Suggested pick-up order: #21 → #22 → #23 → #25 → #26, then Phase 2, then Phase 3.
+- Suggested pick-up order: #21 → #22 → #23 → #25 → #26, then Phase 2, then Phase 3 (#32 only).

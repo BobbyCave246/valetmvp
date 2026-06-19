@@ -19,6 +19,12 @@ import { scheduleCollection, requestRetrieval, markBinNoShow } from '../jobs-lif
 import { validateFutureDate, SLOTS } from '../slots.js';
 import { VALID_SKUS } from '../util.js';
 import { requireAuth, requireRole } from '../auth.js';
+import {
+  parsePhotoDataUrl,
+  uploadContentsPhoto,
+  isStorageConfigured,
+  enrichBin,
+} from '../storage.js';
 
 const router = Router();
 
@@ -61,9 +67,8 @@ router.post('/', warehouse, async (req, res) => {
   }
 });
 
-// POST /api/bins/:barcode/photo — attach an optional contents photo. Bin must
-// be Out for filling. (Collection is booked separately — see
-// POST /api/bookings/:id/book-collection — so the photo is purely optional.)
+// POST /api/bins/:barcode/photo — attach a contents photo. Bin must be Out
+// for filling. Image is stored in Supabase Storage when configured.
 router.post('/:barcode/photo', async (req, res) => {
   const bin = await getBinByBarcode(req.params.barcode);
   if (!bin) return res.status(404).json({ error: 'Bin not found' });
@@ -73,10 +78,27 @@ router.post('/:barcode/photo', async (req, res) => {
       .json({ error: `Photo can only be added while a bin is "${STATUS.OUT_FOR_FILLING}"` });
   }
 
+  const { photoRef } = req.body || {};
+  if (!photoRef || typeof photoRef !== 'string') {
+    return res.status(400).json({ error: 'photoRef (image data URL) is required' });
+  }
+  if (!isStorageConfigured()) {
+    return res.status(503).json({ error: 'Photo storage is not configured on this server' });
+  }
+
+  const parsed = parsePhotoDataUrl(photoRef);
+  if (!parsed) {
+    return res.status(400).json({ error: 'Invalid image — use JPEG or PNG from your camera' });
+  }
+
   try {
-    const photoRef = (req.body && req.body.photoRef) || `photo_${bin.barcode}_${Date.now()}`;
-    await setBinFields(bin.id, { photo_ref: photoRef });
-    res.json({ bin: await getBin(bin.id) });
+    const storedRef = await uploadContentsPhoto({
+      binId: bin.id,
+      imageBuffer: parsed.buffer,
+      contentType: parsed.contentType,
+    });
+    await setBinFields(bin.id, { photo_ref: storedRef });
+    res.json({ bin: enrichBin(await getBin(bin.id)) });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
@@ -229,7 +251,7 @@ router.get('/:barcode/movements', async (req, res) => {
       location: m.location_id ? await getLocation(m.location_id) : null,
     }))
   );
-  res.json({ bin, movements });
+  res.json({ bin: enrichBin(bin), movements });
 });
 
 export default router;

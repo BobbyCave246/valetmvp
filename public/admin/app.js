@@ -773,12 +773,14 @@ async function searchBin() {
         </li>`
       )
       .join('');
-    const photo =
-      bin.photo_ref && bin.photo_ref.startsWith('data:image/')
-        ? `<img class="thumb" src="${esc(bin.photo_ref)}" alt="contents photo" />`
-        : bin.photo_ref
-        ? '<div class="muted">📷 photo on file</div>'
-        : '';
+    const thumbSrc =
+      bin.photoUrl ||
+      (bin.photo_ref && bin.photo_ref.startsWith('data:image/') ? bin.photo_ref : null);
+    const photo = thumbSrc
+      ? `<img class="thumb" src="${esc(thumbSrc)}" alt="contents photo" />`
+      : bin.photo_ref
+      ? '<div class="muted">📷 photo on file</div>'
+      : '';
     const barcode = window.Barcode ? Barcode.svg(bin.barcode, { height: 40, moduleWidth: 2 }) : '';
     box.innerHTML = `
       <div><strong>${esc(bin.barcode)}</strong> · ${esc(bin.sku_type)} · current: <span class="summary">${esc(bin.status || 'unassigned')}</span></div>
