@@ -132,6 +132,10 @@ _Avoid_: Return delivery, outbound delivery, redelivery
 The driver and admin view of all scheduled and completed jobs.
 _Avoid_: Dispatch board, task list, queue
 
+**Scheduled Job merge**:
+A Booking has at most one Scheduled Collect full and one Scheduled Deliver back at a time. New requests append bins to the existing Job or reschedule its date rather than creating duplicates.
+_Avoid_: Per-bin job, duplicate job, multiple scheduled pickups
+
 ## Audit & invariants
 
 **Movement**:

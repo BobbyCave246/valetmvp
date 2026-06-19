@@ -1,9 +1,9 @@
 // Jobs board routes. Marking a job Done advances its bins to the next status
-// via the transition module (which logs movements).
+// via the job lifecycle module (which calls transitions.js for each bin).
 
 import { Router } from 'express';
-import { listJobs, getJob, getBooking, getCustomer, setJobStatus, getBin } from '../db.js';
-import { transitionBin, isLegalTransition, JOB_DONE_TARGET } from '../transitions.js';
+import { listJobs, getJob, getBooking, getCustomer, getBin } from '../db.js';
+import { completeJob } from '../jobs-lifecycle.js';
 import { safeParse } from '../util.js';
 import { requireAuth, requireRole } from '../auth.js';
 
@@ -38,48 +38,11 @@ router.get('/', async (_req, res) => {
   res.json(jobs);
 });
 
-// POST /api/jobs/:id/done — mark Done and advance its bins.
+// POST /api/jobs/:id/done — mark Done and advance its bins (all-or-nothing).
 router.post('/:id/done', async (req, res) => {
-  const job = await getJob(req.params.id);
-  if (!job) return res.status(404).json({ error: 'Job not found' });
-  if (job.status === 'Done') {
-    return res.status(409).json({ error: 'Job is already Done' });
-  }
-
-  const target = JOB_DONE_TARGET[job.type];
-  if (!target) {
-    return res.status(400).json({ error: `Unknown job type: ${job.type}` });
-  }
-
-  const binIds = safeParse(job.bin_ids) || [];
-  if (binIds.length === 0) {
-    return res.status(409).json({
-      error: 'Job has no bins assigned yet — assign bins before marking done',
-    });
-  }
-
   try {
-    // Pre-validate EVERY bin before advancing ANY, so a mid-loop failure can't
-    // leave some bins advanced with the job still Scheduled (an unrecoverable
-    // wedge — retries would fail on the already-advanced bins).
-    const bins = await Promise.all(binIds.map((id) => getBin(id)));
-    for (const bin of bins) {
-      if (!bin) {
-        return res.status(409).json({ error: 'Job references a bin that no longer exists' });
-      }
-      if (!isLegalTransition(bin.status, target)) {
-        return res.status(409).json({
-          error: `Bin ${bin.barcode} is "${bin.status ?? 'unassigned'}" and cannot move to "${target}" — job out of sync`,
-        });
-      }
-    }
-
-    const advanced = [];
-    for (const binId of binIds) {
-      advanced.push(await transitionBin(binId, target, { actor: 'admin', jobId: job.id }));
-    }
-    await setJobStatus(job.id, 'Done');
-    res.json({ job: await getJob(job.id), advanced });
+    const result = await completeJob(req.params.id, { actor: 'admin' });
+    res.json({ job: await getJob(req.params.id), advanced: result.advanced });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
