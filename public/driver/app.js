@@ -58,6 +58,26 @@ let SLOT_LABELS = { am: 'Morning (8am–12pm)', pm: 'Afternoon (12–5pm)' };
 })();
 const slotLabel = (key) => (key ? SLOT_LABELS[key] || key : '');
 
+// Keep in sync with src/driver-jobs.js (unit-tested there).
+const SLOT_ORDER = { am: 0, pm: 1 };
+function customerAddress(customer) {
+  if (!customer) return '';
+  return [customer.address, customer.postcode].filter(Boolean).join(', ');
+}
+function sortTodayJobs(list) {
+  return [...list].sort((a, b) => {
+    const sa = SLOT_ORDER[a.scheduled_slot] ?? 9;
+    const sb = SLOT_ORDER[b.scheduled_slot] ?? 9;
+    if (sa !== sb) return sa - sb;
+    return customerAddress(a.booking?.customer).localeCompare(customerAddress(b.booking?.customer));
+  });
+}
+function mapsUrl(customer) {
+  const dest = customerAddress(customer);
+  if (!dest) return null;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}`;
+}
+
 const TODAY = new Date().toISOString().slice(0, 10);
 
 let jobs = [];          // latest fetch
@@ -87,7 +107,7 @@ function renderList() {
     box.appendChild(el(`<div class="group-head">${esc(title)}</div>`));
     items.forEach((j) => box.appendChild(jobCard(j)));
   };
-  group('Today', today);
+  group('Today', sortTodayJobs(today));
   group('Upcoming', upcoming);
   if (!open.length) box.appendChild(el('<div class="empty">No open jobs — all done 🎉</div>'));
   if (done.length) {
@@ -105,13 +125,14 @@ function jobCard(j) {
     : j.scheduled_date === TODAY
     ? '<span class="pill today">Today</span>'
     : `<span class="pill">${esc(j.scheduled_date || '—')}</span>`;
+  const navUrl = mapsUrl(cust);
   const card = el(`
     <button class="job-card">
       <div class="row">
         <div>
           <div class="job-type">${JOB_ICON[j.type] || ''} ${esc(JOB_LABEL[j.type] || j.type)}</div>
           <div class="job-meta">${esc(cust?.name || 'Unknown customer')}${cust?.address ? ' · ' + esc(cust.address) : ''}</div>
-          <div class="job-meta">${(j.bin_ids || []).length} bins${j.scheduled_slot ? ' · ' + esc(slotLabel(j.scheduled_slot)) : ''}</div>
+          <div class="job-meta">${(j.bin_ids || []).length} bins${j.scheduled_slot ? ' · ' + esc(slotLabel(j.scheduled_slot)) : ''}${navUrl ? ` · <a href="${esc(navUrl)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Navigate</a>` : ''}</div>
         </div>
         <div>${pill}</div>
       </div>
@@ -152,10 +173,11 @@ function renderDetail() {
   const bins = j.bins || [];
   const isDone = j.status === 'Done';
 
+  const navUrl = mapsUrl(cust);
   const custLines = cust
     ? `
       <div class="cust-line"><strong>${esc(cust.name || 'Unknown')}</strong></div>
-      ${cust.address ? `<div class="cust-line">📍 ${esc(cust.address)}${cust.postcode ? ', ' + esc(cust.postcode) : ''}</div>` : ''}
+      ${cust.address ? `<div class="cust-line">📍 ${esc(cust.address)}${cust.postcode ? ', ' + esc(cust.postcode) : ''}${navUrl ? ` · <a href="${esc(navUrl)}" target="_blank" rel="noopener noreferrer">Navigate</a>` : ''}</div>` : ''}
       ${cust.phone ? `<div class="cust-line">📞 <a href="tel:${esc(cust.phone)}">${esc(cust.phone)}</a></div>` : ''}`
     : '<div class="muted">No customer on file</div>';
 
