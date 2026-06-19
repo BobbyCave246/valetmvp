@@ -22,8 +22,8 @@
         : `<a class="btn btn-primary btn-sm" href="/booking/book.html">Book bins</a>`;
 
     return `
-      <header class="site-header">
-        <div class="site-nav">
+      <header>
+        <div class="wrap nav">
           <a class="brand" href="/booking/">📦 Store All Valet</a>
           <span class="spacer"></span>
           <nav class="nav-links nav-desktop">${desktopLinks}</nav>
