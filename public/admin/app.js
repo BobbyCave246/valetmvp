@@ -1,51 +1,58 @@
-// Admin / warehouse console. All state lives in the API — this file only
-// renders responses and POSTs actions. Nothing touches a DB directly.
+// Admin supervisor console. Orchestrates bookings and field work — warehouse
+// scanning and job completion happen in the dedicated staff apps.
 
-// A lost session (expired cookie) surfaces as 401/403 — bounce to login.
-function guard401(r) {
-  if (r.status === 401 || r.status === 403) Session.onUnauthorized();
-}
-const api = {
-  async get(path) {
-    const r = await fetch(`/api${path}`, { credentials: 'same-origin' });
-    if (!r.ok) { guard401(r); throw new Error((await r.json().catch(() => ({}))).error || r.statusText); }
-    return r.json();
-  },
-  async post(path, body) {
-    const r = await fetch(`/api${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify(body || {}),
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) { guard401(r); throw new Error(data.error || r.statusText); }
-    return data;
-  },
-};
+const VALID_TABS = ['queue', 'assign', 'dispatch', 'customers', 'explorer', 'inventory', 'leads', 'config', 'staff'];
+const TODAY = () => new Date().toISOString().slice(0, 10);
 
-const $ = (sel) => document.querySelector(sel);
-const el = (html) => {
-  const t = document.createElement('template');
-  t.innerHTML = html.trim();
-  return t.content.firstChild;
-};
+let pendingAssign = null;
+let pendingExplorerBarcode = null;
+let pendingCustomerSearch = null;
+let pendingQueueFocus = null;
 
-function toast(msg, isErr = false) {
-  const t = $('#toast');
-  t.textContent = msg;
-  t.className = `show${isErr ? ' err' : ''}`;
-  setTimeout(() => (t.className = ''), 2600);
+// ---- hash routing -----------------------------------------------------------
+function parseHash() {
+  const raw = location.hash.slice(1) || 'queue';
+  const qIdx = raw.indexOf('?');
+  const tab = (qIdx === -1 ? raw : raw.slice(0, qIdx)).trim();
+  const params = new URLSearchParams(qIdx === -1 ? '' : raw.slice(qIdx + 1));
+  return { tab: VALID_TABS.includes(tab) ? tab : 'queue', params };
 }
 
-// ---- tab switching ----------------------------------------------------------
-// Context handed from a queue card's action button to the destination tab.
-let pendingAssign = null;     // { bookingId }
-let pendingWarehouse = null;  // { binBarcode, mode: 'store' | 'scanout' }
-let pendingQueueFocus = null; // { bookingId, jobId } — scroll/highlight nested job
+function setHash(tab, params = {}) {
+  const qs = new URLSearchParams(params);
+  const q = qs.toString();
+  const next = q ? `${tab}?${q}` : tab;
+  if (location.hash.slice(1) !== next) location.hash = next;
+}
+
+function applyHashContext(tab, params) {
+  if (tab === 'assign' && params.get('booking')) pendingAssign = { bookingId: params.get('booking') };
+  if (tab === 'explorer' && params.get('barcode')) pendingExplorerBarcode = params.get('barcode').toUpperCase();
+  if (tab === 'customers' && params.get('q')) pendingCustomerSearch = params.get('q');
+}
 
 function activeTab() {
-  return document.querySelector('nav button.active').dataset.tab;
+  return document.querySelector('nav button.active')?.dataset.tab || 'queue';
+}
+
+function switchTab(name, ctx = {}, params = {}) {
+  if (name === 'assign' && ctx.bookingId) {
+    pendingAssign = ctx;
+    params.booking = ctx.bookingId;
+  }
+  if (name === 'explorer' && ctx.barcode) {
+    pendingExplorerBarcode = ctx.barcode;
+    params.barcode = ctx.barcode;
+  }
+  if (name === 'queue' && ctx.jobId) pendingQueueFocus = { bookingId: ctx.bookingId, jobId: ctx.jobId };
+  if (name === 'customers' && ctx.q) {
+    pendingCustomerSearch = ctx.q;
+    params.q = ctx.q;
+  }
+  setHash(name, params);
+  const btn = [...document.querySelectorAll('nav button')].find((b) => b.dataset.tab === name);
+  if (btn && !btn.classList.contains('active')) btn.click();
+  else refreshTab(name);
 }
 
 document.querySelectorAll('nav button').forEach((btn) => {
@@ -54,37 +61,77 @@ document.querySelectorAll('nav button').forEach((btn) => {
     document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
     btn.classList.add('active');
     $(`#tab-${btn.dataset.tab}`).classList.add('active');
+    setHash(btn.dataset.tab);
     refreshTab(btn.dataset.tab);
   });
 });
 
-// Programmatically switch tabs, optionally passing context for the destination.
-function switchTab(name, ctx = {}) {
-  if (name === 'assign') pendingAssign = ctx;
-  if (name === 'warehouse') pendingWarehouse = ctx;
-  if (name === 'queue' && ctx.jobId) pendingQueueFocus = { bookingId: ctx.bookingId, jobId: ctx.jobId };
-  [...document.querySelectorAll('nav button')].find((b) => b.dataset.tab === name)?.click();
-}
-
-function focusQueueJob({ bookingId, jobId }) {
-  pendingQueueFocus = { bookingId, jobId };
-  if (activeTab() === 'queue') {
-    renderQueueFromCache();
-    return;
+window.addEventListener('hashchange', () => {
+  const { tab, params } = parseHash();
+  applyHashContext(tab, params);
+  const btn = [...document.querySelectorAll('nav button')].find((b) => b.dataset.tab === tab);
+  if (btn && !btn.classList.contains('active')) {
+    document.querySelectorAll('nav button').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+    btn.classList.add('active');
+    $(`#tab-${tab}`).classList.add('active');
   }
-  switchTab('queue');
-}
+  refreshTab(tab);
+});
 
 function refreshTab(tab) {
   if (tab === 'queue') loadQueue();
   if (tab === 'assign') loadAssign();
-  if (tab === 'warehouse') loadWarehouse();
+  if (tab === 'dispatch') loadDispatch();
+  if (tab === 'customers') loadCustomers();
+  if (tab === 'explorer') loadExplorer();
+  if (tab === 'inventory') loadInventory();
   if (tab === 'leads') loadLeads();
-  if (tab === 'settings') loadSettings();
+  if (tab === 'config') loadConfig();
   if (tab === 'staff') loadStaff();
 }
 
-// ---- queue filters ----------------------------------------------------------
+// ---- reset ------------------------------------------------------------------
+$('#resetBtn').addEventListener('click', async () => {
+  const ok = await confirmDialog({
+    title: 'Reset demo data',
+    message: 'Wipe all operational data and re-seed the demo? Staff accounts are preserved.',
+    confirmLabel: 'Reset demo',
+    danger: true,
+  });
+  if (!ok) return;
+  await api.post('/admin/reset');
+  toast('Demo reset to seed data');
+  loadStats();
+  refreshTab(activeTab());
+});
+
+// ---- dashboard stats --------------------------------------------------------
+async function loadStats() {
+  try {
+    const s = await api.get('/stats');
+    const bs = s.bins.byStatus;
+    const inTransit = (bs['In transit (inbound)'] || 0) + (bs['In transit (outbound)'] || 0);
+    const withCustomer = (bs['Out for filling'] || 0) + (bs['Returned to customer'] || 0);
+    const tiles = [
+      ['Bins', s.bins.total],
+      ['Stored', bs['Stored'] || 0],
+      ['Out for filling', bs['Out for filling'] || 0],
+      ['In transit', inTransit],
+      ['With customer', withCustomer],
+      ['Rack', `${s.locations.occupied}/${s.locations.total} · ${s.locations.occupancyPct}%`],
+      ['Bookings', s.bookings.total],
+      ['Jobs scheduled', s.jobs.scheduled],
+    ];
+    $('#statsBar').innerHTML = tiles
+      .map(([label, val]) => `<div class="stat"><div class="stat-val">${val}</div><div class="stat-label">${label}</div></div>`)
+      .join('');
+  } catch {
+    /* non-critical */
+  }
+}
+
+// ---- queue ------------------------------------------------------------------
 let queueBookingsCache = [];
 let queueJobsCache = [];
 let queueFilter = 'all';
@@ -113,7 +160,6 @@ function bookingFilterKind(b) {
   if (na === 'assign') return 'assign';
   if (na === 'done') return 'done';
   if (na === 'job' || na === 'warehouse') return 'jobs';
-  // Stored bookings surface as nextAction.kind === 'idle' — classify before generic wait.
   if (b.summary?.counts?.Stored) return 'stored';
   if (na === 'wait' || na === 'idle') return 'wait';
   return 'all';
@@ -150,49 +196,12 @@ function sortBookings(list) {
 }
 
 function skuProgress(b) {
-  const breakdown = b.sku_breakdown || {};
   const assigned = b.assignedCount || 0;
   const total = b.bin_count || 0;
   const pct = total ? Math.round((assigned / total) * 100) : 0;
   return `<div class="sku-progress" title="${assigned} of ${total} bins assigned"><div class="sku-progress-bar" style="width:${pct}%"></div></div>`;
 }
 
-// ---- reset ------------------------------------------------------------------
-$('#resetBtn').addEventListener('click', async () => {
-  if (!confirm('Wipe all data and re-seed the demo?')) return;
-  await api.post('/admin/reset');
-  toast('Demo reset to seed data');
-  loadStats();
-  refreshTab(document.querySelector('nav button.active').dataset.tab);
-});
-
-// ---- dashboard stats bar ----------------------------------------------------
-async function loadStats() {
-  try {
-    const s = await api.get('/stats');
-    const bs = s.bins.byStatus;
-    const inTransit = (bs['In transit (inbound)'] || 0) + (bs['In transit (outbound)'] || 0);
-    const withCustomer =
-      (bs['Out for filling'] || 0) + (bs['Returned to customer'] || 0);
-    const tiles = [
-      ['Bins', s.bins.total],
-      ['Stored', bs['Stored'] || 0],
-      ['Out for filling', bs['Out for filling'] || 0],
-      ['In transit', inTransit],
-      ['With customer', withCustomer],
-      ['Rack', `${s.locations.occupied}/${s.locations.total} · ${s.locations.occupancyPct}%`],
-      ['Bookings', s.bookings.total],
-      ['Jobs scheduled', s.jobs.scheduled],
-    ];
-    $('#statsBar').innerHTML = tiles
-      .map(([label, val]) => `<div class="stat"><div class="stat-val">${val}</div><div class="stat-label">${label}</div></div>`)
-      .join('');
-  } catch {
-    /* stats are non-critical; ignore transient failures */
-  }
-}
-
-// ---- queue ------------------------------------------------------------------
 async function loadQueue() {
   const [bookings, allJobs] = await Promise.all([api.get('/bookings'), api.get('/jobs')]);
   queueBookingsCache = bookings;
@@ -233,7 +242,7 @@ function renderQueueFromCache() {
           <div>
             <div><strong>${esc(b.customer?.name || 'Unknown')}</strong> · ${esc(b.bin_count)} bins <span class="muted">(${esc(sku)})</span> ${assignBadge}</div>
             <div class="muted">${phoneLink}${b.customer?.address ? ` · ${esc(b.customer.address)}` : ''}</div>
-            <div class="muted">Delivery: ${esc(b.delivery_date)}${b.delivery_slot ? ' · ' + esc(slotLabel(b.delivery_slot)) : ''} · ref <code>${esc(b.id)}</code> · <a href="#" class="cancel-link" style="color:#b91c1c;">${b.assignedCount === 0 ? 'cancel unassigned booking' : 'cancel booking'}</a></div>
+            <div class="muted">Delivery: ${esc(b.delivery_date)}${b.delivery_slot ? ' · ' + esc(slotLabel(b.delivery_slot)) : ''} · ref <code>${esc(b.id)}</code> · <a href="#" class="cancel-link">${b.assignedCount === 0 ? 'cancel unassigned booking' : 'cancel booking'}</a></div>
             ${skuProgress(b)}
             <div class="summary" style="margin-top:6px;">${esc(b.summary.text)}</div>
           </div>
@@ -249,9 +258,15 @@ function renderQueueFromCache() {
       const n = b.assignedCount || 0;
       const unassigned = n === 0;
       const msg = unassigned
-        ? `Cancel unassigned booking ${b.id}?\nThis deletes the booking and its delivery job (no bins to release).`
-        : `Cancel booking ${b.id}?\nThis deletes its jobs and releases ${n} assigned bin${n === 1 ? '' : 's'} back to inventory.`;
-      if (!confirm(msg)) return;
+        ? `Cancel unassigned booking ${b.id}? This deletes the booking and its delivery job (no bins to release).`
+        : `Cancel booking ${b.id}? This deletes its jobs and releases ${n} assigned bin${n === 1 ? '' : 's'} back to inventory.`;
+      const ok = await confirmDialog({
+        title: unassigned ? 'Cancel unassigned booking' : 'Cancel booking',
+        message: msg,
+        confirmLabel: 'Cancel booking',
+        danger: true,
+      });
+      if (!ok) return;
       try {
         const path = unassigned ? `/bookings/${b.id}/cancel-unassigned` : `/bookings/${b.id}/cancel`;
         const res = await api.post(path, {});
@@ -263,16 +278,14 @@ function renderQueueFromCache() {
       }
     });
 
-    // Nested jobs for this booking (open first, then a collapsed Done set).
     const jobsBox = card.querySelector('.booking-jobs');
     const jobs = jobsByBooking[b.id] || [];
     const open = jobs.filter((j) => j.status !== 'Done');
     const done = jobs.filter((j) => j.status === 'Done');
-    const nextJobId = b.nextAction?.kind === 'job' ? b.nextAction.jobId : null;
-    open.forEach((j) => jobsBox.appendChild(jobCard(j, false, nextJobId)));
+    open.forEach((j) => jobsBox.appendChild(jobCard(j, false, b)));
     if (done.length) {
       const details = el(`<details class="done-group"><summary>${done.length} done</summary></details>`);
-      done.forEach((j) => details.appendChild(jobCard(j, true)));
+      done.forEach((j) => details.appendChild(jobCard(j, true, b)));
       jobsBox.appendChild(details);
     }
     list.appendChild(card);
@@ -300,15 +313,12 @@ function applyQueueFocus() {
   });
 }
 
-// Renders the contextual "next step" control for a queue card from b.nextAction.
 function nextActionControl(b) {
   const na = b.nextAction || { kind: 'idle', label: '' };
   if (na.kind === 'assign') {
     const wrap = document.createElement('div');
     wrap.className = 'action-stack';
-    wrap.appendChild(
-      mkActionBtn('btn', na.label, () => switchTab('assign', { bookingId: b.id }))
-    );
+    wrap.appendChild(mkActionBtn('btn', na.label, () => switchTab('assign', { bookingId: b.id })));
     const auto = el('<a href="#" class="manual-link">auto-assign</a>');
     auto.addEventListener('click', async (e) => {
       e.preventDefault();
@@ -318,7 +328,7 @@ function nextActionControl(b) {
         toast(n ? `Reserved ${n} bin${n === 1 ? '' : 's'} — pick list shown below` : 'Nothing to assign');
         const short = Object.entries(res.shortages || {});
         if (short.length) {
-          toast(`Short ${short.map(([s, n]) => `${n} ${s}`).join(', ')} — restock or assign manually`, true);
+          toast(`Short ${short.map(([s, c]) => `${c} ${s}`).join(', ')} — restock or assign manually`, true);
         }
         loadQueue();
         loadStats();
@@ -330,9 +340,18 @@ function nextActionControl(b) {
     return wrap;
   }
   if (na.kind === 'job' && na.jobId) {
-    return mkActionBtn('btn green', na.label, () =>
-      focusQueueJob({ bookingId: b.id, jobId: na.jobId })
-    );
+    const wrap = document.createElement('div');
+    wrap.className = 'action-stack';
+    const link = el(`<a class="btn green" href="${esc(driverFieldUrl({ jobId: na.jobId }))}">${esc(na.label)} ↗</a>`);
+    wrap.appendChild(link);
+    const focus = el('<a href="#" class="manual-link">show in queue</a>');
+    focus.addEventListener('click', (e) => {
+      e.preventDefault();
+      pendingQueueFocus = { bookingId: b.id, jobId: na.jobId };
+      applyQueueFocus();
+    });
+    wrap.appendChild(focus);
+    return wrap;
   }
   if (na.kind === 'job') {
     const span = document.createElement('span');
@@ -343,16 +362,19 @@ function nextActionControl(b) {
   if (na.kind === 'warehouse') {
     const wrap = document.createElement('div');
     wrap.className = 'action-stack';
-    wrap.appendChild(
-      mkActionBtn('btn', na.label, () =>
-        switchTab('warehouse', { binBarcode: na.binBarcode, mode: na.mode })
-      )
-    );
+    const url = warehouseFieldUrl({ mode: na.mode, binBarcode: na.binBarcode });
+    wrap.appendChild(el(`<a class="btn" href="${esc(url)}">${esc(na.label)} ↗</a>`));
     if (na.mode === 'scanout') {
       const cancel = el('<a href="#" class="manual-link">cancel retrieval</a>');
       cancel.addEventListener('click', async (e) => {
         e.preventDefault();
-        if (!confirm(`Cancel retrieval for bin ${na.binBarcode}? It will return to Stored.`)) return;
+        const ok = await confirmDialog({
+          title: 'Cancel retrieval',
+          message: `Cancel retrieval for bin ${na.binBarcode}? It will return to Stored.`,
+          confirmLabel: 'Cancel retrieval',
+          danger: true,
+        });
+        if (!ok) return;
         try {
           const detail = await api.get(`/bookings/${b.id}`);
           const bin = (detail.bins || []).find((x) => x.barcode === na.binBarcode);
@@ -379,10 +401,17 @@ function nextActionControl(b) {
     const noShow = el('<a href="#" class="manual-link">mark no-show</a>');
     noShow.addEventListener('click', async (e) => {
       e.preventDefault();
-      const code = prompt('Enter bin barcode to mark as no-show (customer never filled it):');
-      if (!code?.trim()) return;
       try {
-        await api.post(`/bins/${encodeURIComponent(code.trim())}/no-show`, {});
+        const detail = await api.get(`/bookings/${b.id}`);
+        const candidates = (detail.bins || []).filter((bin) => bin.status === 'Out for filling');
+        if (!candidates.length) return toast('No bins out for filling on this booking', true);
+        const barcode = await pickDialog({
+          title: 'Mark no-show',
+          message: 'Select the bin the customer never filled:',
+          options: candidates.map((bin) => ({ label: `${bin.barcode} (${bin.sku_type})`, value: bin.barcode })),
+        });
+        if (!barcode) return;
+        await api.post(`/bins/${encodeURIComponent(barcode)}/no-show`, {});
         toast('Bin marked no-show — released to inventory');
         loadQueue();
         loadStats();
@@ -393,7 +422,6 @@ function nextActionControl(b) {
     wrap.appendChild(noShow);
     return wrap;
   }
-  // wait / idle / done — no action, just a muted hint.
   const span = document.createElement('span');
   span.className = 'muted';
   span.textContent = na.label;
@@ -404,14 +432,68 @@ function mkActionBtn(cls, label, onClick) {
   const btn = el(`<button class="${cls}">${label}</button>`);
   btn.addEventListener('click', async () => {
     btn.disabled = true;
-    try { await onClick(); } catch (e) { toast(e.message, true); } finally { btn.disabled = false; }
+    try {
+      await onClick();
+    } catch (e) {
+      toast(e.message, true);
+    } finally {
+      btn.disabled = false;
+    }
   });
   return btn;
 }
 
+function jobCard(j, isDone, booking) {
+  const todayPill = j.scheduled_date === TODAY() ? '<span class="pill-today">Today</span>' : '';
+  const bins = j.bins || [];
+  const pickLabel = j.type === 'deliver_empty' ? 'Pick list — collect these empties' : 'Bins';
+  const picklist = bins.length
+    ? `<div class="picklist"><div class="picklist-head">${pickLabel}</div>${bins
+        .map((b) => `<span class="pick"><code>${esc(b.barcode)}</code> <span class="muted">${esc(b.sku_type)}</span></span>`)
+        .join('')}</div>`
+    : '';
+  const card = el(`
+    <div class="job-item" data-job-id="${esc(j.id)}">
+      <div class="row">
+        <div>
+          <div><strong>${esc(JOB_LABEL[j.type] || j.type)}</strong> <span class="status-pill">${esc(j.status)}</span> ${todayPill}</div>
+          <div class="muted">date ${esc(j.scheduled_date || '—')}${j.scheduled_slot ? ' · ' + esc(slotLabel(j.scheduled_slot)) : ''} · ${(j.bin_ids || []).length} bins</div>
+          ${picklist}
+        </div>
+        <div class="job-actions"></div>
+      </div>
+    </div>
+  `);
+  const actions = card.querySelector('.job-actions');
+  if (!isDone) {
+    actions.appendChild(el(`<a class="btn ghost btn-sm" href="${esc(driverFieldUrl({ jobId: j.id }))}">Open in driver app ↗</a>`));
+    const override = el('<a href="#" class="manual-link">admin override: mark done</a>');
+    override.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const ok = await confirmDialog({
+        title: 'Admin override',
+        message: `Mark "${JOB_LABEL[j.type] || j.type}" done without driver scan confirmation? Use only when the driver app is unavailable.`,
+        confirmLabel: 'Mark done',
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        const res = await api.post(`/jobs/${j.id}/done`, {});
+        toast(`Done — bins now ${res.advanced[0]?.status}`);
+        loadQueue();
+        loadStats();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    });
+    actions.appendChild(override);
+  }
+  return card;
+}
+
 // ---- assign -----------------------------------------------------------------
 let assignSelected = new Set();
-let availableSku = {};      // barcode → sku_type, for SKU reconciliation
+let availableSku = {};
 let assignBookingDetail = null;
 
 async function loadAssign() {
@@ -422,7 +504,6 @@ async function loadAssign() {
     .map((b) => `<option value="${esc(b.id)}">${esc(b.customer?.name)} — ${esc(b.bin_count)} bins — ${esc(b.delivery_date)}</option>`)
     .join('');
 
-  // Honour a booking preselected from a queue card's "Assign bins" button.
   if (pendingAssign?.bookingId) {
     select.value = pendingAssign.bookingId;
     pendingAssign = null;
@@ -431,9 +512,13 @@ async function loadAssign() {
   await renderAvailableBins();
   renderAssignSelected();
   await updateAssignSummary();
+  await renderInventoryAlert();
 }
 
-$('#assignBooking').addEventListener('change', updateAssignSummary);
+$('#assignBooking').addEventListener('change', async () => {
+  await updateAssignSummary();
+  await renderInventoryAlert();
+});
 
 async function updateAssignSummary() {
   const id = $('#assignBooking').value;
@@ -442,7 +527,6 @@ async function updateAssignSummary() {
   renderReconcile();
 }
 
-// SKU-aware reconciliation: what the booking still needs vs what's selected.
 function renderReconcile() {
   const box = $('#assignSummary');
   if (!assignBookingDetail) return (box.innerHTML = '');
@@ -456,7 +540,10 @@ function renderReconcile() {
   const selectedBySku = tallyBySku([...assignSelected].map((bc) => availableSku[bc] || '?'));
 
   const fmt = (obj) =>
-    Object.entries(obj).filter(([, n]) => n > 0).map(([k, n]) => `${n} ${k}`).join(', ') || 'none';
+    Object.entries(obj)
+      .filter(([, n]) => n > 0)
+      .map(([k, n]) => `${n} ${k}`)
+      .join(', ') || 'none';
   const totalNeeded = Object.values(needed).reduce((a, b) => a + b, 0);
   const cls = assignSelected.size > totalNeeded ? 'over' : assignSelected.size === totalNeeded && totalNeeded > 0 ? 'ok' : '';
 
@@ -472,12 +559,47 @@ function tallyBySku(skus) {
   return out;
 }
 
+async function renderInventoryAlert() {
+  const box = $('#inventoryAlert');
+  if (!box) return;
+  try {
+    const [bins, stats] = await Promise.all([api.get('/bins/available'), api.get('/stats')]);
+    const bySku = {};
+    for (const b of bins) bySku[b.sku_type] = (bySku[b.sku_type] || 0) + 1;
+    if (!assignBookingDetail) {
+      box.hidden = true;
+      return;
+    }
+    const breakdown = assignBookingDetail.sku_breakdown || {};
+    const assignedBySku = tallyBySku((assignBookingDetail.bins || []).map((b) => b.sku_type));
+    const shortages = [];
+    for (const [sku, n] of Object.entries(breakdown)) {
+      const need = Math.max(0, n - (assignedBySku[sku] || 0));
+      const avail = bySku[sku] || 0;
+      if (need > avail) shortages.push(`${sku}: need ${need}, only ${avail} available`);
+    }
+    if (shortages.length) {
+      box.hidden = false;
+      box.className = 'inventory-alert warn';
+      box.innerHTML = `<strong>Inventory shortage:</strong> ${esc(shortages.join(' · '))}. <a href="/warehouse/?mode=intake">Add bins in warehouse app ↗</a>`;
+    } else if (bins.length <= 3) {
+      box.hidden = false;
+      box.className = 'inventory-alert';
+      box.innerHTML = `<strong>Low pool:</strong> only ${bins.length} unassigned bin${bins.length === 1 ? '' : 's'} left (${stats.bins.total} total).`;
+    } else {
+      box.hidden = true;
+    }
+  } catch {
+    box.hidden = true;
+  }
+}
+
 async function renderAvailableBins() {
   const bins = await api.get('/bins/available');
   availableSku = {};
   const box = $('#availableBins');
   if (bins.length === 0) {
-    box.innerHTML = '<span class="muted">No unassigned bins left.</span>';
+    box.innerHTML = '<span class="muted">No unassigned bins left — <a href="/warehouse/?mode=intake">add bins in warehouse app ↗</a>.</span>';
     return;
   }
   box.innerHTML = '';
@@ -538,89 +660,219 @@ $('#assignSubmit').addEventListener('click', async () => {
     const res = await api.post(`/bookings/${id}/assign-bins`, { barcodes: [...assignSelected] });
     toast(`Assigned: ${res.summary.text}`);
     loadAssign();
+    loadStats();
   } catch (e) {
     toast(e.message, true);
   }
 });
 
-// ---- jobs (rendered nested inside each booking card) ------------------------
-const JOB_LABEL = {
-  deliver_empty: 'Deliver empty bins',
-  collect_full: 'Collect filled bins',
-  deliver_back: 'Deliver bins back',
-};
-
-// Delivery-window labels — fallbacks refreshed from the API at boot so the
-// backend (src/slots.js) stays the single source of truth.
-let SLOT_LABELS = { am: 'Morning (8am–12pm)', pm: 'Afternoon (12–5pm)' };
-(async () => {
+// ---- dispatch ---------------------------------------------------------------
+async function loadDispatch() {
+  const box = $('#dispatchList');
   try {
-    const data = await api.get('/serviceability');
-    if (Array.isArray(data.slots)) {
-      SLOT_LABELS = Object.fromEntries(data.slots.map((s) => [s.key, s.label]));
+    const jobs = await api.get('/jobs');
+    const open = jobs.filter((j) => j.status !== 'Done');
+    const today = open.filter((j) => j.scheduled_date === TODAY());
+    const upcoming = open.filter((j) => j.scheduled_date !== TODAY());
+
+    if (!open.length) {
+      box.innerHTML = '<div class="empty">No open jobs scheduled.</div>';
+      return;
     }
-  } catch { /* fallback labels stand */ }
-})();
-const slotLabel = (key) => (key ? SLOT_LABELS[key] || key : '');
 
-const TODAY = new Date().toISOString().slice(0, 10);
+    box.innerHTML = '';
+    const renderGroup = (title, list) => {
+      if (!list.length) return;
+      box.appendChild(el(`<div class="group-head">${esc(title)}</div>`));
+      const bySlot = {};
+      for (const j of list) {
+        const key = j.scheduled_slot || 'none';
+        (bySlot[key] ||= []).push(j);
+      }
+      for (const [slot, slotJobs] of Object.entries(bySlot)) {
+        if (slot !== 'none') {
+          box.appendChild(el(`<div class="dispatch-slot-head">${esc(slotLabel(slot))}</div>`));
+        }
+        slotJobs.forEach((j) => box.appendChild(dispatchCard(j)));
+      }
+    };
 
-function jobCard(j, isDone, primaryJobId = null) {
-  const todayPill = j.scheduled_date === TODAY ? '<span class="pill-today">Today</span>' : '';
-  const bins = j.bins || [];
-  const pickLabel = j.type === 'deliver_empty' ? 'Pick list — collect these empties' : 'Bins';
-  const picklist = bins.length
-    ? `<div class="picklist"><div class="picklist-head">${pickLabel}</div>${bins
-        .map((b) => `<span class="pick"><code>${esc(b.barcode)}</code> <span class="muted">${esc(b.sku_type)}</span></span>`)
-        .join('')}</div>`
-    : '';
+    renderGroup(`Today (${TODAY()})`, today);
+    renderGroup('Upcoming', upcoming);
+  } catch (e) {
+    box.innerHTML = `<div class="muted">${esc(e.message)}</div>`;
+  }
+}
+
+function dispatchCard(j) {
+  const cust = j.booking?.customer;
   const card = el(`
-    <div class="job-item" data-job-id="${esc(j.id)}">
+    <div class="card dispatch-card">
       <div class="row">
         <div>
-          <div><strong>${esc(JOB_LABEL[j.type] || j.type)}</strong> <span class="status-pill">${esc(j.status)}</span> ${todayPill}</div>
-          <div class="muted">date ${esc(j.scheduled_date || '—')}${j.scheduled_slot ? ' · ' + esc(slotLabel(j.scheduled_slot)) : ''} · ${(j.bin_ids || []).length} bins</div>
-          ${picklist}
+          <div><strong>${esc(JOB_LABEL[j.type] || j.type)}</strong> <span class="status-pill">${esc(j.status)}</span></div>
+          <div class="muted">${esc(cust?.name || 'Unknown')}${cust?.address ? ' · ' + esc(cust.address) : ''}${cust?.phone ? ' · ' + esc(cust.phone) : ''}</div>
+          <div class="muted">${esc(j.scheduled_date || '—')}${j.scheduled_slot ? ' · ' + esc(slotLabel(j.scheduled_slot)) : ''} · ${(j.bin_ids || []).length} bins · ref ${esc(j.booking_id)}</div>
         </div>
-        <div></div>
+        <div><a class="btn ghost btn-sm" href="${esc(driverFieldUrl({ jobId: j.id }))}">Driver app ↗</a></div>
       </div>
     </div>
   `);
-  if (!isDone && j.id !== primaryJobId) {
-    const btn = el(`<button class="btn ghost btn-sm">Mark done</button>`);
-    btn.addEventListener('click', async () => {
-      btn.disabled = true;
-      try {
-        const res = await api.post(`/jobs/${j.id}/done`, {});
-        toast(`Done — bins now ${res.advanced[0]?.status}`);
-        loadQueue();
-        loadStats();
-      } catch (e) {
-        toast(e.message, true);
-        btn.disabled = false;
-      }
-    });
-    card.querySelector('.row > div:last-child').appendChild(btn);
-  } else if (!isDone && j.id === primaryJobId) {
-    const hint = el('<span class="muted" style="font-size:12px;">Use next action →</span>');
-    card.querySelector('.row > div:last-child').appendChild(hint);
-  }
   return card;
 }
 
-// ---- warehouse --------------------------------------------------------------
-async function loadWarehouse() {
-  // Prefill a bin barcode handed over from a queue card's warehouse action.
-  if (pendingWarehouse?.binBarcode) {
-    const field = pendingWarehouse.mode === 'scanout' ? '#scanOutBin' : '#storeBin';
-    $(field).value = pendingWarehouse.binBarcode;
-    pendingWarehouse = null;
+// ---- customers --------------------------------------------------------------
+let customersCache = [];
+
+$('#customerSearch')?.addEventListener('input', (e) => {
+  renderCustomers(e.target.value.trim().toLowerCase());
+});
+
+async function loadCustomers() {
+  if (pendingCustomerSearch) {
+    $('#customerSearch').value = pendingCustomerSearch;
+    pendingCustomerSearch = null;
   }
-  renderRackMap();
+  try {
+    const bookings = await api.get('/bookings');
+    const byCustomer = new Map();
+    for (const b of bookings) {
+      const c = b.customer;
+      if (!c) continue;
+      const key = c.phone || c.email || c.name || b.id;
+      if (!byCustomer.has(key)) {
+        byCustomer.set(key, { customer: c, bookings: [] });
+      }
+      byCustomer.get(key).bookings.push(b);
+    }
+    customersCache = [...byCustomer.values()];
+    renderCustomers($('#customerSearch').value.trim().toLowerCase());
+  } catch (e) {
+    $('#customerList').innerHTML = `<div class="muted">${esc(e.message)}</div>`;
+  }
 }
 
-// Visual rack map: a tile per slot, grouped by aisle (parsed from the
-// aisle-bay-level-position barcode, e.g. A-01-1-01). Free slots are clickable.
+function renderCustomers(query) {
+  const box = $('#customerList');
+  let rows = customersCache;
+  if (query) {
+    rows = rows.filter(({ customer, bookings }) => {
+      const hay = [
+        customer.name,
+        customer.phone,
+        customer.email,
+        customer.address,
+        customer.postcode,
+        ...bookings.map((b) => b.id),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(query);
+    });
+  }
+  if (!rows.length) {
+    box.innerHTML = '<div class="empty">No customers match.</div>';
+    return;
+  }
+  box.innerHTML = rows
+    .map(({ customer, bookings }) => {
+      const refs = bookings.map((b) => `<code>${esc(b.id)}</code> (${esc(b.delivery_date)})`).join(', ');
+      return `<div class="bin-row customer-row">
+        <div>
+          <strong>${esc(customer.name || 'Unknown')}</strong>
+          ${customer.phone ? `<span class="muted"> · <a href="tel:${esc(customer.phone)}">${esc(customer.phone)}</a></span>` : ''}
+          ${customer.email ? `<span class="muted"> · ${esc(customer.email)}</span>` : ''}
+          <div class="muted">${esc(customer.address || '')}${customer.postcode ? ', ' + esc(customer.postcode) : ''}</div>
+          <div class="muted" style="margin-top:4px;">${bookings.length} booking${bookings.length === 1 ? '' : 's'}: ${refs}</div>
+        </div>
+      </div>`;
+    })
+    .join('');
+}
+
+// ---- explorer ---------------------------------------------------------------
+function loadExplorer() {
+  if (pendingExplorerBarcode) {
+    $('#explorerBarcode').value = pendingExplorerBarcode;
+    pendingExplorerBarcode = null;
+    searchBin();
+  }
+}
+
+$('#explorerSearch').addEventListener('click', searchBin);
+$('#explorerBarcode').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') searchBin();
+});
+
+async function searchBin() {
+  const bc = $('#explorerBarcode').value.trim().toUpperCase();
+  const box = $('#explorerResult');
+  if (!bc) return;
+  setHash('explorer', { barcode: bc });
+  try {
+    const { bin, movements } = await api.get(`/bins/${bc}/movements`);
+    const rows = movements
+      .map(
+        (m) => `<li>
+          <div>${esc(m.from_status || '(unassigned)')} → <strong>${esc(m.to_status || '(released — booking cancelled)')}</strong>
+            ${m.location ? `<span class="muted">@ ${esc(m.location.barcode)}</span>` : ''}
+            <span class="status-pill">${esc(m.actor)}</span></div>
+          <div class="ts">${new Date(m.ts).toLocaleString()}</div>
+        </li>`
+      )
+      .join('');
+    const thumbSrc =
+      bin.photoUrl || (bin.photo_ref && bin.photo_ref.startsWith('data:image/') ? bin.photo_ref : null);
+    const photo = thumbSrc
+      ? `<img class="thumb" src="${esc(thumbSrc)}" alt="contents photo" />`
+      : bin.photo_ref
+      ? '<div class="muted">📷 photo on file</div>'
+      : '';
+    const barcode = window.Barcode ? Barcode.svg(bin.barcode, { height: 40, moduleWidth: 2 }) : '';
+    box.innerHTML = `
+      <div><strong>${esc(bin.barcode)}</strong> · ${esc(bin.sku_type)} · current: <span class="summary">${esc(bin.status || 'unassigned')}</span></div>
+      <div class="bc-block">${barcode}</div>
+      ${photo}
+      <ul class="timeline" style="margin-top:10px;">${rows || '<li class="muted">No movements yet.</li>'}</ul>`;
+  } catch (e) {
+    box.innerHTML = `<div class="muted">${esc(e.message)}</div>`;
+  }
+}
+
+// ---- inventory (summary + read-only rack map) -------------------------------
+async function loadInventory() {
+  await Promise.all([renderInventorySummary(), renderRackMap()]);
+}
+
+async function renderInventorySummary() {
+  const box = $('#inventorySummary');
+  try {
+    const [stats, available] = await Promise.all([api.get('/stats'), api.get('/bins/available')]);
+    const bs = stats.bins.byStatus;
+    const bySku = {};
+    for (const b of available) bySku[b.sku_type] = (bySku[b.sku_type] || 0) + 1;
+
+    const statusRows = Object.entries(bs)
+      .filter(([, n]) => n > 0)
+      .map(([status, n]) => `<tr><td>${esc(status)}</td><td>${n}</td></tr>`)
+      .join('');
+    const skuRows = Object.entries(bySku)
+      .map(([sku, n]) => `<tr><td>${esc(sku)} (available)</td><td>${n}</td></tr>`)
+      .join('');
+
+    box.innerHTML = `
+      <h3 style="margin-top:0;font-size:15px;">Bin pool</h3>
+      <table class="inv-table">
+        <thead><tr><th>Status / SKU</th><th>Count</th></tr></thead>
+        <tbody>${statusRows}${skuRows}</tbody>
+      </table>
+      <p class="muted" style="margin:12px 0 0;">${stats.bins.unassigned} unassigned · ${available.length} ready to assign · ${stats.locations.occupancyPct}% rack occupancy</p>`;
+  } catch (e) {
+    box.innerHTML = `<div class="muted">${esc(e.message)}</div>`;
+  }
+}
+
 async function renderRackMap() {
   const locations = await api.get('/locations');
   const map = $('#rackMap');
@@ -628,76 +880,27 @@ async function renderRackMap() {
 
   const byAisle = {};
   for (const loc of locations) {
-    const aisle = (loc.barcode.split('-')[0]) || '?';
+    const aisle = loc.barcode.split('-')[0] || '?';
     (byAisle[aisle] ||= []).push(loc);
   }
 
-  Object.keys(byAisle).sort().forEach((aisle) => {
-    map.appendChild(el(`<div class="aisle-head">Aisle ${esc(aisle)}</div>`));
-    const grid = el('<div class="rack-grid"></div>');
-    byAisle[aisle].forEach((loc) => {
-      const occ = !!loc.occupied;
-      const slot = el(`
-        <div class="slot ${occ ? 'occ' : 'free'}">
-          <div class="slot-code">${esc(loc.barcode)}</div>
-          ${occ ? `<div class="slot-occupant">${esc(loc.bin_barcode || 'occupied')}</div>` : '<div class="slot-free">free</div>'}
-          <div class="slot-bc">${window.Barcode ? Barcode.svg(loc.barcode, { height: 22, moduleWidth: 1 }) : ''}</div>
-        </div>`);
-      if (!occ) {
-        slot.addEventListener('click', () => {
-          $('#storeLoc').value = loc.barcode;
-          map.querySelectorAll('.slot.sel').forEach((s) => s.classList.remove('sel'));
-          slot.classList.add('sel');
-        });
-      }
-      grid.appendChild(slot);
+  Object.keys(byAisle)
+    .sort()
+    .forEach((aisle) => {
+      map.appendChild(el(`<div class="aisle-head">Aisle ${esc(aisle)}</div>`));
+      const grid = el('<div class="rack-grid"></div>');
+      byAisle[aisle].forEach((loc) => {
+        const occ = !!loc.occupied;
+        grid.appendChild(el(`
+          <div class="slot ${occ ? 'occ' : 'free'}">
+            <div class="slot-code">${esc(loc.barcode)}</div>
+            ${occ ? `<div class="slot-occupant">${esc(loc.bin_barcode || 'occupied')}</div>` : '<div class="slot-free">free</div>'}
+            <div class="slot-bc">${window.Barcode ? Barcode.svg(loc.barcode, { height: 22, moduleWidth: 1 }) : ''}</div>
+          </div>`));
+      });
+      map.appendChild(grid);
     });
-    map.appendChild(grid);
-  });
 }
-
-$('#storeSubmit').addEventListener('click', async () => {
-  const bin = $('#storeBin').value.trim().toUpperCase();
-  const loc = $('#storeLoc').value.trim().toUpperCase();
-  if (!bin || !loc) return toast('Enter a bin and a location', true);
-  try {
-    const res = await api.post(`/bins/${bin}/store`, { locationBarcode: loc });
-    toast(`${res.bin.barcode} → Stored @ ${res.location.barcode}`);
-    $('#storeBin').value = '';
-    $('#storeLoc').value = '';
-    loadWarehouse();
-  } catch (e) {
-    toast(e.message, true);
-  }
-});
-
-$('#scanOutSubmit').addEventListener('click', async () => {
-  const bin = $('#scanOutBin').value.trim().toUpperCase();
-  if (!bin) return toast('Enter a bin barcode', true);
-  try {
-    const res = await api.post(`/bins/${bin}/scan-out`, {});
-    toast(`${res.bin.barcode} → ${res.bin.status}` + (res.freedLocation ? ` (freed ${res.freedLocation.barcode})` : ''));
-    $('#scanOutBin').value = '';
-    loadWarehouse();
-  } catch (e) {
-    toast(e.message, true);
-  }
-});
-
-$('#intakeSubmit').addEventListener('click', async () => {
-  const barcode = $('#intakeBarcode').value.trim().toUpperCase();
-  const skuType = $('#intakeSku').value;
-  if (!barcode) return toast('Enter a barcode', true);
-  try {
-    await api.post('/bins', { barcode, skuType });
-    toast(`Added ${barcode} (${skuType})`);
-    $('#intakeBarcode').value = '';
-    loadStats();
-    if (activeTab() === 'assign') loadAssign();
-  } catch (e) {
-    toast(e.message, true);
-  }
-});
 
 // ---- leads ------------------------------------------------------------------
 let leadsCache = [];
@@ -727,16 +930,15 @@ $('#leadsExport')?.addEventListener('click', () => {
   if (!leadsCache.length) return toast('No leads to export', true);
   const rows = [['email', 'area', 'created_at'], ...leadsCache.map((l) => [l.email, l.area || '', l.created_at])];
   const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
   a.download = 'leads.csv';
   a.click();
   URL.revokeObjectURL(a.href);
 });
 
-// ---- settings ---------------------------------------------------------------
-async function loadSettings() {
+// ---- configuration ----------------------------------------------------------
+async function loadConfig() {
   const box = $('#settingsPanel');
   try {
     const cfg = await api.get('/admin/config');
@@ -753,71 +955,22 @@ async function loadSettings() {
   }
 }
 
-// ---- explorer ---------------------------------------------------------------
-$('#explorerSearch').addEventListener('click', searchBin);
-$('#explorerBarcode').addEventListener('keydown', (e) => { if (e.key === 'Enter') searchBin(); });
-
-async function searchBin() {
-  const bc = $('#explorerBarcode').value.trim().toUpperCase();
-  const box = $('#explorerResult');
-  if (!bc) return;
-  try {
-    const { bin, movements } = await api.get(`/bins/${bc}/movements`);
-    const rows = movements
-      .map(
-        (m) => `<li>
-          <div>${esc(m.from_status || '(unassigned)')} → <strong>${esc(m.to_status || '(released — booking cancelled)')}</strong>
-            ${m.location ? `<span class="muted">@ ${esc(m.location.barcode)}</span>` : ''}
-            <span class="status-pill">${esc(m.actor)}</span></div>
-          <div class="ts">${new Date(m.ts).toLocaleString()}</div>
-        </li>`
-      )
-      .join('');
-    const thumbSrc =
-      bin.photoUrl ||
-      (bin.photo_ref && bin.photo_ref.startsWith('data:image/') ? bin.photo_ref : null);
-    const photo = thumbSrc
-      ? `<img class="thumb" src="${esc(thumbSrc)}" alt="contents photo" />`
-      : bin.photo_ref
-      ? '<div class="muted">📷 photo on file</div>'
-      : '';
-    const barcode = window.Barcode ? Barcode.svg(bin.barcode, { height: 40, moduleWidth: 2 }) : '';
-    box.innerHTML = `
-      <div><strong>${esc(bin.barcode)}</strong> · ${esc(bin.sku_type)} · current: <span class="summary">${esc(bin.status || 'unassigned')}</span></div>
-      <div class="bc-block">${barcode}</div>
-      ${photo}
-      <ul class="timeline" style="margin-top:10px;">${rows || '<li class="muted">No movements yet.</li>'}</ul>`;
-  } catch (e) {
-    box.innerHTML = `<div class="muted">${esc(e.message)}</div>`;
-  }
-}
-
-// ---- camera scan buttons ------------------------------------------------------
-// Each .scan-btn fills its data-target input via the shared camera scanner and,
-// if data-then names a button, clicks it (e.g. auto-run the explorer search).
-document.querySelectorAll('.scan-btn').forEach((btn) => {
-  btn.addEventListener('click', async () => {
-    const code = await Scanner.scan({ title: 'Scan a barcode' });
-    if (!code) return;
-    const input = document.getElementById(btn.dataset.target);
-    input.value = code;
-    if (btn.dataset.then) document.getElementById(btn.dataset.then).click();
-  });
-});
-
-// ---- staff accounts ----------------------------------------------------------
+// ---- staff ------------------------------------------------------------------
 const ROLE_LABEL = { admin: 'Admin', warehouse: 'Warehouse', driver: 'Driver' };
 
 async function loadStaff() {
   const box = $('#staffList');
   try {
     const users = await api.get('/auth/users');
-    if (!users.length) { box.innerHTML = '<div class="empty">No staff yet.</div>'; return; }
+    if (!users.length) {
+      box.innerHTML = '<div class="empty">No staff yet.</div>';
+      return;
+    }
     box.innerHTML = users
       .map(
         (u) => `<div class="bin-row">
           <div><strong>${esc(u.email)}</strong> ${u.name ? `<span class="muted">${esc(u.name)}</span>` : ''}</div>
-          <div><span class="badge ok">${esc(ROLE_LABEL[u.role] || u.role)}</span></div>
+          <div><span class="badge ok">${esc(ROLE_LABEL[u.role] || u.role)}</span> <span class="muted">added ${new Date(u.created_at).toLocaleDateString()}</span></div>
         </div>`
       )
       .join('');
@@ -854,10 +1007,18 @@ $('#staffPwToggle')?.addEventListener('click', () => {
   btn.textContent = show ? 'Hide' : 'Show';
 });
 
+// ---- camera scan buttons ----------------------------------------------------
+document.querySelectorAll('.scan-btn').forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    const code = await Scanner.scan({ title: 'Scan a barcode' });
+    if (!code) return;
+    const input = document.getElementById(btn.dataset.target);
+    input.value = code;
+    if (btn.dataset.then) document.getElementById(btn.dataset.then).click();
+  });
+});
+
 // ---- polling ----------------------------------------------------------------
-// Refresh the stats bar and the (read-mostly) Bookings & jobs board so the
-// console feels live next to the booking site. Assign tab gets a lightweight
-// idle-gated refresh; warehouse is skipped so scan input is never clobbered.
 function isAssignIdle() {
   if (activeTab() !== 'assign') return false;
   if (assignSelected.size > 0) return false;
@@ -872,17 +1033,33 @@ setInterval(async () => {
   loadStats();
   const tab = activeTab();
   if (tab === 'queue') loadQueue();
+  else if (tab === 'dispatch') loadDispatch();
+  else if (tab === 'inventory') loadInventory();
   else if (isAssignIdle()) {
     try {
       await updateAssignSummary();
       await renderAvailableBins();
-    } catch { /* next tick */ }
-  } else if (tab === 'warehouse') renderRackMap().catch(() => {});
+      await renderInventoryAlert();
+    } catch {
+      /* next tick */
+    }
+  }
 }, 4000);
 
 // ---- boot -------------------------------------------------------------------
-// Gate on a signed-in admin first; Session.guard redirects anyone else.
-Session.guard('admin').then(() => {
+Session.guard('admin').then(async () => {
+  await initSlotLabels();
+  const { tab, params } = parseHash();
+  applyHashContext(tab, params);
+  if (tab !== 'queue') {
+    const btn = [...document.querySelectorAll('nav button')].find((b) => b.dataset.tab === tab);
+    if (btn) {
+      document.querySelectorAll('nav button').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+      btn.classList.add('active');
+      $(`#tab-${tab}`).classList.add('active');
+    }
+  }
   loadStats();
-  loadQueue();
+  refreshTab(tab);
 });
