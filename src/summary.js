@@ -95,12 +95,6 @@ export function deriveCustomerNextStepFromBins(bins, jobs = []) {
   return { kind: 'info', text: parts.join(', ') };
 }
 
-export async function deriveCustomerNextStep(bookingId) {
-  const [bins, allJobs] = await Promise.all([listBinsForBooking(bookingId), listJobs()]);
-  const jobs = allJobs.filter((j) => j.booking_id === bookingId);
-  return deriveCustomerNextStepFromBins(bins, jobs);
-}
-
 // Computes the single most useful "next step" for a booking, for the admin
 // queue. Derived from the booking's bin statuses + its scheduled jobs — bins
 // are the unit of truth, so this never relies on a booking status.
@@ -150,4 +144,83 @@ export async function deriveNextAction(bookingId, booking) {
     return { kind: 'done', label: 'Complete' };
   }
   return { kind: 'idle', label: 'With customer' };
+}
+
+// Customer-facing "what happens next" for the booking site.
+export function deriveCustomerNextStep(booking, bins = [], jobs = []) {
+  const assignedCount = bins.length;
+  const windowLabel = booking.delivery_slot
+    ? ` (${booking.delivery_slot === 'am' ? 'morning' : 'afternoon'})`
+    : '';
+
+  if (assignedCount < (booking.bin_count || 0)) {
+    return {
+      title: 'We received your booking',
+      message: `We're assigning physical bins to your order. Empty bins will be delivered on ${booking.delivery_date}${windowLabel}.`,
+      timeline: [
+        { label: 'Booking received', state: 'done' },
+        { label: 'Assigning bins', state: 'current' },
+        { label: `Delivery on ${booking.delivery_date}`, state: 'upcoming' },
+      ],
+    };
+  }
+
+  const has = (status) => bins.some((b) => b.status === status);
+  const scheduledOf = (type) => jobs.find((j) => j.type === type && j.status === 'Scheduled');
+
+  if (has(STATUS.ASSIGNED)) {
+    return {
+      title: 'Bins reserved for you',
+      message: `Your bins are assigned. We'll deliver empty bins on ${booking.delivery_date}${windowLabel}.`,
+      timeline: [
+        { label: 'Booking received', state: 'done' },
+        { label: 'Bins assigned', state: 'done' },
+        { label: `Delivery on ${booking.delivery_date}`, state: 'current' },
+      ],
+    };
+  }
+  if (has(STATUS.OUT_FOR_FILLING)) {
+    const job = scheduledOf('collect_full');
+    if (job) {
+      return {
+        title: 'Fill your bins',
+        message: `Collection scheduled for ${job.scheduled_date}. Pack your bins and we'll pick them up.`,
+        timeline: null,
+      };
+    }
+    return {
+      title: 'Fill your bins',
+      message: 'Your empty bins have been delivered. Fill them, add a photo if you like, then book a collection date.',
+      timeline: null,
+    };
+  }
+  if (has(STATUS.IN_TRANSIT_INBOUND)) {
+    return {
+      title: 'On the way to our warehouse',
+      message: "Your filled bins are in transit. We'll rack and store them shortly.",
+      timeline: null,
+    };
+  }
+  if (has(STATUS.STORED)) {
+    return {
+      title: 'Safely stored',
+      message: 'Your bins are in our warehouse. Request any bin back whenever you need it ($30 delivery fee per request).',
+      timeline: null,
+    };
+  }
+  if (has(STATUS.RETRIEVAL_REQUESTED) || has(STATUS.IN_TRANSIT_OUTBOUND)) {
+    return {
+      title: 'Bins on their way back',
+      message: 'Your requested bins are being returned to your door.',
+      timeline: null,
+    };
+  }
+  if (bins.length && bins.every((b) => b.status === STATUS.RETURNED_CLOSED)) {
+    return { title: 'All bins closed', message: 'This booking is complete. Thank you for using Store All Valet.', timeline: null };
+  }
+  return {
+    title: 'With you',
+    message: 'Your bins are with you. Store them again or close bins you no longer need.',
+    timeline: null,
+  };
 }

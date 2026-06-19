@@ -9,19 +9,7 @@
   <link rel="stylesheet" href="home.css" />
 </head>
 <body>
-  <header>
-    <div class="wrap nav">
-      <a class="brand" href="/booking/">📦 Store All Valet</a>
-      <span class="spacer"></span>
-      <nav class="nav-links nav-desktop">
-        <a href="#how">How it works</a>
-        <a href="#pricing">Pricing</a>
-        <a href="/booking/booking.html">My booking</a>
-        <a class="staff" href="/login/">Staff sign in ↗</a>
-      </nav>
-      <a class="btn btn-primary btn-sm" href="/booking/book.html">Book bins</a>
-    </div>
-  </header>
+  <div id="siteHeader"></div>
 
   <main>
     <!-- HERO -->
@@ -159,7 +147,7 @@
               <p>80 L tote — books, clothes, kitchenware.</p>
               <div class="price-amt">$15<small> / month</small></div>
             </div>
-            <a class="btn btn-primary" href="/booking/book.html">Book this</a>
+            <a class="btn btn-primary" href="/booking/book.html?sku=bin">Book this</a>
           </div>
           <div class="price-card">
             <div class="price-thumb thumb-wardrobe">👕</div>
@@ -168,7 +156,7 @@
               <p>Hanging garments stay crease-free.</p>
               <div class="price-amt">$25<small> / month</small></div>
             </div>
-            <a class="btn btn-primary" href="/booking/book.html">Book this</a>
+            <a class="btn btn-primary" href="/booking/book.html?sku=wardrobe">Book this</a>
           </div>
         </div>
 
@@ -269,5 +257,10 @@
       <small>© Store All Valet — Storage that comes to you.</small>
     </div>
   </footer>
+  <script src="nav.js"></script>
+  <script>
+    document.getElementById('siteHeader').innerHTML = CustomerNav.renderHeader({ active: 'home' });
+    CustomerNav.bindNav();
+  </script>
 </body>
 </html>

@@ -8,19 +8,7 @@
   <link rel="stylesheet" href="flow.css" />
 </head>
 <body class="flow-page">
-  <header>
-    <div class="wrap nav">
-      <a class="brand" href="/booking/">📦 Store All Valet</a>
-      <span class="spacer"></span>
-      <nav class="nav-links nav-desktop">
-        <a href="/booking/">Home</a>
-        <a href="/booking/booking.html">My booking</a>
-        <a href="/booking/book.html" class="active">Book bins</a>
-        <a class="staff" href="/login/">Staff sign in ↗</a>
-      </nav>
-      <a class="btn btn-primary btn-sm" href="/booking/book.html">Book bins</a>
-    </div>
-  </header>
+  <div id="siteHeader"></div>
 
   <main class="wrap flow-main">
     <section class="flow-hero">
@@ -123,6 +111,11 @@
 
   <div id="toast" role="status" aria-live="polite"></div>
   <script src="/shared/esc.js"></script>
+  <script src="nav.js"></script>
+  <script>
+    document.getElementById('siteHeader').innerHTML = CustomerNav.renderHeader({ active: 'book' });
+    CustomerNav.bindNav();
+  </script>
   <script src="book.js"></script>
 </body>
 </html>

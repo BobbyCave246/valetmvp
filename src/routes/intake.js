@@ -3,15 +3,23 @@
 
 import { Router } from 'express';
 import { listAreas, listVillages } from '../coverage.js';
-import { availabilityForDate, validateDateSlot, SLOTS } from '../slots.js';
-import { createLead } from '../db.js';
+import { availabilityForDate, validateDateSlot, SLOTS, LEAD_DAYS, earliestDateISO, SLOT_CAPACITY } from '../slots.js';
+import { createLead, listLeads } from '../db.js';
+import { requireAuth, requireRole } from '../auth.js';
 
 const router = Router();
 
 // GET /api/serviceability — service areas + delivery windows. Single source of
 // truth for slot labels, so the two frontends can't drift from the backend.
 router.get('/serviceability', (_req, res) => {
-  res.json({ areas: listAreas(), villages: listVillages(), slots: SLOTS });
+  res.json({
+    areas: listAreas(),
+    villages: listVillages(),
+    slots: SLOTS,
+    leadDays: LEAD_DAYS,
+    earliestDate: earliestDateISO(),
+    slotCapacity: SLOT_CAPACITY,
+  });
 });
 
 // GET /api/availability?date=YYYY-MM-DD — per-window remaining capacity.
@@ -35,6 +43,11 @@ router.post('/leads', async (req, res) => {
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
+});
+
+// GET /api/leads — admin waitlist view.
+router.get('/leads', requireAuth, requireRole('admin'), async (_req, res) => {
+  res.json(await listLeads());
 });
 
 export default router;

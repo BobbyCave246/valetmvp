@@ -8,18 +8,7 @@
   <link rel="stylesheet" href="flow.css" />
 </head>
 <body class="flow-page">
-  <header>
-    <div class="wrap nav">
-      <a class="brand" href="/booking/">📦 Store All Valet</a>
-      <span class="spacer"></span>
-      <nav class="nav-links nav-desktop">
-        <a href="/booking/">Home</a>
-        <a href="/booking/booking.html" class="active">My booking</a>
-        <a class="staff" href="/login/">Staff sign in ↗</a>
-      </nav>
-      <a class="btn btn-primary btn-sm" href="/booking/book.html">Book bins</a>
-    </div>
-  </header>
+  <div id="siteHeader"></div>
 
   <main class="wrap flow-main">
     <section class="flow-hero">
@@ -41,7 +30,7 @@
       </div>
     </div>
 
-    <div id="result"></div>
+    <div id="result" aria-live="polite"></div>
   </main>
 
   <footer>
@@ -59,6 +48,11 @@
 
   <div id="toast" role="status" aria-live="polite"></div>
   <script src="/shared/esc.js"></script>
+  <script src="nav.js"></script>
+  <script>
+    document.getElementById('siteHeader').innerHTML = CustomerNav.renderHeader({ active: 'track' });
+    CustomerNav.bindNav();
+  </script>
   <script src="/shared/barcode.js"></script>
   <script src="/vendor/html5-qrcode.min.js"></script>
   <script src="/shared/scanner.js"></script>

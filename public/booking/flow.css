@@ -557,6 +557,44 @@ code {
   justify-content: flex-end;
 }
 
+.timeline-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timeline-step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 14px;
+}
+
+.timeline-step .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--line);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.timeline-step.done .dot { background: var(--ink); }
+.timeline-step.current .dot {
+  background: var(--clay);
+  box-shadow: 0 0 0 4px rgba(176, 106, 79, 0.18);
+}
+.timeline-step.current { font-weight: 600; }
+
+.fee-notice {
+  background: var(--cream-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
 /* ---- toast ---- */
 #toast {
   position: fixed;

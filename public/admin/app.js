@@ -68,7 +68,82 @@ function refreshTab(tab) {
   if (tab === 'queue') loadQueue();
   if (tab === 'assign') loadAssign();
   if (tab === 'warehouse') loadWarehouse();
+  if (tab === 'leads') loadLeads();
+  if (tab === 'settings') loadSettings();
   if (tab === 'staff') loadStaff();
+}
+
+// ---- queue filters ----------------------------------------------------------
+let queueBookingsCache = [];
+let queueJobsCache = [];
+let queueFilter = 'all';
+let queueSearch = '';
+let queueSort = 'delivery';
+
+$('#queueSearch')?.addEventListener('input', (e) => {
+  queueSearch = e.target.value.trim().toLowerCase();
+  renderQueueFromCache();
+});
+$('#queueSort')?.addEventListener('change', (e) => {
+  queueSort = e.target.value;
+  renderQueueFromCache();
+});
+document.querySelectorAll('#queueFilters .chip-filter').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#queueFilters .chip-filter').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    queueFilter = btn.dataset.filter;
+    renderQueueFromCache();
+  });
+});
+
+function bookingFilterKind(b) {
+  const na = b.nextAction?.kind;
+  if (na === 'assign') return 'assign';
+  if (na === 'done') return 'done';
+  if (na === 'job' || na === 'warehouse') return 'jobs';
+  // Stored bookings surface as nextAction.kind === 'idle' — classify before generic wait.
+  if (b.summary?.counts?.Stored) return 'stored';
+  if (na === 'wait' || na === 'idle') return 'wait';
+  return 'all';
+}
+
+function bookingMatchesSearch(b, jobs) {
+  if (!queueSearch) return true;
+  const hay = [
+    b.id,
+    b.customer?.name,
+    b.customer?.phone,
+    b.customer?.address,
+    b.delivery_date,
+    b.summary?.text,
+    ...(jobs || []).flatMap((j) => (j.bins || []).map((bin) => bin.barcode)),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return hay.includes(queueSearch);
+}
+
+function sortBookings(list) {
+  const copy = [...list];
+  if (queueSort === 'newest') {
+    copy.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  } else if (queueSort === 'urgency') {
+    const rank = { assign: 0, job: 1, warehouse: 2, wait: 3, idle: 4, done: 5 };
+    copy.sort((a, b) => (rank[a.nextAction?.kind] ?? 9) - (rank[b.nextAction?.kind] ?? 9));
+  } else {
+    copy.sort((a, b) => (a.delivery_date || '').localeCompare(b.delivery_date || ''));
+  }
+  return copy;
+}
+
+function skuProgress(b) {
+  const breakdown = b.sku_breakdown || {};
+  const assigned = b.assignedCount || 0;
+  const total = b.bin_count || 0;
+  const pct = total ? Math.round((assigned / total) * 100) : 0;
+  return `<div class="sku-progress" title="${assigned} of ${total} bins assigned"><div class="sku-progress-bar" style="width:${pct}%"></div></div>`;
 }
 
 // ---- reset ------------------------------------------------------------------
@@ -108,26 +183,47 @@ async function loadStats() {
 
 // ---- queue ------------------------------------------------------------------
 async function loadQueue() {
-  const list = $('#queueList');
-  // Bookings and jobs share this page now — fetch both and nest jobs per booking.
   const [bookings, allJobs] = await Promise.all([api.get('/bookings'), api.get('/jobs')]);
+  queueBookingsCache = bookings;
+  queueJobsCache = allJobs;
+  renderQueueFromCache();
+}
+
+function renderQueueFromCache() {
+  const list = $('#queueList');
+  const jobsByBooking = {};
+  for (const j of queueJobsCache) (jobsByBooking[j.booking_id] ||= []).push(j);
+
+  let bookings = queueBookingsCache.filter((b) => {
+    if (queueFilter !== 'all' && bookingFilterKind(b) !== queueFilter) return false;
+    return bookingMatchesSearch(b, jobsByBooking[b.id]);
+  });
+  bookings = sortBookings(bookings);
+
   if (bookings.length === 0) {
-    list.innerHTML = '<div class="empty">No bookings yet. Create one on the booking site.</div>';
+    const msg =
+      queueBookingsCache.length === 0
+        ? 'No bookings yet. Create one on the booking site.'
+        : 'No bookings match your filters.';
+    list.innerHTML = `<div class="empty">${msg}</div>`;
     return;
   }
-  const jobsByBooking = {};
-  for (const j of allJobs) (jobsByBooking[j.booking_id] ||= []).push(j);
 
   list.innerHTML = '';
   for (const b of bookings) {
     const sku = Object.entries(b.sku_breakdown || {}).map(([k, v]) => `${v} ${k}`).join(', ');
     const assignBadge = `<span class="badge ${b.assignedCount < b.bin_count ? 'warn' : 'ok'}">${b.assignedCount} of ${b.bin_count} assigned</span>`;
+    const phoneLink = b.customer?.phone
+      ? `<a href="tel:${esc(b.customer.phone)}" class="contact-link">${esc(b.customer.phone)}</a>`
+      : '';
     const card = el(`
       <div class="card">
         <div class="row">
           <div>
             <div><strong>${esc(b.customer?.name || 'Unknown')}</strong> · ${esc(b.bin_count)} bins <span class="muted">(${esc(sku)})</span> ${assignBadge}</div>
+            <div class="muted">${phoneLink}${b.customer?.address ? ` · ${esc(b.customer.address)}` : ''}</div>
             <div class="muted">Delivery: ${esc(b.delivery_date)}${b.delivery_slot ? ' · ' + esc(slotLabel(b.delivery_slot)) : ''} · ref <code>${esc(b.id)}</code> · <a href="#" class="cancel-link" style="color:#b91c1c;">cancel booking</a></div>
+            ${skuProgress(b)}
             <div class="summary" style="margin-top:6px;">${esc(b.summary.text)}</div>
           </div>
           <div class="next-action"></div>
@@ -156,7 +252,8 @@ async function loadQueue() {
     const jobs = jobsByBooking[b.id] || [];
     const open = jobs.filter((j) => j.status !== 'Done');
     const done = jobs.filter((j) => j.status === 'Done');
-    open.forEach((j) => jobsBox.appendChild(jobCard(j, false)));
+    const nextJobId = b.nextAction?.kind === 'job' ? b.nextAction.jobId : null;
+    open.forEach((j) => jobsBox.appendChild(jobCard(j, false, nextJobId)));
     if (done.length) {
       const details = el(`<details class="done-group"><summary>${done.length} done</summary></details>`);
       done.forEach((j) => details.appendChild(jobCard(j, true)));
@@ -379,7 +476,7 @@ const slotLabel = (key) => (key ? SLOT_LABELS[key] || key : '');
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
-function jobCard(j, isDone) {
+function jobCard(j, isDone, primaryJobId = null) {
   const todayPill = j.scheduled_date === TODAY ? '<span class="pill-today">Today</span>' : '';
   const bins = j.bins || [];
   const pickLabel = j.type === 'deliver_empty' ? 'Pick list — collect these empties' : 'Bins';
@@ -400,8 +497,8 @@ function jobCard(j, isDone) {
       </div>
     </div>
   `);
-  if (!isDone) {
-    const btn = el(`<button class="btn green">Mark done</button>`);
+  if (!isDone && j.id !== primaryJobId) {
+    const btn = el(`<button class="btn ghost btn-sm">Mark done</button>`);
     btn.addEventListener('click', async () => {
       btn.disabled = true;
       try {
@@ -415,6 +512,9 @@ function jobCard(j, isDone) {
       }
     });
     card.querySelector('.row > div:last-child').appendChild(btn);
+  } else if (!isDone && j.id === primaryJobId) {
+    const hint = el('<span class="muted" style="font-size:12px;">Use next action →</span>');
+    card.querySelector('.row > div:last-child').appendChild(hint);
   }
   return card;
 }
@@ -494,6 +594,75 @@ $('#scanOutSubmit').addEventListener('click', async () => {
     toast(e.message, true);
   }
 });
+
+$('#intakeSubmit').addEventListener('click', async () => {
+  const barcode = $('#intakeBarcode').value.trim().toUpperCase();
+  const skuType = $('#intakeSku').value;
+  if (!barcode) return toast('Enter a barcode', true);
+  try {
+    await api.post('/bins', { barcode, skuType });
+    toast(`Added ${barcode} (${skuType})`);
+    $('#intakeBarcode').value = '';
+    loadStats();
+    if (activeTab() === 'assign') loadAssign();
+  } catch (e) {
+    toast(e.message, true);
+  }
+});
+
+// ---- leads ------------------------------------------------------------------
+let leadsCache = [];
+
+async function loadLeads() {
+  const box = $('#leadsList');
+  try {
+    leadsCache = await api.get('/leads');
+    if (!leadsCache.length) {
+      box.innerHTML = '<div class="empty">No waitlist signups yet.</div>';
+      return;
+    }
+    box.innerHTML = leadsCache
+      .map(
+        (l) => `<div class="bin-row">
+          <div><strong>${esc(l.email)}</strong>${l.area ? ` <span class="muted">${esc(l.area)}</span>` : ' <span class="muted">(area not listed)</span>'}</div>
+          <div class="muted">${new Date(l.created_at).toLocaleString()}</div>
+        </div>`
+      )
+      .join('');
+  } catch (e) {
+    box.innerHTML = `<div class="muted">${esc(e.message)}</div>`;
+  }
+}
+
+$('#leadsExport')?.addEventListener('click', () => {
+  if (!leadsCache.length) return toast('No leads to export', true);
+  const rows = [['email', 'area', 'created_at'], ...leadsCache.map((l) => [l.email, l.area || '', l.created_at])];
+  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'leads.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// ---- settings ---------------------------------------------------------------
+async function loadSettings() {
+  const box = $('#settingsPanel');
+  try {
+    const cfg = await api.get('/admin/config');
+    box.innerHTML = `
+      <dl class="settings-dl">
+        <dt>Coverage areas</dt><dd>${esc(cfg.coverageAreas.join(', '))}</dd>
+        <dt>Villages</dt><dd>${esc(cfg.villages.join(', '))}</dd>
+        <dt>Delivery windows</dt><dd>${esc(cfg.slots.map((s) => s.label).join(' · '))}</dd>
+        <dt>Slot capacity</dt><dd>${esc(String(cfg.slotCapacity))} deliveries per window per day</dd>
+        <dt>Lead days</dt><dd>${esc(String(cfg.leadDays))} day(s) minimum before first delivery</dd>
+      </dl>`;
+  } catch (e) {
+    box.innerHTML = `<div class="muted">${esc(e.message)}</div>`;
+  }
+}
 
 // ---- explorer ---------------------------------------------------------------
 $('#explorerSearch').addEventListener('click', searchBin);
@@ -576,7 +745,7 @@ $('#staffCreate').addEventListener('click', async () => {
   if (!payload.email || !payload.password) return toast('Email and password are required', true);
   try {
     const res = await api.post('/auth/users', payload);
-    toast(`Created ${res.user.email} (${ROLE_LABEL[res.user.role]})`);
+    toast(`Created ${res.user.email} — share credentials securely`);
     $('#staffEmail').value = '';
     $('#staffName').value = '';
     $('#staffPassword').value = '';
@@ -584,6 +753,14 @@ $('#staffCreate').addEventListener('click', async () => {
   } catch (e) {
     toast(e.message, true);
   }
+});
+
+$('#staffPwToggle')?.addEventListener('click', () => {
+  const input = $('#staffPassword');
+  const btn = $('#staffPwToggle');
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.textContent = show ? 'Hide' : 'Show';
 });
 
 // ---- polling ----------------------------------------------------------------
@@ -602,13 +779,14 @@ function isAssignIdle() {
 setInterval(async () => {
   if (document.hidden) return;
   loadStats();
-  if (activeTab() === 'queue') loadQueue();
-  if (isAssignIdle()) {
+  const tab = activeTab();
+  if (tab === 'queue') loadQueue();
+  else if (isAssignIdle()) {
     try {
       await updateAssignSummary();
       await renderAvailableBins();
     } catch { /* next tick */ }
-  }
+  } else if (tab === 'warehouse') renderRackMap().catch(() => {});
 }, 4000);
 
 // ---- boot -------------------------------------------------------------------
