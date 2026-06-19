@@ -39,10 +39,7 @@
     who.textContent = user.email;
     const out = document.createElement('button');
     out.textContent = 'Log out';
-    const onDark = getComputedStyle(document.body).backgroundColor !== 'rgb(255, 255, 255)';
-    out.style.cssText = onDark
-      ? 'border:1px solid #334155;background:#1e293b;color:#e2e8f0;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;'
-      : 'border:1px solid #e2e8f0;background:#fff;color:#0f172a;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;';
+    out.className = 'btn ghost btn-sm';
     out.addEventListener('click', async () => {
       try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch {}
       location.replace('/login/');

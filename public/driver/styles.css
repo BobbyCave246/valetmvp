@@ -1,13 +1,5 @@
-:root {
-  --bg: #f8fafc;
-  --panel: #ffffff;
-  --line: #e2e8f0;
-  --text: #0f172a;
-  --muted: #64748b;
-  --accent: #2563eb;
-  --accent-2: #16a34a;
-  --warn: #d97706;
-}
+@import url("/shared/staff.css");
+
 * { box-sizing: border-box; }
 body {
   margin: 0;

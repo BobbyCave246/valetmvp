@@ -1,34 +1,18 @@
+@import url("site.css");
+
+/* Login / staff-entry aliases on top of the booking brand tokens. */
 :root {
-  --bg: #ffffff;
-  --cream: #faf8f5;
-  --cream-2: #f4f0ea;
   --panel: #ffffff;
-  --text: #222222;
-  --muted: #6a6a6a;
-  --line: #ebebeb;
-  --ink: #222222;
-  --ink-hover: #000000;
-  --clay: #b06a4f;
   --accent: var(--ink);
-  --accent-2: #2f7d32;
-  --warn: #b06a4f;
-  --shadow: 0 6px 24px rgba(0,0,0,.08);
-  --shadow-lg: 0 16px 40px rgba(0,0,0,.12);
-  --radius: 16px;
-  --maxw: 1120px;
+  --accent-2: var(--success);
+  --warn: var(--clay);
   --page-maxw: 720px;
 }
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
 body {
-  margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   background: var(--cream);
-  color: var(--text);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
 }
+
 a { color: inherit; text-decoration: none; }
 
 /* ---- header / nav ---- */

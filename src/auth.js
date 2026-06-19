@@ -5,7 +5,7 @@
 
 import { randomBytes, scrypt, createHmac, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
-import { createUser, getUserByEmail } from './db.js';
+import { createUser, getUserByEmail, getUserById } from './db.js';
 
 const scryptAsync = promisify(scrypt);
 
@@ -24,6 +24,10 @@ const SCRYPT_KEYLEN = 32;
 const isProd = !!process.env.VERCEL || process.env.NODE_ENV === 'production';
 
 export const ROLES = ['admin', 'warehouse', 'driver'];
+
+export function isUserActive(user) {
+  return !!user && user.is_active !== 0 && user.is_active !== false;
+}
 
 // ----- password hashing ------------------------------------------------------
 
@@ -130,10 +134,12 @@ export function clearSessionCookie(res) {
 
 // ----- middleware ------------------------------------------------------------
 
-export function requireAuth(req, res, next) {
+export async function requireAuth(req, res, next) {
   const claims = verifyToken(readCookie(req, COOKIE_NAME));
   if (!claims) return res.status(401).json({ error: 'Authentication required' });
-  req.user = { id: claims.sub, role: claims.role };
+  const user = await getUserById(claims.sub);
+  if (!isUserActive(user)) return res.status(401).json({ error: 'Authentication required' });
+  req.user = { id: user.id, role: user.role };
   next();
 }
 

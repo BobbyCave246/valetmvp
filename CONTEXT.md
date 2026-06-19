@@ -13,7 +13,7 @@ An internal operator who signs in to run the service. There are three roles: adm
 _Avoid_: Employee, operator, user
 
 **Admin**:
-Staff who manage bookings, assign bins, cancel bookings, view stats, reset demo data, and provision other staff accounts.
+Staff who manage bookings, assign bins, cancel bookings, view stats and reports, reset demo data, provision other staff accounts, and deactivate or reactivate staff access.
 _Avoid_: Manager, back-office
 
 **Warehouse**:
