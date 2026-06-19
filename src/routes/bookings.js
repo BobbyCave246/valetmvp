@@ -39,6 +39,8 @@ function staffActor(req) {
   return claims?.role === 'admin' ? 'admin' : 'customer';
 }
 
+const router = Router();
+
 const MAX_PER_SKU = 50;
 
 // Returns null if ok, else an error message.
