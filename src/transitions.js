@@ -189,9 +189,3 @@ export async function cancelBooking(bookingId, { actor = 'admin' } = {}) {
   });
 }
 
-// Maps a job type to the bin status its bins advance to when marked Done.
-export const JOB_DONE_TARGET = {
-  deliver_empty: STATUS.OUT_FOR_FILLING,
-  collect_full: STATUS.IN_TRANSIT_INBOUND,
-  deliver_back: STATUS.RETURNED_TO_CUSTOMER,
-};

@@ -5,13 +5,13 @@ import assert from 'node:assert/strict';
 const RUN = process.env.RUN_DB_TESTS === '1';
 process.env.AUTH_SECRET ??= 'test-secret';
 
-let db, tx, STATUS, sql, performRequestReturn;
+let db, tx, STATUS, sql, requestRetrieval;
 
 before(async () => {
   if (!RUN) return;
   db = await import('../src/db.js');
   tx = await import('../src/transitions.js');
-  ({ performRequestReturn } = await import('../src/routes/bookings.js'));
+  ({ requestRetrieval } = await import('../src/jobs-lifecycle.js'));
   ({ STATUS } = tx);
   sql = db.sql;
   await db.ensureSchema();
@@ -61,13 +61,13 @@ async function makeBooking() {
   return { customer, booking };
 }
 
-describe('request-return integration', { concurrency: 1 }, () => {
-  test('performRequestReturn transitions all bins and creates one deliver_back job', { skip: !RUN }, async () => {
+describe('requestRetrieval integration', { concurrency: 1 }, () => {
+  test('requestRetrieval transitions all bins and creates one deliver_back job', { skip: !RUN }, async () => {
     const { customer, booking } = await makeBooking();
     const b1 = await storedBinOnBooking(booking.id, customer.id);
     const b2 = await storedBinOnBooking(booking.id, customer.id);
 
-    const job = await performRequestReturn(booking, [b1.id, b2.id], '2999-06-01');
+    const job = await requestRetrieval(booking.id, { binIds: [b1.id, b2.id], date: '2999-06-01' });
     assert.equal(job.type, 'deliver_back');
 
     const bins = await db.listBinsForBooking(booking.id);
@@ -81,7 +81,7 @@ describe('request-return integration', { concurrency: 1 }, () => {
     assert.deepEqual(new Set(binIds), new Set([b1.id, b2.id]));
   });
 
-  test('performRequestReturn rejects non-Stored bins before any transition', { skip: !RUN }, async () => {
+  test('requestRetrieval rejects non-Stored bins before any transition', { skip: !RUN }, async () => {
     const { customer, booking } = await makeBooking();
     const stored = await storedBinOnBooking(booking.id, customer.id);
     const bin2 = await db.createBin({ barcode: bc(), skuType: 'bin' });
@@ -91,7 +91,7 @@ describe('request-return integration', { concurrency: 1 }, () => {
     });
 
     await assert.rejects(
-      () => performRequestReturn(booking, [stored.id, bin2.id], '2999-06-01'),
+      () => requestRetrieval(booking.id, { binIds: [stored.id, bin2.id], date: '2999-06-01' }),
       (e) => e.status === 409
     );
 

@@ -357,31 +357,6 @@ export async function countDeliveriesForSlot(date, slot) {
   return rows[0].n;
 }
 
-// Creates a deliver_empty job only if the window still has capacity, counting
-// and inserting in ONE transaction so concurrent bookings can't overshoot the
-// cap. Throws a 409-flavoured error when the window is full.
-export async function createDeliveryJobIfCapacity({ bookingId, scheduledDate, scheduledSlot, capacity }) {
-  return sql.begin(async (tx) => {
-    // Advisory xact-lock on the (date, slot) pair: concurrent bookings for the
-    // same window serialise here, so count+insert can't overshoot the cap.
-    await tx`SELECT pg_advisory_xact_lock(hashtext(${`${scheduledDate}|${scheduledSlot}`}))`;
-    const rows = await tx`
-      SELECT COUNT(*)::int AS n FROM jobs
-      WHERE type = 'deliver_empty' AND scheduled_date = ${scheduledDate} AND scheduled_slot = ${scheduledSlot}`;
-    if (rows[0].n >= capacity) {
-      const err = new Error('That delivery window is full — please pick another');
-      err.status = 409;
-      throw err;
-    }
-    const id = newId('job');
-    const inserted = await tx`
-      INSERT INTO jobs (id, booking_id, type, status, scheduled_date, scheduled_slot, bin_ids)
-      VALUES (${id}, ${bookingId}, ${'deliver_empty'}, ${'Scheduled'}, ${scheduledDate}, ${scheduledSlot}, ${'[]'})
-      RETURNING *`;
-    return inserted[0];
-  });
-}
-
 export async function deleteBooking(id, client = sql) {
   await client`DELETE FROM bookings WHERE id = ${id}`;
 }
@@ -417,8 +392,8 @@ export async function listLeads() {
   return sql`SELECT * FROM leads ORDER BY created_at DESC`;
 }
 
-export async function getJob(id) {
-  const rows = await sql`SELECT * FROM jobs WHERE id = ${id}`;
+export async function getJob(id, client = sql) {
+  const rows = await client`SELECT * FROM jobs WHERE id = ${id}`;
   return rows[0];
 }
 
@@ -438,12 +413,12 @@ export async function setJobScheduledDate(id, scheduledDate, client = sql) {
   await client`UPDATE jobs SET scheduled_date = ${scheduledDate} WHERE id = ${id}`;
 }
 
-export async function setJobSchedule(id, scheduledDate, scheduledSlot = null) {
-  await sql`UPDATE jobs SET scheduled_date = ${scheduledDate}, scheduled_slot = ${scheduledSlot} WHERE id = ${id}`;
+export async function setJobSchedule(id, scheduledDate, scheduledSlot = null, client = sql) {
+  await client`UPDATE jobs SET scheduled_date = ${scheduledDate}, scheduled_slot = ${scheduledSlot} WHERE id = ${id}`;
 }
 
-export async function setJobStatus(id, status) {
-  await sql`UPDATE jobs SET status = ${status} WHERE id = ${id}`;
+export async function setJobStatus(id, status, client = sql) {
+  await client`UPDATE jobs SET status = ${status} WHERE id = ${id}`;
 }
 
 // ----- movements -------------------------------------------------------------

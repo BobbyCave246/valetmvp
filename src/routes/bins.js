@@ -9,13 +9,13 @@ import {
   listAvailableBins,
   getLocationByBarcode,
   getLocation,
-  createJob,
   createBin,
   countBins,
   countBinsByStatus,
   listMovementsForBin,
 } from '../db.js';
 import { transitionBin, STATUS } from '../transitions.js';
+import { scheduleCollection, requestRetrieval } from '../jobs-lifecycle.js';
 import { validateFutureDate, SLOTS } from '../slots.js';
 import { VALID_SKUS } from '../util.js';
 import { requireAuth, requireRole } from '../auth.js';
@@ -123,11 +123,15 @@ router.post('/:barcode/scan-out', warehouse, async (req, res) => {
 });
 
 // POST /api/bins/:id/request-return — customer retrieval request (+deliver_back job).
+// Delegates to the job lifecycle module (merge into one Scheduled Deliver back).
 // Prefer POST /api/bookings/:id/request-return for multi-bin requests (atomic).
 // Accepts a bin id or barcode. Body: { deliveryBackDate, deliveryBackSlot? }.
 router.post('/:id/request-return', async (req, res) => {
   const bin = (await getBin(req.params.id)) || (await getBinByBarcode(req.params.id));
   if (!bin) return res.status(404).json({ error: 'Bin not found' });
+  if (!bin.booking_id) {
+    return res.status(409).json({ error: 'Bin is not linked to a booking' });
+  }
 
   const { deliveryBackDate, deliveryBackSlot } = req.body || {};
   const dateErr = validateFutureDate(deliveryBackDate);
@@ -137,14 +141,12 @@ router.post('/:id/request-return', async (req, res) => {
   }
 
   try {
-    const updated = await transitionBin(bin.id, STATUS.RETRIEVAL_REQUESTED, { actor: 'customer' });
-    const job = await createJob({
-      bookingId: bin.booking_id,
-      type: 'deliver_back',
-      scheduledDate: deliveryBackDate,
-      scheduledSlot: deliveryBackSlot || null,
+    const job = await requestRetrieval(bin.booking_id, {
       binIds: [bin.id],
+      date: deliveryBackDate,
+      slot: deliveryBackSlot || null,
     });
+    const updated = await getBin(bin.id);
     res.json({ bin: updated, job });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
@@ -164,6 +166,9 @@ router.post('/:id/request-restore', async (req, res) => {
       .status(409)
       .json({ error: `Only a "${STATUS.RETURNED_TO_CUSTOMER}" bin can be re-stored` });
   }
+  if (!bin.booking_id) {
+    return res.status(409).json({ error: 'Bin is not linked to a booking' });
+  }
 
   const { collectionDate, collectionSlot } = req.body || {};
   // Required: a null-dated job would land on the board with no dispatch date.
@@ -174,11 +179,9 @@ router.post('/:id/request-restore', async (req, res) => {
   }
 
   try {
-    const job = await createJob({
-      bookingId: bin.booking_id,
-      type: 'collect_full',
-      scheduledDate: collectionDate,
-      scheduledSlot: collectionSlot || null,
+    const job = await scheduleCollection(bin.booking_id, {
+      date: collectionDate,
+      slot: collectionSlot || null,
       binIds: [bin.id],
     });
     res.json({ bin, job });
