@@ -22,7 +22,7 @@ function confirmDialog({ title, message, confirmLabel = 'Confirm', cancelLabel =
       <div class="modal-overlay" role="presentation">
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
           <h3 id="modalTitle">${esc(title)}</h3>
-          <p>${message}</p>
+          <p>${esc(message)}</p>
           <div class="modal-actions">
             <button type="button" class="btn btn-ghost modal-cancel">${esc(cancelLabel)}</button>
             <button type="button" class="btn btn-primary modal-confirm">${esc(confirmLabel)}</button>
