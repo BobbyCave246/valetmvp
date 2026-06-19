@@ -143,6 +143,16 @@ select:focus {
   margin-top: 18px;
 }
 
+#areaCard.is-complete label,
+#areaCard.is-complete select,
+#areaCard.is-complete .card-actions,
+#areaCard.is-complete #waitlist { display: none; }
+
+#areaCard.is-complete {
+  padding: 14px 18px;
+  background: var(--cream);
+}
+
 /* ---- SKU picker ---- */
 .sku-row {
   display: flex;
@@ -578,9 +588,7 @@ code {
   .flow-step-sep { display: none; }
   .flow-step { flex: 1; min-width: 0; justify-content: center; }
   .flow-step span.label { display: none; }
-  button.btn,
-  a.btn,
-  .btn { width: 100%; min-height: 44px; }
+  .flow-main .btn { width: 100%; min-height: 44px; }
   .flex { flex-direction: column; align-items: stretch; }
   .flex > * { width: 100%; }
   .sku-row { flex-direction: column; align-items: stretch; }

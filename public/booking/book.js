@@ -63,6 +63,17 @@ function setFlowStep(activeId) {
   });
 }
 
+function hasBinsSelected() {
+  return Object.values(counts).some((n) => n > 0);
+}
+
+function updateFlowStep() {
+  if (!chosenArea) return setFlowStep('stepArea');
+  if (!hasBinsSelected()) return setFlowStep('stepBins');
+  if ($('#deliveryDate').value) return setFlowStep('stepDelivery');
+  return setFlowStep('stepBins');
+}
+
 $('#areaContinue').addEventListener('click', () => {
   const v = $('#area').value;
   if (!v) return toast('Pick your area', true);
@@ -72,9 +83,10 @@ $('#areaContinue').addEventListener('click', () => {
   }
   chosenArea = v;
   $('#areaCard').querySelector('h2').textContent = `Delivering to ${v} ✓`;
+  $('#areaCard').classList.add('is-complete');
   $('#waitlist').style.display = 'none';
   $('#bookingForm').style.display = 'block';
-  setFlowStep('stepBins');
+  updateFlowStep();
   $('#bookingForm').scrollIntoView({ behavior: 'smooth' });
 });
 
@@ -120,6 +132,7 @@ function renderSkus() {
       counts[sku] = Math.max(0, counts[sku] + (btn.dataset.act === 'inc' ? 1 : -1));
       $(`#count-${sku}`).textContent = counts[sku];
       updateTotal();
+      updateFlowStep();
     });
   });
 }
@@ -158,6 +171,7 @@ async function loadSlots() {
         });
         chip.classList.add('selected');
         chip.setAttribute('aria-pressed', 'true');
+        updateFlowStep();
       });
       box.appendChild(chip);
     });
@@ -168,7 +182,7 @@ async function loadSlots() {
 }
 
 $('#deliveryDate').addEventListener('change', () => {
-  setFlowStep('stepDelivery');
+  updateFlowStep();
   loadSlots();
 });
 
@@ -197,6 +211,9 @@ $('#submitBtn').addEventListener('click', async () => {
   const houseNo = $('#houseNo').value.trim();
   if (!$('#name').value.trim()) return fail('Enter your name', '#name');
   if (!$('#phone').value.trim()) return fail('Enter your phone number', '#phone');
+  const email = $('#email').value.trim();
+  if (!email) return fail('Enter your email', '#email');
+  if (!$('#email').validity.valid) return fail('Enter a valid email address', '#email');
   if (!village) return fail('Select your village', '#village');
   if (!houseNo) return fail('Enter your house / lot number', '#houseNo');
 
