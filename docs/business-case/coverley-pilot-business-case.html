@@ -95,7 +95,7 @@ td.r{font-weight:600}
 <body>
 <header class="hero"><div class="wrap"><div class="eyebrow">Store All · Cave Shepherd Group · Confidential</div><h1>Coverley Valet Storage <em>Pilot</em></h1><p class="lede">A contained, evidence-led test of by-the-bin pickup and delivery storage. This paper seeks approval for the pilot only, not for a full-scale rollout.</p><div class="meta"><div>Decision sought<b>Conditional pilot approval</b></div><div>Catchment<b>The Villages at Coverley</b></div><div>Storage location<b>Leased Wildey warehouse</b></div><div>Decision gate<b>Month 6</b></div></div></div></header>
 
-<div class="revbar"><div class="wrap"><strong>Revision note:</strong> July 2026 revision closes prior gaps: demand sizing, hard Gate&nbsp;0 definitions, fixed-cost and capex completeness, onboarding/retrieval unit costs, monthly cash ramp, insurance placeholders, cannibalisation, labour clarity, and a payback-aware scale rule. A dedicated <strong>business model</strong> section covers concept, pricing, revenue mix, LTV and sales/distribution. Figures marked <span class="tag-assump" style="margin:0">Template</span> are working assumptions pending firm quotes and measured pilot data.</div></div>
+<div class="revbar"><div class="wrap"><strong>Revision note:</strong> §06 is one money story (spend → ramp → destination). Operating-design and cannibalisation sections removed. §02 remains the commercial model. <span class="tag-assump" style="margin:0">Template</span> figures await firm quotes.</div></div>
 
 <div class="ask"><div class="wrap"><strong class="big">The decision requested</strong><p>Approve a staged pilot with a maximum total cash exposure of <strong>BBD $72,000</strong>, including complete startup capital, launch marketing, van setup, lease-up losses and contingency. Capital is released in gates. Full fit-out proceeds only after at least <strong>30 deposit-backed customer accounts and 150 reserved bins</strong>. The retrieval fee remains <strong>BBD $50 per customer retrieval order</strong> for the pilot, with an explicit mid-pilot review if loaded retrieval cost exceeds the fee.</p></div></div>
 
@@ -261,7 +261,7 @@ td.r{font-weight:600}
 </div></section>
 
 <section><div class="wrap"><div class="sec-head"><span class="num">05</span><h2>Unit costs: onboarding, retrieval and labour</h2></div>
-<p class="body">Separates <strong>cash marginal</strong> cost (FTE already paid) from <strong>fully loaded</strong> cost (capacity / surge). Salary stays in fixed cost (§07); touch rates are not double-counted as cash.</p>
+<p class="body">Separates <strong>cash marginal</strong> cost (FTE already paid) from <strong>fully loaded</strong> cost (capacity / surge). Salary stays in fixed cost (§06); touch rates are not double-counted as cash.</p>
 
 <div class="grid3">
 <div class="metric"><div class="v">$48</div><div class="l">Fully loaded cost per customer stop <span class="tag-assump">Template</span></div></div>
@@ -297,137 +297,110 @@ td.r{font-weight:600}
 <p class="body">Base contribution already includes <strong>BBD $250/mo surge/OT allowance</strong>. Escalate to a second-crew paper if loaded hours stay above 85% for two months (backup van $2k/yr in contingency).</p>
 </div></section>
 
-<section><div class="wrap"><div class="sec-head"><span class="num">06</span><h2>Pilot economics (steady state)</h2></div>
-<p class="body">Steady-state case: 500 installed bin positions, 85% occupancy (425 bins), ~77 active accounts, ~12.9 retrieval orders per month.</p>
-<table>
-<thead><tr><th>Line</th><th class="r">BBD/month</th><th>Basis</th></tr></thead>
-<tbody>
-<tr><td>Storage revenue, VAT-inclusive</td><td class="r">$10,625</td><td>425 × BBD $25</td></tr>
-<tr><td>Retrieval revenue, VAT-inclusive</td><td class="r">$645</td><td>12.9 × BBD $50</td></tr>
-<tr><td>Gross customer revenue</td><td class="r">$11,270</td><td>Storage + order fees</td></tr>
-<tr><td>Net revenue after VAT</td><td class="r">$9,591</td><td>Gross ÷ 1.175</td></tr>
-<tr><td>Fixed operating cost (see breakdown)</td><td class="r">($5,900)</td><td>Detail in §07</td></tr>
-<tr><td>Payment processing</td><td class="r">($338)</td><td>3% of gross (VAT-inclusive receipts)</td></tr>
-<tr><td>Surge / overtime allowance</td><td class="r">($250)</td><td>Peaks, leave cover, extra stops, not double-counted touch cost</td></tr>
-<tr class="total"><td>Cash operating contribution</td><td class="r">$3,103</td><td>Before depreciation, tax, central overhead</td></tr>
-<tr><td>Monthly depreciation, memo only</td><td class="r">($722)</td><td>Base startup capex $43,300 ÷ 60 months</td></tr>
-<tr class="total"><td>Contribution after depreciation, memo</td><td class="r">$2,381</td><td>Not a cash-flow measure</td></tr>
-</tbody>
-</table>
+<section><div class="wrap"><div class="sec-head"><span class="num">06</span><h2>Money story: spend, ramp, destination</h2></div>
+<p class="quote">First what we spend, then how cash moves for six months, then what “full” looks like if demand holds.</p>
+<p class="body">These used to be three separate sections. Read them as one pilot cash story: <strong>setup spend → lease-up path → steady-state destination</strong>. All figures BBD.</p>
 
+<h3>A. What we spend to start</h3>
+<p class="body">Two cash asks: a one-time setup outlay, and a monthly fixed cost once operating. Contingency is held, not auto-spent.</p>
 <div class="two">
 <div class="panel">
-<h3>Break-even</h3>
-<p>Net contribution before fixed cost is approximately <strong>BBD $21 per occupied bin per month</strong> (after VAT and processing, before allocating retrieval subsidy). Fixed cash cost of BBD $5,900 therefore requires about <strong>280 occupied bins</strong>, or <strong>~56% of 500-bin capacity</strong>.</p>
+<h3>Monthly fixed cost <span class="tag-assump">Template</span></h3>
+<table>
+<thead><tr><th>Line</th><th class="r">/month</th></tr></thead>
+<tbody>
+<tr><td>Crew: 1 FTE loaded</td><td class="r">$3,200</td></tr>
+<tr><td>Van lease + fuel + motor insurance</td><td class="r">$1,100</td></tr>
+<tr><td>Wildey rent + utilities (allocated)</td><td class="r">$900</td></tr>
+<tr><td>Goods-in-custody + premises insurance</td><td class="r">$350</td></tr>
+<tr><td>WMS / phones / software</td><td class="r">$200</td></tr>
+<tr><td>Misc</td><td class="r">$150</td></tr>
+<tr class="total"><td>Total fixed</td><td class="r">$5,900</td></tr>
+</tbody>
+</table>
 </div>
 <div class="panel">
-<h3>Payback</h3>
-<p>Base startup capex of BBD $43,300 alone pays back in approximately <strong>14 months at steady contribution</strong>. Including lease-up losses from the ramp table, cumulative base-case cash payback is closer to <strong>month 22 from launch</strong>.</p>
-</div>
-</div>
-
-<div class="callout note">
-<h3>VAT</h3>
-<p>Prices are VAT-inclusive; net revenue uses ÷ 1.175. Input VAT recovery is not modelled here (<span class="tag-assump">Template</span>); finance to confirm.</p>
-</div>
-</div></section>
-
-<section><div class="wrap"><div class="sec-head"><span class="num">07</span><h2>Fixed-cost breakdown and complete capital</h2></div>
-<h3>Fixed operating cost (no longer a black box) <span class="tag-assump">Template</span></h3>
+<h3>Startup capital</h3>
 <table>
-<thead><tr><th>Line</th><th class="r">BBD/month</th><th>Notes / control</th></tr></thead>
+<thead><tr><th>Item</th><th class="r">BBD</th></tr></thead>
 <tbody>
-<tr><td>Crew: 1 FTE loaded (salary, NIS, benefits)</td><td class="r">$3,200</td><td>Replace with HR offer letter</td></tr>
-<tr><td>Van lease + fuel + maintenance + motor insurance</td><td class="r">$1,100</td><td>Lease preferred for pilot; validate quote</td></tr>
-<tr><td>Wildey rent + utilities (allocated share)</td><td class="r">$900</td><td>Pro-rata of leased bay; confirm lease schedule</td></tr>
-<tr><td>Goods-in-custody + premises liability insurance</td><td class="r">$350</td><td>Broker quote required before Gate 1</td></tr>
-<tr><td>WMS / phones / software subscriptions</td><td class="r">$200</td><td>After $6k setup</td></tr>
-<tr><td>Misc (admin, cleaning, small consumables)</td><td class="r">$150</td><td>Excludes surge OT</td></tr>
-<tr class="total"><td>Total fixed cash operating cost</td><td class="r">$5,900</td><td>Must be re-quoted before unconditional lease</td></tr>
+<tr><td>Modular racking (500)</td><td class="r">$13,000</td></tr>
+<tr><td>500 bins</td><td class="r">$12,500</td></tr>
+<tr><td>WMS / booking setup</td><td class="r">$6,000</td></tr>
+<tr><td>CCTV, fit-out, barcode, consumables</td><td class="r">$6,300</td></tr>
+<tr><td>Van deposit / kit</td><td class="r">$2,500</td></tr>
+<tr><td>Launch marketing</td><td class="r">$3,000</td></tr>
+<tr class="total"><td>Base startup</td><td class="r">$43,300</td></tr>
+<tr><td>15% held contingency</td><td class="r">$6,495</td></tr>
+<tr class="total"><td>Max startup authorisation</td><td class="r">$49,795</td></tr>
 </tbody>
 </table>
+<p class="small">Optional: install 250 positions first if Gate&nbsp;0 is only amber.</p>
+</div>
+</div>
 
-<h3>Complete startup capital</h3>
-<table>
-<thead><tr><th>Startup item</th><th class="r">BBD</th><th>Control</th></tr></thead>
-<tbody>
-<tr><td>Modular racking (500 positions)</td><td class="r">$13,000</td><td>Final supplier design and quote</td></tr>
-<tr><td>500 standard bins</td><td class="r">$12,500</td><td>~$25 landed incl. duty/freight; confirm import quote</td></tr>
-<tr><td>Barcode equipment</td><td class="r">$800</td><td>Printer, labels, location tags</td></tr>
-<tr><td>Pilot booking / WMS setup</td><td class="r">$6,000</td><td>Fixed scope before approval</td></tr>
-<tr><td>Fit-out, staging, intake bench</td><td class="r">$2,500</td><td>Physical workflow</td></tr>
-<tr><td>CCTV + basic access control</td><td class="r">$2,500</td><td>Required by chain-of-custody design</td></tr>
-<tr><td>Consumables kit (seals, PPE, spare labels)</td><td class="r">$500</td><td>Initial stock</td></tr>
-<tr><td>Van deposit / livery / in-vehicle kit</td><td class="r">$2,500</td><td>Lease deposit and kit</td></tr>
-<tr><td>Launch marketing &amp; reservation campaign</td><td class="r">$3,000</td><td>Gate 0 demand generation</td></tr>
-<tr class="total"><td>Base startup cash outlay</td><td class="r">$43,300</td><td>Before contingency</td></tr>
-<tr><td>15% held contingency</td><td class="r">$6,495</td><td>Includes backup-van allowance; not auto-spent</td></tr>
-<tr class="total"><td>Maximum startup authorisation</td><td class="r">$49,795</td><td>Part of (not instead of) the $72k ceiling</td></tr>
-</tbody>
-</table>
-<p class="small">Optional phasing: install 250 positions first (~50% racking + 250 bins) if Gate&nbsp;0 passes only on the amber edge; expand to 500 after occupancy &gt;60%.</p>
-</div></section>
-
-<section><div class="wrap"><div class="sec-head"><span class="num">08</span><h2>Six-month cash ramp and exposure</h2></div>
-<p class="body">The following base-case ramp assumes full base capex of BBD $43,300 is committed after Gate&nbsp;0 (contingency held), fixed cost runs from month 1, onboarding burn is BBD $40 per new account, and retrieval orders track accounts × 2/12.</p>
-
+<h3>B. Six-month cash path (the pilot itself)</h3>
+<p class="body">After Gate&nbsp;0, commit base setup ($43,300). Fixed cost runs from month 1. Onboarding burn $40 per new account. This is the path the board ceiling must cover.</p>
 <table>
 <thead>
-<tr><th>Month</th><th class="r">Occ. bins</th><th class="r">Occ. %</th><th class="r">Accts</th><th class="r">New accts</th><th class="r">Gross rev</th><th class="r">Cash contrib*</th><th class="r">Cumulative cash</th></tr>
+<tr><th>Month</th><th class="r">Occ. bins</th><th class="r">Occ. %</th><th class="r">Accts</th><th class="r">Gross rev</th><th class="r">Cash contrib*</th><th class="r">Cumulative</th></tr>
 </thead>
 <tbody>
-<tr><td>0 (setup)</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">($43,300)</td><td class="r">($43,300)</td></tr>
-<tr><td>1</td><td class="r">100</td><td class="r">20%</td><td class="r">18</td><td class="r">18</td><td class="r">$2,650</td><td class="r">($4,450)</td><td class="r">($47,750)</td></tr>
-<tr><td>2</td><td class="r">180</td><td class="r">36%</td><td class="r">33</td><td class="r">15</td><td class="r">$4,775</td><td class="r">($2,580)</td><td class="r">($50,330)</td></tr>
-<tr><td>3</td><td class="r">250</td><td class="r">50%</td><td class="r">45</td><td class="r">12</td><td class="r">$6,625</td><td class="r">($940)</td><td class="r">($51,270)</td></tr>
-<tr><td>4</td><td class="r">310</td><td class="r">62%</td><td class="r">56</td><td class="r">11</td><td class="r">$8,220</td><td class="r">$410</td><td class="r">($50,860)</td></tr>
-<tr><td>5</td><td class="r">370</td><td class="r">74%</td><td class="r">67</td><td class="r">11</td><td class="r">$9,810</td><td class="r">$1,720</td><td class="r">($49,140)</td></tr>
-<tr class="total"><td>6</td><td class="r">410</td><td class="r">82%</td><td class="r">75</td><td class="r">8</td><td class="r">$10,875</td><td class="r">$2,560</td><td class="r">($46,580)</td></tr>
+<tr><td>0 (setup)</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">($43,300)</td><td class="r">($43,300)</td></tr>
+<tr><td>1</td><td class="r">100</td><td class="r">20%</td><td class="r">18</td><td class="r">$2,650</td><td class="r">($4,450)</td><td class="r">($47,750)</td></tr>
+<tr><td>2</td><td class="r">180</td><td class="r">36%</td><td class="r">33</td><td class="r">$4,775</td><td class="r">($2,580)</td><td class="r">($50,330)</td></tr>
+<tr><td>3</td><td class="r">250</td><td class="r">50%</td><td class="r">45</td><td class="r">$6,625</td><td class="r">($940)</td><td class="r">($51,270)</td></tr>
+<tr><td>4</td><td class="r">310</td><td class="r">62%</td><td class="r">56</td><td class="r">$8,220</td><td class="r">$410</td><td class="r">($50,860)</td></tr>
+<tr><td>5</td><td class="r">370</td><td class="r">74%</td><td class="r">67</td><td class="r">$9,810</td><td class="r">$1,720</td><td class="r">($49,140)</td></tr>
+<tr class="total"><td>6</td><td class="r">410</td><td class="r">82%</td><td class="r">75</td><td class="r">$10,875</td><td class="r">$2,560</td><td class="r">($46,580)</td></tr>
 </tbody>
 </table>
-<p class="small">*Cash contribution = net revenue after VAT − fixed $5,900 − 3% processing − $40×new accounts − $250 surge allowance. Figures rounded. Peak base-case cumulative use ≈ <strong>BBD $51,300</strong> around month 3.</p>
-
-<h3>Downside occupancy ramp <span class="tag-assump">Template</span></h3>
-<table>
-<thead><tr><th>Case</th><th class="r">Peak cumulative cash use</th><th class="r">Month-6 cumulative</th><th>Interpretation</th></tr></thead>
-<tbody>
-<tr><td>Base ramp (table above)</td><td class="r">~$51,300</td><td class="r">~($46,600)</td><td>Monthly contribution-positive from month 4</td></tr>
-<tr><td>Low demand (M6 ≈ 250 bins / 50%)</td><td class="r">~$64,000</td><td class="r">~($64,000)</td><td>Still below break-even; stop or reprice</td></tr>
-<tr class="total"><td>Board ceiling</td><td class="r">$72,000</td><td>Hard stop</td><td>Escalate before $65k committed; reapproval if forecast &gt; $72k</td></tr>
-</tbody>
-</table>
+<p class="small">*Net after VAT − fixed $5,900 − 3% processing − $40×new accounts − $250 surge. Peak base-case use ≈ <strong>$51,300</strong> around month 3. Low-demand downside peaks ≈ <strong>$64,000</strong>. Board hard stop: <strong>$72,000</strong> (escalate before $65k committed).</p>
 
 <div class="steps">
 <div class="step"><div class="tag">Gate 0</div><h4>Demand proof</h4><ul>
-<li>Publish exact offer and pricing.</li>
-<li>≥30 <strong>deposit-backed</strong> accounts.</li>
-<li>≥150 reserved bins on those accounts.</li>
-<li>Spend limited to marketing + quote fees until pass.</li>
+<li>≥30 deposit-backed accounts / ≥150 bins</li>
+<li>Marketing + quotes only until pass</li>
 </ul></div>
-<div class="step"><div class="tag">Gate 1</div><h4>Limited setup</h4><ul>
-<li>Conditional premises + firm supplier quotes.</li>
-<li>Insurance binder and legal review complete.</li>
-<li>Install modular capacity (250 or 500).</li>
-<li>Contingency held, not auto-spent.</li>
+<div class="step"><div class="tag">Gate 1</div><h4>Setup spend</h4><ul>
+<li>Insurance binder + conditional lease</li>
+<li>Install modular capacity; hold contingency</li>
 </ul></div>
-<div class="step"><div class="tag">Gate 2</div><h4>Operating pilot</h4><ul>
-<li>Geofenced service for six months.</li>
-<li>Monthly cash, occupancy, unit-cost KPIs.</li>
-<li>Stop / reprice on red thresholds.</li>
-<li>Scale only with payback-aware rule.</li>
+<div class="step"><div class="tag">Gate 2</div><h4>Operate 6 months</h4><ul>
+<li>Monthly cash + occupancy reporting</li>
+<li>Stop / reprice on red; scale only with payback rule</li>
 </ul></div>
 </div>
-</div></section>
 
-<section><div class="wrap"><div class="sec-head"><span class="num">09</span><h2>Operating design and single-crew controls</h2></div>
-<p class="body">Warehouse needs distinct zones for empty prep, intake/photos, quarantine, active racking, retrieval staging, claims hold, and a secure admin/scan point. Before an unconditional lease: supplier rack loads, clearances, egress/fire, manual handling, hurricane bracing, flood/humidity/pest, and van loading access on the Coverley↔Wildey route.</p>
-<div class="callout">
-<h3>One crew member is a hypothesis, with a costed backup</h3>
-<p>Base case: one dedicated FTE and one leased van. Record paid hours, overtime, CS time, stops, kilometres, warehouse touches and failed visits monthly. <strong>Backup:</strong> contractor list; backup van up to BBD $2,000/year from contingency; if loaded hours exceed 85% for two consecutive months, bring a second-crew paper rather than silently burning OT.</p>
+<h3>C. Destination economics (if the pilot fills)</h3>
+<p class="body">Not the first six months. This is the shape of a working Coverley operation at 85% occupancy (425 bins, ~77 accounts). Use it to judge whether the model is worth scaling, not as a year-1 forecast.</p>
+<table>
+<thead><tr><th>Line</th><th class="r">BBD/month</th><th>Basis</th></tr></thead>
+<tbody>
+<tr><td>Storage revenue (VAT-incl.)</td><td class="r">$10,625</td><td>425 × $25</td></tr>
+<tr><td>Retrieval revenue (VAT-incl.)</td><td class="r">$645</td><td>~12.9 orders × $50</td></tr>
+<tr><td>Gross customer revenue</td><td class="r">$11,270</td><td></td></tr>
+<tr><td>Net after VAT</td><td class="r">$9,591</td><td>÷ 1.175</td></tr>
+<tr><td>Fixed operating cost</td><td class="r">($5,900)</td><td>From A above</td></tr>
+<tr><td>Payment processing</td><td class="r">($338)</td><td>3% of gross</td></tr>
+<tr><td>Surge / OT allowance</td><td class="r">($250)</td><td></td></tr>
+<tr class="total"><td>Cash operating contribution</td><td class="r">$3,103</td><td>Before tax / central overhead</td></tr>
+</tbody>
+</table>
+<div class="two">
+<div class="panel">
+<h3>Break-even</h3>
+<p>About <strong>$21 contribution per occupied bin</strong> before fixed cost → <strong>~280 bins (~56%)</strong> to break even on the $5,900 fixed line.</p>
 </div>
+<div class="panel">
+<h3>Payback</h3>
+<p>Setup alone ≈ <strong>14 months</strong> at steady contribution. Including lease-up losses ≈ <strong>month 22</strong> from launch. Month-6 scale still needs a path to cash recovery within 24 months.</p>
+</div>
+</div>
+<p class="small">VAT: prices VAT-inclusive; input VAT recovery not modelled (<span class="tag-assump">Template</span>).</p>
 </div></section>
 
-<section><div class="wrap"><div class="sec-head"><span class="num">10</span><h2>Customer journey, policies and insurance</h2></div>
+<section><div class="wrap"><div class="sec-head"><span class="num">07</span><h2>Customer journey, policies and insurance</h2></div>
 <table>
 <thead><tr><th>Stage</th><th>Required control</th><th>Evidence captured</th></tr></thead>
 <tbody>
@@ -463,7 +436,7 @@ td.r{font-weight:600}
 <p class="small">If broker quotes push insurance &gt; BBD $500/month combined, re-open the fixed-cost model before Gate&nbsp;1.</p>
 </div></section>
 
-<section><div class="wrap"><div class="sec-head"><span class="num">11</span><h2>Success metrics and month-six gate</h2></div>
+<section><div class="wrap"><div class="sec-head"><span class="num">08</span><h2>Success metrics and month-six gate</h2></div>
 <p class="body">Judge the pilot on exposure-adjusted metrics. Annual retrieval frequency is hard to observe in a short ramp, so orders are measured per 100 active-account months.</p>
 <table>
 <thead><tr><th>Metric</th><th>Green</th><th>Amber</th><th>Red / stop</th></tr></thead>
@@ -494,23 +467,7 @@ td.r{font-weight:600}
 </div>
 </div></section>
 
-<section><div class="wrap"><div class="sec-head"><span class="num">12</span><h2>Cannibalisation and strategic benefit</h2></div>
-<p class="body">Prior drafts asserted strategic value without sizing unit cannibalisation. Template estimate:</p>
-<table>
-<thead><tr><th>Scenario</th><th class="r">Assumption</th><th class="r">Monthly impact</th></tr></thead>
-<tbody>
-<tr><td>Steady-state valet accounts</td><td class="r">77</td><td class="r">-</td></tr>
-<tr><td>Share who would have taken a small Store All unit</td><td class="r">10%</td><td class="r">~8 accounts</td></tr>
-<tr><td>Forgone small-unit revenue <span class="tag-assump">Template</span></td><td class="r">$180 / unit</td><td class="r">($1,440)</td></tr>
-<tr><td>Valet cash contribution at 85%</td><td class="r">-</td><td class="r">$3,103</td></tr>
-<tr class="total"><td>Net incremental vs “would have rented unit”</td><td class="r">-</td><td class="r">~$1,660</td></tr>
-<tr><td>If those customers would <em>not</em> have rented a unit</td><td class="r">Cannibalisation = $0</td><td class="r">Full $3,103 is incremental</td></tr>
-</tbody>
-</table>
-<p class="body">Track at booking: “Would you otherwise have rented a Store All unit?” Force the migration conversation above 8–10 bins. Strategic learning value (ops playbook, WMS, brand proof) is real but is <strong>not</strong> assigned a dollar option value in this paper.</p>
-</div></section>
-
-<section><div class="wrap"><div class="sec-head"><span class="num">13</span><h2>Risk register and mitigations</h2></div>
+<section><div class="wrap"><div class="sec-head"><span class="num">09</span><h2>Risk register and mitigations</h2></div>
 <div class="risks">
 <div class="risk"><h4>Demand below break-even</h4><p><b>Mitigation:</b> hard Gate&nbsp;0 deposits; sized catchment; modular 250-bin first install; stop if M6 occupancy &lt;56% without pipeline.</p></div>
 <div class="risk"><h4>Price resistance</h4><p><b>Mitigation:</b> test exact BBD $25/$50 before fit-out; measure conversion by bin basket and persona.</p></div>
@@ -525,7 +482,7 @@ td.r{font-weight:600}
 </div>
 </div></section>
 
-<section><div class="wrap"><div class="sec-head"><span class="num">14</span><h2>Recommendation and immediate actions</h2></div>
+<section><div class="wrap"><div class="sec-head"><span class="num">10</span><h2>Recommendation and immediate actions</h2></div>
 <p class="quote">Proceed, but make every dollar conditional on evidence.</p>
 <p class="body">The revised case still supports a pilot: downside is bounded, Gate&nbsp;0 is hard, costs are complete enough to steward, and retrieval/onboarding economics are explicit rather than hidden. A larger rollout remains a separate paper.</p>
 <div class="decision">
