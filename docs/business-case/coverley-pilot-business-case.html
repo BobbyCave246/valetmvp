@@ -3,24 +3,434 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Store All Valet — Coverley Pilot Business Case</title>
+<title>Store All Valet — Coverley Pilot Business Case (Revised)</title>
 <style>
 :root{--ink:#16201c;--paper:#f4f1ea;--card:#fbfaf6;--line:#d8d2c4;--teal:#0f4c45;--teal2:#16786c;--gold:#c9a24b;--rust:#b8512f;--muted:#6b6a60;--good:#1f6e4f;--amber:#a47e2c;--shadow:0 1px 0 rgba(0,0,0,.04),0 8px 28px -14px rgba(20,40,35,.28)}
-*{box-sizing:border-box;margin:0;padding:0} html{scroll-behavior:smooth} body{font-family:Arial,Helvetica,sans-serif;background:var(--paper);color:var(--ink);line-height:1.58} .wrap{max-width:1100px;margin:auto;padding:0 28px}.hero{padding:68px 0 56px;color:#fff;background:radial-gradient(100% 90% at 90% 0,rgba(22,120,108,.35),transparent 55%),linear-gradient(150deg,#0b3934,#0f4c45);border-bottom:4px solid var(--gold)}.eyebrow{color:#e1c574;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;margin-bottom:18px}.hero h1{font-family:Georgia,serif;font-size:clamp(40px,6vw,70px);line-height:1;letter-spacing:-.025em;max-width:840px}.hero h1 em{color:#e1c574}.lede{font-size:20px;color:#dbe5e1;max-width:790px;margin-top:20px}.meta{display:flex;gap:34px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.18);margin-top:34px;padding-top:20px;font-size:13px;color:#b8c7c2}.meta b{display:block;color:#fff;font-size:15px;margin-top:3px}.ask{background:var(--gold);padding:25px 0;color:#2c2413}.ask .wrap{display:flex;gap:28px;align-items:flex-start}.ask strong.big{font-family:Georgia,serif;font-size:22px;white-space:nowrap}.ask p{font-size:15px;font-weight:500}section{padding:52px 0;border-bottom:1px solid var(--line)}.sec-head{display:flex;gap:14px;align-items:baseline;margin-bottom:26px}.num{color:var(--amber);font-family:Georgia,serif;font-weight:bold}.sec-head h2{font-family:Georgia,serif;font-size:36px;line-height:1.08}.body{max-width:850px;margin-bottom:15px;color:#2d342f}.quote{font-family:Georgia,serif;font-size:25px;font-style:italic;color:var(--teal);max-width:850px;margin:8px 0 20px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin:28px 0}.metric{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:20px;box-shadow:var(--shadow);border-top:4px solid var(--teal2)}.metric.gold{border-top-color:var(--gold)}.metric.red{border-top-color:var(--rust)}.metric .v{font-family:Georgia,serif;font-size:31px;font-weight:bold;line-height:1}.metric .l{font-size:13px;color:var(--muted);margin-top:9px}.two{display:grid;grid-template-columns:1fr 1fr;gap:30px}.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:25px;box-shadow:var(--shadow)}h3{font-size:19px;margin:24px 0 10px}.panel h3:first-child{margin-top:0}.callout{background:linear-gradient(135deg,#103f39,#0f4c45);color:#e8efeb;border-radius:15px;padding:28px;margin:28px 0}.callout h3{color:#fff;margin-top:0;font-family:Georgia,serif;font-size:23px}.callout.warn{background:linear-gradient(135deg,#783c25,#b8512f)}table{width:100%;border-collapse:collapse;background:var(--card);border-radius:11px;overflow:hidden;box-shadow:var(--shadow);margin:20px 0;font-size:14px}th{background:var(--teal);color:#fff;text-align:left;text-transform:uppercase;letter-spacing:.045em;font-size:11px;padding:12px 14px}td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}tr:last-child td{border-bottom:none}td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}.total td{background:#edf2ed;font-weight:bold;color:var(--teal)}.green{color:var(--good);font-weight:bold}.amber{color:#8b681d;font-weight:bold}.redtxt{color:var(--rust);font-weight:bold}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}.step{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:22px}.step .tag{font-size:11px;text-transform:uppercase;color:var(--amber);font-weight:bold;letter-spacing:.1em}.step h4{font-family:Georgia,serif;font-size:21px;margin:6px 0}.step ul,.clean{margin:10px 0 0 20px}.step li,.clean li{margin-bottom:7px}.risks{display:grid;grid-template-columns:1fr 1fr;gap:14px}.risk{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}.risk h4{font-size:15px;margin-bottom:6px}.risk p{font-size:13.5px;color:#3b423d}.risk b{color:var(--teal)}.small{font-size:12.5px;color:var(--muted);font-style:italic}.decision{border:2px solid var(--teal2);background:#eef4f1;border-radius:15px;padding:28px}.decision h3{margin-top:0;font-family:Georgia,serif;font-size:25px}.pill{display:inline-block;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:bold;background:#e6ece8;color:var(--teal);margin-right:5px}.footer{background:var(--ink);color:#bfc9c4;padding:36px 0;font-size:13px}.footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.footer b{color:#fff}@media(max-width:850px){.grid4,.two,.steps,.risks{grid-template-columns:1fr 1fr}.ask .wrap{display:block}.ask strong.big{display:block;margin-bottom:8px}}@media(max-width:580px){.grid4,.two,.steps,.risks{grid-template-columns:1fr}.wrap{padding:0 18px}.sec-head h2{font-size:30px}}@media print{body{background:#fff}.metric,.panel,table,.step,.risk{box-shadow:none}section{page-break-inside:avoid;padding:34px 0}}
+*{box-sizing:border-box;margin:0;padding:0} html{scroll-behavior:smooth} body{font-family:Arial,Helvetica,sans-serif;background:var(--paper);color:var(--ink);line-height:1.58} .wrap{max-width:1100px;margin:auto;padding:0 28px}.hero{padding:68px 0 56px;color:#fff;background:radial-gradient(100% 90% at 90% 0,rgba(22,120,108,.35),transparent 55%),linear-gradient(150deg,#0b3934,#0f4c45);border-bottom:4px solid var(--gold)}.eyebrow{color:#e1c574;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;margin-bottom:18px}.hero h1{font-family:Georgia,serif;font-size:clamp(40px,6vw,70px);line-height:1;letter-spacing:-.025em;max-width:900px}.hero h1 em{color:#e1c574}.lede{font-size:20px;color:#dbe5e1;max-width:820px;margin-top:20px}.meta{display:flex;gap:34px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.18);margin-top:34px;padding-top:20px;font-size:13px;color:#b8c7c2}.meta b{display:block;color:#fff;font-size:15px;margin-top:3px}.ask{background:var(--gold);padding:25px 0;color:#2c2413}.ask .wrap{display:flex;gap:28px;align-items:flex-start}.ask strong.big{font-family:Georgia,serif;font-size:22px;white-space:nowrap}.ask p{font-size:15px;font-weight:500}section{padding:52px 0;border-bottom:1px solid var(--line)}.sec-head{display:flex;gap:14px;align-items:baseline;margin-bottom:26px}.num{color:var(--amber);font-family:Georgia,serif;font-weight:bold}.sec-head h2{font-family:Georgia,serif;font-size:36px;line-height:1.08}.body{max-width:880px;margin-bottom:15px;color:#2d342f}.quote{font-family:Georgia,serif;font-size:25px;font-style:italic;color:var(--teal);max-width:880px;margin:8px 0 20px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin:28px 0}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:28px 0}.metric{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:20px;box-shadow:var(--shadow);border-top:4px solid var(--teal2)}.metric.gold{border-top-color:var(--gold)}.metric.red{border-top-color:var(--rust)}.metric .v{font-family:Georgia,serif;font-size:31px;font-weight:bold;line-height:1}.metric .l{font-size:13px;color:var(--muted);margin-top:9px}.two{display:grid;grid-template-columns:1fr 1fr;gap:30px}.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:25px;box-shadow:var(--shadow)}h3{font-size:19px;margin:24px 0 10px}.panel h3:first-child{margin-top:0}.callout{background:linear-gradient(135deg,#103f39,#0f4c45);color:#e8efeb;border-radius:15px;padding:28px;margin:28px 0}.callout h3{color:#fff;margin-top:0;font-family:Georgia,serif;font-size:23px}.callout.warn{background:linear-gradient(135deg,#783c25,#b8512f)}.callout.note{background:linear-gradient(135deg,#3d4a28,#5c6b38)}table{width:100%;border-collapse:collapse;background:var(--card);border-radius:11px;overflow:hidden;box-shadow:var(--shadow);margin:20px 0;font-size:14px}th{background:var(--teal);color:#fff;text-align:left;text-transform:uppercase;letter-spacing:.045em;font-size:11px;padding:12px 14px}td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}tr:last-child td{border-bottom:none}td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}td.r{font-weight:600}.total td{background:#edf2ed;font-weight:bold;color:var(--teal)}.green{color:var(--good);font-weight:bold}.amber{color:#8b681d;font-weight:bold}.redtxt{color:var(--rust);font-weight:bold}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}.step{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:22px}.step .tag{font-size:11px;text-transform:uppercase;color:var(--amber);font-weight:bold;letter-spacing:.1em}.step h4{font-family:Georgia,serif;font-size:21px;margin:6px 0}.step ul,.clean{margin:10px 0 0 20px}.step li,.clean li{margin-bottom:7px}.risks{display:grid;grid-template-columns:1fr 1fr;gap:14px}.risk{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}.risk h4{font-size:15px;margin-bottom:6px}.risk p{font-size:13.5px;color:#3b423d}.risk b{color:var(--teal)}.small{font-size:12.5px;color:var(--muted);font-style:italic}.decision{border:2px solid var(--teal2);background:#eef4f1;border-radius:15px;padding:28px}.decision h3{margin-top:0;font-family:Georgia,serif;font-size:25px}.pill{display:inline-block;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:bold;background:#e6ece8;color:var(--teal);margin-right:5px}.tag-assump{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#f0e6c8;color:#6a5420;margin-left:6px;vertical-align:middle}.footer{background:var(--ink);color:#bfc9c4;padding:36px 0;font-size:13px}.footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.footer b{color:#fff}.revbar{background:#2c2413;color:#f0e6c8;padding:14px 0;font-size:13px}.revbar strong{color:#fff}@media(max-width:850px){.grid4,.grid3,.two,.steps,.risks{grid-template-columns:1fr 1fr}.ask .wrap{display:block}.ask strong.big{display:block;margin-bottom:8px}}@media(max-width:580px){.grid4,.grid3,.two,.steps,.risks{grid-template-columns:1fr}.wrap{padding:0 18px}.sec-head h2{font-size:30px}}@media print{body{background:#fff}.metric,.panel,table,.step,.risk{box-shadow:none}section{page-break-inside:avoid;padding:34px 0}}
 </style>
 </head>
 <body>
 <header class="hero"><div class="wrap"><div class="eyebrow">Store All · Cave Shepherd Group · Confidential</div><h1>Coverley Valet Storage <em>Pilot</em></h1><p class="lede">A contained, evidence-led test of by-the-bin pickup and delivery storage. This paper seeks approval for the pilot only—not for a full-scale rollout.</p><div class="meta"><div>Decision sought<b>Conditional pilot approval</b></div><div>Catchment<b>The Villages at Coverley</b></div><div>Storage location<b>Leased Wildey warehouse</b></div><div>Decision gate<b>Month 6</b></div></div></div></header>
-<div class="ask"><div class="wrap"><strong class="big">The decision requested</strong><p>Approve a staged pilot with a maximum total cash exposure of <strong>BBD $55,000</strong>, including startup capital, lease-up losses and contingency. Capital is released in gates. Full fit-out proceeds only after at least <strong>30 confirmed customer accounts and 150 reserved bins</strong>. The retrieval fee is <strong>BBD $50 per customer retrieval order</strong>, irrespective of how many bins are delivered in that order.</p></div></div>
-<section><div class="wrap"><div class="sec-head"><span class="num">01</span><h2>Executive decision summary</h2></div><p class="quote">Approve a controlled experiment with a stop-loss—not a speculative scale-up.</p><p class="body">Store All Valet would deliver standard empty bins to a customer, collect them after packing, store them on racking in Wildey and return selected bins on request. Customers pay BBD $25 per occupied bin per month and BBD $50 for each overall retrieval order. The retrieval fee is charged once per order or service request, not once per bin.</p><p class="body">At 85% occupancy, the pilot is expected to produce approximately <strong>BBD $3,100 monthly operating contribution</strong> before depreciation, tax and central corporate overhead. Break-even is approximately <strong>56% occupancy</strong>. The six-month base-case cash exposure peaks at approximately <strong>BBD $44,000</strong>; a low-demand downside peaks around <strong>BBD $51,600</strong>. A BBD $55,000 ceiling therefore provides only a limited contingency and must be treated as a hard stop.</p><div class="grid4"><div class="metric gold"><div class="v">$55k</div><div class="l">Maximum total authorised cash exposure, including capex and operating losses</div></div><div class="metric"><div class="v">~56%</div><div class="l">Operating break-even occupancy</div></div><div class="metric"><div class="v">~$3.1k</div><div class="l">Monthly operating contribution at 85% occupancy</div></div><div class="metric red"><div class="v">~M19</div><div class="l">Estimated cumulative base-case cash payback month after lease-up</div></div></div><div class="callout"><h3>What approval does—and does not—mean</h3><p>Approval authorises demand validation, setup and a six-month operating trial within the BBD $55,000 ceiling. It does not approve a 4,200-bin warehouse, multiple vehicles, geographic expansion or any full-scale profit forecast. Those decisions require a separate investment paper based on measured pilot data.</p></div></div></section>
-<section><div class="wrap"><div class="sec-head"><span class="num">02</span><h2>Problem, customer and proposition</h2></div><div class="two"><div><h3>The gap in the current market</h3><p class="body">Traditional self-storage works well when a customer has enough belongings to justify a room and can transport them. It is less convenient for a customer with only a few containers, no suitable vehicle or a short-term storage need. The proposed pilot tests whether a concentrated Coverley customer base will pay a premium for collection, secure storage and scheduled return.</p><h3>Primary pilot customer</h3><p class="body">The primary target is a space-constrained renter or student with approximately three to eight bins, a defined storage period and limited transport. Secondary targets are decluttering households, seasonal residents and people between homes.</p></div><div class="panel"><h3>Pilot product boundary</h3><ul class="clean"><li>One standard hard-sided bin SKU only.</li><li>No furniture, bicycles, oversized goods or loose items.</li><li>Maximum weight per bin to be set before launch.</li><li>No hazardous, illegal, liquid, perishable or inadequately packed goods.</li><li>Pickup and initial empty-bin delivery included in onboarding.</li><li>BBD $50 charged once per retrieval order.</li><li>Order includes one delivery and, for temporary retrievals, one scheduled recollection within the defined service window.</li></ul></div></div><div class="callout warn"><h3>The price-to-product crossover must be actively managed</h3><p>At BBD $25 per bin, customers with larger bin counts may be better served by a conventional Store All unit. The pilot should not force a valet sale where a unit is cheaper or operationally simpler. Accounts consistently above approximately eight to ten bins should be offered a comparison and migration path.</p></div></div></section>
-<section><div class="wrap"><div class="sec-head"><span class="num">03</span><h2>Service and transaction definition</h2></div><p class="body">The operating model distinguishes bins, customer accounts, retrieval orders, warehouse touches and vehicle visits because each drives a different part of the economics.</p><table><thead><tr><th>Measure</th><th>Definition</th><th>Revenue impact</th><th>Cost/capacity impact</th></tr></thead><tbody><tr><td><b>Occupied bin</b></td><td>One customer bin stored and billed during the month</td><td>BBD $25/month</td><td>Rack capacity, insurance exposure</td></tr><tr><td><b>Retrieval order</b></td><td>One customer request for one or more bins</td><td>BBD $50 once per order</td><td>Dispatch, customer service and vehicle scheduling</td></tr><tr><td><b>Bins per order</b></td><td>Number of bins included in the request</td><td>No additional fee under pilot pricing</td><td>Loading time, warehouse touches and van capacity</td></tr><tr><td><b>Customer stop</b></td><td>One physical visit to the customer's address</td><td>None separately</td><td>Driver time, mileage and route capacity</td></tr><tr><td><b>Warehouse bin touch</b></td><td>Pick, stage, scan or put-away of one bin</td><td>None separately</td><td>Labour and error risk</td></tr></tbody></table><h3>Base-case service assumptions</h3><table><thead><tr><th>Input</th><th style="text-align:right">Base case</th><th>Why it matters</th></tr></thead><tbody><tr><td>Average bins per active account</td><td class="r">5.5</td><td>Converts bins into customer accounts and order volumes</td></tr><tr><td>Retrieval orders per active account per year</td><td class="r">2.0</td><td>Drives retrieval fee revenue and service demand</td></tr><tr><td>Average bins per retrieval order</td><td class="r">2.5</td><td>Drives labour and van capacity, not revenue</td></tr><tr><td>Temporary retrieval share</td><td class="r">75%</td><td>Temporary orders require a later recollection and return to rack</td></tr><tr><td>Monthly account churn</td><td class="r">3%</td><td>Creates replacement onboarding activity</td></tr></tbody></table><p class="small">All five inputs are explicit pilot hypotheses. None should be treated as proven until measured.</p></div></section>
-<section><div class="wrap"><div class="sec-head"><span class="num">04</span><h2>Pilot economics</h2></div><p class="body">The following steady-state case assumes 500 installed bin positions, 85% occupancy, approximately 77 active customer accounts and 12.9 retrieval orders per month.</p><table><thead><tr><th>Line</th><th style="text-align:right">BBD/month</th><th>Basis</th></tr></thead><tbody><tr><td>Storage revenue, VAT-inclusive</td><td class="r">$10,625</td><td>425 occupied bins × BBD $25</td></tr><tr><td>Retrieval revenue, VAT-inclusive</td><td class="r">$644</td><td>12.9 customer orders × BBD $50</td></tr><tr><td>Gross customer revenue</td><td class="r">$11,269</td><td>Storage plus order-based retrieval fees</td></tr><tr><td>Net revenue after VAT</td><td class="r">$9,591</td><td>VAT-inclusive revenue ÷ 1.175</td></tr><tr><td>Fixed operating cost</td><td class="r">($5,900)</td><td>Crew, van, rent, WMS, insurance and overhead</td></tr><tr><td>Payment processing</td><td class="r">($338)</td><td>3% of gross customer revenue</td></tr><tr><td>Activity labour cost</td><td class="r">($270)</td><td>Estimated warehouse bin touches × loaded touch cost</td></tr><tr class="total"><td>Operating contribution</td><td class="r">$3,082</td><td>Before depreciation, tax and central corporate overhead</td></tr><tr><td>Monthly depreciation, memo only</td><td class="r">($580)</td><td>Base startup capex over five years</td></tr><tr class="total"><td>Contribution after depreciation, memo</td><td class="r">$2,502</td><td>Not a cash-flow measure</td></tr></tbody></table><div class="two"><div class="panel"><h3>Break-even</h3><p>Estimated contribution before fixed cost is approximately <strong>BBD $21 per occupied bin per month</strong>. Fixed operating cost therefore requires about <strong>280 occupied bins</strong>, or approximately <strong>56% of capacity</strong>, to break even.</p></div><div class="panel"><h3>Payback</h3><p>Base startup capex alone pays back in approximately <strong>11 months at steady state</strong>. Including the expected lease-up losses, cumulative base-case cash payback is closer to <strong>month 19 from launch</strong>.</p></div></div><div class="callout warn"><h3>What drives the pilot economics</h3><p>The BBD $50 retrieval fee is charged once per customer order, irrespective of the number of bins included. At steady state this produces approximately BBD $644 per month of retrieval revenue. The principal economic engine is therefore monthly storage revenue, while the retrieval fee contributes toward the cost of the delivery and handling service.</p></div></div></section>
-<section><div class="wrap"><div class="sec-head"><span class="num">05</span><h2>Funding requirement and capital gates</h2></div><table><thead><tr><th>Startup item</th><th style="text-align:right">BBD</th><th>Control</th></tr></thead><tbody><tr><td>Modular racking</td><td class="r">$13,000</td><td>Final supplier design and quote required</td></tr><tr><td>500 standard bins</td><td class="r">$12,500</td><td>500 units at approximately $25 landed</td></tr><tr><td>Barcode equipment</td><td class="r">$800</td><td>Printer, labels and location tags</td></tr><tr><td>Pilot booking/WMS setup</td><td class="r">$6,000</td><td>Fixed scope before approval</td></tr><tr><td>Fit-out, staging and setup</td><td class="r">$2,500</td><td>Includes intake bench and basic security allocation</td></tr><tr class="total"><td>Base startup capex</td><td class="r">$34,800</td><td>Before contingency</td></tr><tr><td>20% capex contingency</td><td class="r">$6,960</td><td>Held, not automatically spent</td></tr><tr class="total"><td>Maximum startup authorisation</td><td class="r">$41,760</td><td>Separate from the total cash ceiling</td></tr></tbody></table><h3>Six-month cash exposure</h3><table><thead><tr><th>Case</th><th style="text-align:right">Peak cumulative cash use</th><th>Month-6 cumulative position</th><th>Interpretation</th></tr></thead><tbody><tr><td>Base occupancy ramp</td><td class="r">~$44,000</td><td class="r">~($38,600)</td><td>Turns monthly contribution-positive around month 4</td></tr><tr><td>Low-demand downside</td><td class="r">~$51,600</td><td class="r">~($51,600)</td><td>Still monthly loss-making at month 6</td></tr><tr class="total"><td>Board ceiling</td><td class="r">$55,000</td><td>Hard stop</td><td>Any forecast breach requires committee reapproval</td></tr></tbody></table><div class="steps"><div class="step"><div class="tag">Gate 0</div><h4>Demand proof</h4><ul><li>Publish exact offer and pricing.</li><li>Obtain at least 30 confirmed accounts.</li><li>Obtain at least 150 reserved bins.</li><li>Use deposits or booked dates where possible.</li></ul></div><div class="step"><div class="tag">Gate 1</div><h4>Limited setup</h4><ul><li>Secure conditional premises and supplier quotes.</li><li>Complete insurance and legal review.</li><li>Install modular capacity in phases.</li><li>Do not spend contingency automatically.</li></ul></div><div class="step"><div class="tag">Gate 2</div><h4>Operating pilot</h4><ul><li>Run geofenced service for six months.</li><li>Report cash, occupancy and service KPIs monthly.</li><li>Stop or reprice if red thresholds persist.</li><li>Return to committee for any scale decision.</li></ul></div></div></div></section>
-<section><div class="wrap"><div class="sec-head"><span class="num">06</span><h2>Operating design and capacity controls</h2></div><div class="two"><div><h3>Required warehouse zones</h3><ul class="clean"><li>Empty-bin storage and preparation.</li><li>Customer intake, inspection and photography.</li><li>Quarantine area for damaged, wet or prohibited goods.</li><li>Active racking with barcode locations.</li><li>Retrieval staging area separated by route/date.</li><li>Claims and exception holding area.</li><li>Secure scanner/printer and administration point.</li></ul></div><div><h3>Required premises validation</h3><ul class="clean"><li>Supplier-confirmed racking layout and safe loads.</li><li>Actual bin dimensions and clearances.</li><li>Aisle widths, emergency egress and fire requirements.</li><li>Manual handling and maximum reach assessment.</li><li>Hurricane restraint/bracing.</li><li>Flood, roof-leak, humidity and pest assessment.</li><li>Loading access and van manoeuvring.</li></ul></div></div><div class="callout"><h3>One crew member is a hypothesis, not a conclusion</h3><p>The base case assumes one dedicated FTE and one van. The pilot must record paid hours, overtime, customer-service time, stops, kilometres, warehouse touches and failed visits. Monthly profitability should be recalculated using actual labour, even where the employee's salary is already included as a fixed cost.</p></div></div></section>
-<section><div class="wrap"><div class="sec-head"><span class="num">07</span><h2>Customer journey and operating policies</h2></div><table><thead><tr><th>Stage</th><th>Required control</th><th>Evidence captured</th></tr></thead><tbody><tr><td>Order</td><td>Customer accepts pricing, prohibited goods, weight limit, liability and service window</td><td>Timestamped booking and T&amp;Cs version</td></tr><tr><td>Empty-bin delivery</td><td>Bins scanned to account; customer confirms count and condition</td><td>Driver scan and acknowledgement</td></tr><tr><td>Filled-bin collection</td><td>Weight/condition check, numbered tamper seal and bin-level photos</td><td>Seal number, images and scan trail</td></tr><tr><td>Warehouse intake</td><td>Scan into intake, inspect exceptions and assign rack location</td><td>User, time and location audit log</td></tr><tr><td>Retrieval order</td><td>Customer chooses bins; one BBD $50 order fee; delivery window confirmed</td><td>Order ID linked to bin IDs</td></tr><tr><td>Delivery</td><td>Identity/authorisation check and condition confirmation</td><td>Proof of delivery</td></tr><tr><td>Recollection or withdrawal</td><td>Temporary bins resealed and returned; permanent bins closed out</td><td>Final scan and inventory status</td></tr></tbody></table><h3>Policies required before launch</h3><div class="risks"><div class="risk"><h4>Maximum weight and packing</h4><p>Set a safe limit per bin. Customer remains responsible for internal packing; staff may reject unsafe or leaking bins.</p></div><div class="risk"><h4>Retrieval fee scope</h4><p>The BBD $50 fee covers one order, one delivery and one scheduled recollection within a defined period. Extra or failed visits need a stated charge.</p></div><div class="risk"><h4>Claims and declared value</h4><p>Set a liability limit per bin, optional enhanced cover, claim evidence and notification deadline with insurer and counsel.</p></div><div class="risk"><h4>Non-payment</h4><p>Define failed-payment notices, access restriction, late charges, termination and lawful disposal/abandonment procedure.</p></div><div class="risk"><h4>Privacy</h4><p>Define why contents photographs are collected, who can access them and when they are deleted.</p></div><div class="risk"><h4>No-show and cancellation</h4><p>Set cut-off times and charges so failed customer visits do not become an unpriced logistics cost.</p></div></div></div></section>
-<section><div class="wrap"><div class="sec-head"><span class="num">08</span><h2>Success metrics and month-six gate</h2></div><p class="body">The pilot should be judged using exposure-adjusted metrics. Annual retrieval frequency is difficult to observe during a short ramp, so orders should be measured per 100 active-account months.</p><table><thead><tr><th>Metric</th><th>Green</th><th>Amber</th><th>Red / stop</th></tr></thead><tbody><tr><td>Pre-launch confirmed accounts</td><td class="green">≥30</td><td class="amber">20–29</td><td class="redtxt">&lt;20</td></tr><tr><td>Pre-launch reserved bins</td><td class="green">≥150</td><td class="amber">100–149</td><td class="redtxt">&lt;100</td></tr><tr><td>Month-6 occupied capacity</td><td class="green">≥70%</td><td class="amber">56–69%</td><td class="redtxt">&lt;56%</td></tr><tr><td>Monthly account churn</td><td class="green">≤3%</td><td class="amber">3–5%</td><td class="redtxt">&gt;5%</td></tr><tr><td>Retrieval orders per 100 account-months</td><td class="green">8–25</td><td class="amber">4–8 or 25–35</td><td class="redtxt">&lt;4 or &gt;35</td></tr><tr><td>Average bins per order</td><td class="green">≤3</td><td class="amber">3–5</td><td class="redtxt">&gt;5</td></tr><tr><td>Incremental cost per completed retrieval order</td><td class="green">≤$35</td><td class="amber">$35–50</td><td class="redtxt">&gt;$50</td></tr><tr><td>On-time service rate</td><td class="green">≥95%</td><td class="amber">90–95%</td><td class="redtxt">&lt;90%</td></tr><tr><td>Failed/no-show visits</td><td class="green">≤3%</td><td class="amber">3–7%</td><td class="redtxt">&gt;7%</td></tr><tr><td>Damage/loss claims per occupied bin</td><td class="green">≤0.25%</td><td class="amber">0.25–0.75%</td><td class="redtxt">&gt;0.75%</td></tr><tr><td>Customer acquisition cost</td><td class="green">≤$75</td><td class="amber">$75–150</td><td class="redtxt">&gt;$150</td></tr><tr><td>Peak total cash exposure</td><td class="green">≤$46k</td><td class="amber">$46–55k</td><td class="redtxt">&gt;$55k</td></tr></tbody></table><div class="decision"><h3>Recommended month-six decision rule</h3><p><span class="pill">Scale consideration</span> Demand is above break-even, customer churn and service quality are green, actual contribution is within 15% of the approved base-case model and no unresolved legal, claims or safety issue exists.</p><p style="margin-top:10px"><span class="pill">Extend / reprice</span> Demand is above break-even but one or more order-cost, churn or service metrics are amber and have a credible corrective plan.</p><p style="margin-top:10px"><span class="pill">Stop</span> Occupancy remains below break-even, cash is forecast to exceed BBD $55,000, claims/safety are unacceptable or the customer proposition cannot cover actual operating cost.</p></div></div></section>
-<section><div class="wrap"><div class="sec-head"><span class="num">09</span><h2>Risk register and mitigations</h2></div><div class="risks"><div class="risk"><h4>Demand below break-even</h4><p><b>Mitigation:</b> require confirmed reservations before full setup; install modularly; stop if month-six occupancy is below 56% without a credible pipeline.</p></div><div class="risk"><h4>Price resistance</h4><p><b>Mitigation:</b> test exact BBD $25/$50 pricing before fit-out; measure conversion by bin basket and customer type.</p></div><div class="risk"><h4>Large multi-bin orders</h4><p><b>Mitigation:</b> measure bins per order and van capacity; reserve the right to introduce order-size limits or tiered fees after the pilot.</p></div><div class="risk"><h4>Peak scheduling pressure</h4><p><b>Mitigation:</b> appointment windows, route batching, order cut-offs and temporary vehicle/labour backup for semester peaks.</p></div><div class="risk"><h4>Damage, theft or chain-of-custody failure</h4><p><b>Mitigation:</b> barcode scans, tamper seals, CCTV, restricted access, claims process and broker-confirmed insurance.</p></div><div class="risk"><h4>Premises unsuitable</h4><p><b>Mitigation:</b> rack design, fire/safety, flood, humidity, pest and loading assessment before signing an unconditional lease.</p></div><div class="risk"><h4>Technology failure</h4><p><b>Mitigation:</b> offline scan process, daily backup, immutable audit history and manual recovery procedure.</p></div><div class="risk"><h4>Cash ceiling breached</h4><p><b>Mitigation:</b> monthly rolling forecast; no contingency release without named variance; automatic escalation before BBD $50,000 is committed.</p></div></div></div></section>
-<section><div class="wrap"><div class="sec-head"><span class="num">10</span><h2>Recommendation and immediate actions</h2></div><p class="quote">Proceed, but make every dollar conditional on evidence.</p><p class="body">The business case supports a pilot because the potential strategic benefit is meaningful and the downside can be bounded. A larger rollout should be considered only after demand, workload, service quality and physical capacity have been proven through the pilot.</p><div class="decision"><h3>Recommended resolution</h3><p>Approve the Coverley valet storage pilot subject to a maximum total cash exposure of BBD $55,000; demand-validation gates of 30 confirmed accounts and 150 reserved bins; completion of premises, insurance, legal and safety due diligence; monthly reporting against the defined KPIs; and a formal go/extend/stop decision at month six. Any full-scale expansion requires a separate business case.</p></div><h3>First 30-day work programme</h3><ol class="clean"><li>Confirm product rules, bin size, maximum weight, retrieval window and customer terms.</li><li>Obtain firm quotes for bins, racking, insurance, van and WMS.</li><li>Complete a scaled rack and workflow layout for the actual Wildey premises.</li><li>Launch a pricing page and reservation campaign to Coverley and Ross-linked audiences.</li><li>Take deposits or confirmed start dates and record requested bin counts.</li><li>Return to management at Gate 0 before committing the full fit-out.</li></ol></div></section>
-<footer class="footer"><div class="wrap"><div>Store All · Cave Shepherd Group<br><b>Coverley Valet Storage Pilot — Business Case</b></div><div style="text-align:right">Figures based on the order-based pilot financial model<br><b>Confidential · July 2026</b></div></div></footer>
-</body></html>
+
+<div class="revbar"><div class="wrap"><strong>Revision note:</strong> July 2026 revision closes prior gaps — demand sizing, hard Gate&nbsp;0 definitions, fixed-cost and capex completeness, onboarding/retrieval unit costs, monthly cash ramp, insurance placeholders, cannibalisation, labour clarity, and a payback-aware scale rule. Figures marked <span class="tag-assump" style="margin:0">Template</span> are working assumptions pending firm quotes and measured pilot data.</div></div>
+
+<div class="ask"><div class="wrap"><strong class="big">The decision requested</strong><p>Approve a staged pilot with a maximum total cash exposure of <strong>BBD $72,000</strong>, including complete startup capital, launch marketing, van setup, lease-up losses and contingency. Capital is released in gates. Full fit-out proceeds only after at least <strong>30 deposit-backed customer accounts and 150 reserved bins</strong>. The retrieval fee remains <strong>BBD $50 per customer retrieval order</strong> for the pilot, with an explicit mid-pilot review if loaded retrieval cost exceeds the fee.</p></div></div>
+
+<section><div class="wrap"><div class="sec-head"><span class="num">01</span><h2>Executive decision summary</h2></div>
+<p class="quote">Approve a controlled experiment with a stop-loss—not a speculative scale-up.</p>
+<p class="body">Store All Valet would deliver standard empty bins to a customer, collect them after packing, store them on racking in Wildey and return selected bins on request. Customers pay BBD $25 per occupied bin per month and BBD $50 for each overall retrieval order. The retrieval fee is charged once per order, not once per bin.</p>
+<p class="body">At 85% occupancy, the pilot is expected to produce approximately <strong>BBD $3,100 monthly cash operating contribution</strong> before depreciation, tax and central corporate overhead, after a BBD $250 monthly surge/overtime allowance. Break-even remains approximately <strong>56% occupancy</strong> on fixed cash cost. The six-month base-case cash exposure peaks at approximately <strong>BBD $52,000</strong>; a low-demand downside peaks around <strong>BBD $64,000</strong>. The prior BBD $55,000 ceiling was too thin once marketing, security, van setup and onboarding burn were included; <strong>BBD $72,000</strong> is the revised hard stop.</p>
+<div class="grid4">
+<div class="metric gold"><div class="v">$72k</div><div class="l">Maximum total authorised cash exposure (revised from $55k)</div></div>
+<div class="metric"><div class="v">~56%</div><div class="l">Operating break-even occupancy on fixed cash cost</div></div>
+<div class="metric"><div class="v">~$3.1k</div><div class="l">Monthly cash contribution at 85% occupancy</div></div>
+<div class="metric red"><div class="v">~M22</div><div class="l">Estimated cumulative base-case cash payback after lease-up</div></div>
+</div>
+<div class="callout"><h3>What approval does—and does not—mean</h3><p>Approval authorises demand validation, setup and a six-month operating trial within the BBD $72,000 ceiling. It does not approve a 4,200-bin warehouse, multiple vehicles, geographic expansion or any full-scale profit forecast. Month-6 “scale consideration” also requires a forecast path to cumulative cash recovery within 24 months of launch, so occupancy alone cannot trigger expansion.</p></div>
+</div></section>
+
+<section><div class="wrap"><div class="sec-head"><span class="num">02</span><h2>Problem, customer and demand sizing</h2></div>
+<div class="two">
+<div>
+<h3>The gap in the current market</h3>
+<p class="body">Traditional self-storage works well when a customer has enough belongings to justify a room and can transport them. It is less convenient for a customer with only a few containers, no suitable vehicle or a short-term storage need. The proposed pilot tests whether a concentrated Coverley customer base will pay a premium for collection, secure storage and scheduled return.</p>
+<h3>Primary pilot customer</h3>
+<p class="body">The primary target is a space-constrained renter or student with approximately three to eight bins, a defined storage period and limited transport. Secondary targets are decluttering households, seasonal residents and people between homes.</p>
+</div>
+<div class="panel">
+<h3>Pilot product boundary</h3>
+<ul class="clean">
+<li>One standard hard-sided bin SKU only.</li>
+<li>No furniture, bicycles, oversized goods or loose items.</li>
+<li>Maximum weight <strong>25 kg per bin</strong> <span class="tag-assump">Template</span> pending H&amp;S confirmation.</li>
+<li>No hazardous, illegal, liquid, perishable or inadequately packed goods.</li>
+<li>Empty-bin delivery and filled-bin collection included in onboarding (costed below).</li>
+<li>BBD $50 charged once per retrieval order.</li>
+<li>Order includes one delivery and, for temporary retrievals, one scheduled recollection within <strong>14 days</strong> <span class="tag-assump">Template</span>.</li>
+</ul>
+</div>
+</div>
+
+<h3>Addressable market <span class="tag-assump">Template</span></h3>
+<p class="body">Soft interest is not demand. Gate&nbsp;0 must be judged against a sized catchment:</p>
+<table>
+<thead><tr><th>Layer</th><th class="r">Count</th><th>Basis</th></tr></thead>
+<tbody>
+<tr><td>Coverley Villages residences</td><td class="r">480</td><td>Working estate count — replace with property-management figure</td></tr>
+<tr><td>Adjacent Ross-linked / geofence-reachable households</td><td class="r">220</td><td>Drive-time catchment for shared routes</td></tr>
+<tr><td>Total catchment households</td><td class="r">700</td><td>Coverley + adjacent</td></tr>
+<tr><td>Primary persona share (renters / students / space-constrained)</td><td class="r">40% → 280</td><td>Demographic template pending survey</td></tr>
+<tr><td>Expected conversion of persona at pilot pricing</td><td class="r">10–15%</td><td>Implies ~28–42 accounts if campaign executes</td></tr>
+<tr class="total"><td>Gate 0 target</td><td class="r">30 accounts / 150 bins</td><td>Plausible but requires Coverley + Ross-linked push; not automatic</td></tr>
+</tbody>
+</table>
+<p class="small">Replace template counts with estate management / GIS figures before Gate&nbsp;0 is closed.</p>
+
+<div class="callout warn"><h3>The price-to-product crossover must be actively managed</h3><p>At BBD $25 per bin, customers with larger bin counts may be better served by a conventional Store All unit. Accounts consistently above approximately eight to ten bins should be offered a comparison and migration path. Cannibalisation is sized in section 11.</p></div>
+</div></section>
+
+<section><div class="wrap"><div class="sec-head"><span class="num">03</span><h2>Service definition and hard Gate 0</h2></div>
+<p class="body">The operating model distinguishes bins, customer accounts, retrieval orders, warehouse touches and vehicle visits because each drives a different part of the economics.</p>
+<table>
+<thead><tr><th>Measure</th><th>Definition</th><th>Revenue impact</th><th>Cost/capacity impact</th></tr></thead>
+<tbody>
+<tr><td><b>Occupied bin</b></td><td>One customer bin stored and billed during the month</td><td>BBD $25/month</td><td>Rack capacity, insurance exposure</td></tr>
+<tr><td><b>Retrieval order</b></td><td>One customer request for one or more bins</td><td>BBD $50 once per order</td><td>Dispatch, CS and vehicle scheduling</td></tr>
+<tr><td><b>Bins per order</b></td><td>Bins included in the request</td><td>No extra fee under pilot pricing</td><td>Loading time, warehouse touches, van capacity</td></tr>
+<tr><td><b>Customer stop</b></td><td>One physical visit to the customer's address</td><td>None separately</td><td>Driver time, mileage, route capacity</td></tr>
+<tr><td><b>Warehouse bin touch</b></td><td>Pick, stage, scan or put-away of one bin</td><td>None separately</td><td>Labour and error risk</td></tr>
+</tbody>
+</table>
+
+<h3>Base-case service assumptions <span class="tag-assump">Template</span></h3>
+<table>
+<thead><tr><th>Input</th><th class="r">Base case</th><th>Why it matters</th></tr></thead>
+<tbody>
+<tr><td>Average bins per active account</td><td class="r">5.5</td><td>Converts bins into accounts and order volumes</td></tr>
+<tr><td>Retrieval orders per active account per year</td><td class="r">2.0</td><td>Drives retrieval fee revenue and service demand</td></tr>
+<tr><td>Average bins per retrieval order</td><td class="r">2.5</td><td>Drives labour and van capacity, not revenue</td></tr>
+<tr><td>Temporary retrieval share</td><td class="r">75%</td><td>Temporary orders need a later recollection</td></tr>
+<tr><td>Monthly account churn</td><td class="r">3%</td><td>Creates replacement onboarding activity</td></tr>
+<tr><td>Coverley ↔ Wildey round-trip</td><td class="r">~18 km / ~35 min</td><td>Route density and fuel; validate with actual routes</td></tr>
+</tbody>
+</table>
+
+<div class="decision" style="margin-top:28px">
+<h3>Hard Gate 0 definition (replaces soft interest)</h3>
+<p><span class="pill">Confirmed account</span> Signed T&amp;Cs (versioned) <strong>and</strong> either (a) a deposit of at least one month’s storage for the reserved bin count, or (b) a card-on-file authorisation plus a scheduled empty-bin delivery date within 45 days.</p>
+<p style="margin-top:10px"><span class="pill">Reserved bin</span> A bin count attached to a confirmed account. Waitlist emails and verbal interest do <strong>not</strong> count.</p>
+<p style="margin-top:10px"><span class="pill">Gate 0 pass</span> ≥30 confirmed accounts <strong>and</strong> ≥150 reserved bins. Amber (20–29 / 100–149) may extend the campaign by 30 days once; red (&lt;20 / &lt;100) stops before fit-out spend beyond marketing and quote fees.</p>
+</div>
+</div></section>
+
+<section><div class="wrap"><div class="sec-head"><span class="num">04</span><h2>Unit costs: onboarding, retrieval and labour</h2></div>
+<p class="body">Prior drafts underpriced free onboarding logistics and treated temporary retrievals as if one fee covered one visit. This section separates <strong>cash marginal cost</strong> (while the FTE/van are already paid) from <strong>fully loaded economic cost</strong> (used for capacity and surge decisions).</p>
+
+<div class="grid3">
+<div class="metric"><div class="v">$48</div><div class="l">Fully loaded cost per customer stop <span class="tag-assump">Template</span> — time, fuel, wear, dispatch share</div></div>
+<div class="metric"><div class="v">$12</div><div class="l">Cash marginal cost per stop when FTE already paid (fuel/wear)</div></div>
+<div class="metric"><div class="v">$3</div><div class="l">Fully loaded cost per warehouse bin touch <span class="tag-assump">Template</span></div></div>
+</div>
+
+<h3>Onboarding cost per new account (avg 5.5 bins)</h3>
+<table>
+<thead><tr><th>Component</th><th class="r">Cash marginal</th><th class="r">Fully loaded</th></tr></thead>
+<tbody>
+<tr><td>Empty-bin delivery (1 stop)</td><td class="r">$12</td><td class="r">$48</td></tr>
+<tr><td>Filled-bin collection (1 stop)</td><td class="r">$12</td><td class="r">$48</td></tr>
+<tr><td>Warehouse intake (5.5 touches)</td><td class="r">~$0*</td><td class="r">$16.50</td></tr>
+<tr class="total"><td>Total per new account</td><td class="r">~$24–40</td><td class="r">~$112</td></tr>
+</tbody>
+</table>
+<p class="small">*Intake cash is ~$0 while within paid FTE hours; overtime or contractor time is cash. Ramp model uses <strong>BBD $40 cash onboarding burn per new account</strong> as a conservative mid-point.</p>
+
+<h3>Retrieval order economics (the structural thin fee)</h3>
+<table>
+<thead><tr><th>Order type</th><th>Share</th><th>Visits</th><th class="r">Fee</th><th class="r">Cash marginal</th><th class="r">Fully loaded</th><th class="r">Loaded gap</th></tr></thead>
+<tbody>
+<tr><td>Temporary (deliver + recollect)</td><td>75%</td><td>2 stops + ~5 touches</td><td class="r">$50</td><td class="r">~$24</td><td class="r">~$111</td><td class="r redtxt">−$61</td></tr>
+<tr><td>Permanent withdrawal</td><td>25%</td><td>1 stop + closeout touches</td><td class="r">$50</td><td class="r">~$12</td><td class="r">~$56</td><td class="r amber">−$6</td></tr>
+<tr class="total"><td>Blended at base mix</td><td>100%</td><td>—</td><td class="r">$50</td><td class="r">~$21</td><td class="r">~$97</td><td class="r redtxt">−$47</td></tr>
+</tbody>
+</table>
+<div class="callout warn">
+<h3>What this means for the pilot</h3>
+<p>While one FTE has spare capacity, temporary retrievals can still be cash-positive on a marginal basis. On a fully loaded basis they are subsidised by monthly storage revenue. At steady state (~12.9 orders/month), the loaded subsidy is roughly <strong>BBD $600/month</strong>. The pilot must measure actual stop times and either (a) accept storage subsidising service quality, (b) raise the temporary-retrieval fee (e.g. toward BBD $75–100), or (c) charge for extra stops outside the 14-day window.</p>
+</div>
+
+<h3>Labour accounting (no double-count)</h3>
+<div class="two">
+<div class="panel">
+<h3>In the cash P&amp;L</h3>
+<ul class="clean">
+<li>The 1 FTE loaded salary sits entirely inside fixed cost (BBD $3,200/month).</li>
+<li>A separate <strong>BBD $250/month surge/OT allowance</strong> is included in the base contribution so peaks do not silently erase profit.</li>
+<li>Warehouse “touch costs” are <strong>not</strong> added again as cash on top of salary.</li>
+</ul>
+</div>
+<div class="panel">
+<h3>In capacity planning</h3>
+<ul class="clean">
+<li>Fully loaded stop/touch rates are used to test whether one FTE saturates.</li>
+<li>When forecast loaded hours exceed ~85% of available hours, surge spend is activated.</li>
+<li>Single-FTE / single-van downtime: backup van rental allowance <strong>BBD $2,000/year</strong> held in contingency <span class="tag-assump">Template</span>.</li>
+</ul>
+</div>
+</div>
+</div></section>
+
+<section><div class="wrap"><div class="sec-head"><span class="num">05</span><h2>Pilot economics (steady state)</h2></div>
+<p class="body">Steady-state case: 500 installed bin positions, 85% occupancy (425 bins), ~77 active accounts, ~12.9 retrieval orders per month.</p>
+<table>
+<thead><tr><th>Line</th><th class="r">BBD/month</th><th>Basis</th></tr></thead>
+<tbody>
+<tr><td>Storage revenue, VAT-inclusive</td><td class="r">$10,625</td><td>425 × BBD $25</td></tr>
+<tr><td>Retrieval revenue, VAT-inclusive</td><td class="r">$645</td><td>12.9 × BBD $50</td></tr>
+<tr><td>Gross customer revenue</td><td class="r">$11,270</td><td>Storage + order fees</td></tr>
+<tr><td>Net revenue after VAT</td><td class="r">$9,591</td><td>Gross ÷ 1.175</td></tr>
+<tr><td>Fixed operating cost (see breakdown)</td><td class="r">($5,900)</td><td>Detail in section 06</td></tr>
+<tr><td>Payment processing</td><td class="r">($338)</td><td>3% of gross (VAT-inclusive receipts)</td></tr>
+<tr><td>Surge / overtime allowance</td><td class="r">($250)</td><td>Peaks, leave cover, extra stops — not double-counted touch cost</td></tr>
+<tr class="total"><td>Cash operating contribution</td><td class="r">$3,103</td><td>Before depreciation, tax, central overhead</td></tr>
+<tr><td>Monthly depreciation, memo only</td><td class="r">($722)</td><td>Base startup capex $43,300 ÷ 60 months</td></tr>
+<tr class="total"><td>Contribution after depreciation, memo</td><td class="r">$2,381</td><td>Not a cash-flow measure</td></tr>
+</tbody>
+</table>
+
+<div class="two">
+<div class="panel">
+<h3>Break-even</h3>
+<p>Net contribution before fixed cost is approximately <strong>BBD $21 per occupied bin per month</strong> (after VAT and processing, before allocating retrieval subsidy). Fixed cash cost of BBD $5,900 therefore requires about <strong>280 occupied bins</strong>, or <strong>~56% of 500-bin capacity</strong>.</p>
+</div>
+<div class="panel">
+<h3>Payback</h3>
+<p>Base startup capex of BBD $43,300 alone pays back in approximately <strong>14 months at steady contribution</strong>. Including lease-up losses from the ramp table, cumulative base-case cash payback is closer to <strong>month 22 from launch</strong>.</p>
+</div>
+</div>
+
+<div class="callout note">
+<h3>VAT consistency</h3>
+<p>Customer prices are stated VAT-inclusive. Net revenue uses ÷ 1.175. Input VAT on rent, insurance and suppliers is <strong>not</strong> modelled as a cash recovery in this pilot paper <span class="tag-assump">Template</span> — finance should confirm recoverable input VAT and whether any lines should be shown net. Processing fees are applied to gross receipts as charged by the payment provider.</p>
+</div>
+</div></section>
+
+<section><div class="wrap"><div class="sec-head"><span class="num">06</span><h2>Fixed-cost breakdown and complete capital</h2></div>
+<h3>Fixed operating cost — no longer a black box <span class="tag-assump">Template</span></h3>
+<table>
+<thead><tr><th>Line</th><th class="r">BBD/month</th><th>Notes / control</th></tr></thead>
+<tbody>
+<tr><td>Crew — 1 FTE loaded (salary, NIS, benefits)</td><td class="r">$3,200</td><td>Replace with HR offer letter</td></tr>
+<tr><td>Van lease + fuel + maintenance + motor insurance</td><td class="r">$1,100</td><td>Lease preferred for pilot; validate quote</td></tr>
+<tr><td>Wildey rent + utilities (allocated share)</td><td class="r">$900</td><td>Pro-rata of leased bay; confirm lease schedule</td></tr>
+<tr><td>Goods-in-custody + premises liability insurance</td><td class="r">$350</td><td>Broker quote required before Gate 1</td></tr>
+<tr><td>WMS / phones / software subscriptions</td><td class="r">$200</td><td>After $6k setup</td></tr>
+<tr><td>Misc (admin, cleaning, small consumables)</td><td class="r">$150</td><td>Excludes surge OT</td></tr>
+<tr class="total"><td>Total fixed cash operating cost</td><td class="r">$5,900</td><td>Must be re-quoted before unconditional lease</td></tr>
+</tbody>
+</table>
+
+<h3>Complete startup capital (prior draft omitted several lines)</h3>
+<table>
+<thead><tr><th>Startup item</th><th class="r">BBD</th><th>Control</th></tr></thead>
+<tbody>
+<tr><td>Modular racking (500 positions)</td><td class="r">$13,000</td><td>Final supplier design and quote</td></tr>
+<tr><td>500 standard bins</td><td class="r">$12,500</td><td>~$25 landed incl. duty/freight — confirm import quote</td></tr>
+<tr><td>Barcode equipment</td><td class="r">$800</td><td>Printer, labels, location tags</td></tr>
+<tr><td>Pilot booking / WMS setup</td><td class="r">$6,000</td><td>Fixed scope before approval</td></tr>
+<tr><td>Fit-out, staging, intake bench</td><td class="r">$2,500</td><td>Physical workflow</td></tr>
+<tr><td>CCTV + basic access control</td><td class="r">$2,500</td><td>Required by chain-of-custody design</td></tr>
+<tr><td>Consumables kit (seals, PPE, spare labels)</td><td class="r">$500</td><td>Initial stock</td></tr>
+<tr><td>Van deposit / livery / in-vehicle kit</td><td class="r">$2,500</td><td>Was missing from prior capex table</td></tr>
+<tr><td>Launch marketing &amp; reservation campaign</td><td class="r">$3,000</td><td>Gate 0 demand generation</td></tr>
+<tr class="total"><td>Base startup cash outlay</td><td class="r">$43,300</td><td>Before contingency</td></tr>
+<tr><td>15% held contingency</td><td class="r">$6,495</td><td>Includes backup-van allowance; not auto-spent</td></tr>
+<tr class="total"><td>Maximum startup authorisation</td><td class="r">$49,795</td><td>Part of — not instead of — the $72k ceiling</td></tr>
+</tbody>
+</table>
+<p class="small">Optional phasing: install 250 positions first (~50% racking + 250 bins) if Gate&nbsp;0 passes only on the amber edge; expand to 500 after occupancy &gt;60%.</p>
+</div></section>
+
+<section><div class="wrap"><div class="sec-head"><span class="num">07</span><h2>Six-month cash ramp and exposure</h2></div>
+<p class="body">The following base-case ramp assumes full base capex of BBD $43,300 is committed after Gate&nbsp;0 (contingency held), fixed cost runs from month 1, onboarding burn is BBD $40 per new account, and retrieval orders track accounts × 2/12.</p>
+
+<table>
+<thead>
+<tr><th>Month</th><th class="r">Occ. bins</th><th class="r">Occ. %</th><th class="r">Accts</th><th class="r">New accts</th><th class="r">Gross rev</th><th class="r">Cash contrib*</th><th class="r">Cumulative cash</th></tr>
+</thead>
+<tbody>
+<tr><td>0 — setup</td><td class="r">—</td><td class="r">—</td><td class="r">—</td><td class="r">—</td><td class="r">—</td><td class="r">($43,300)</td><td class="r">($43,300)</td></tr>
+<tr><td>1</td><td class="r">100</td><td class="r">20%</td><td class="r">18</td><td class="r">18</td><td class="r">$2,650</td><td class="r">($4,450)</td><td class="r">($47,750)</td></tr>
+<tr><td>2</td><td class="r">180</td><td class="r">36%</td><td class="r">33</td><td class="r">15</td><td class="r">$4,775</td><td class="r">($2,580)</td><td class="r">($50,330)</td></tr>
+<tr><td>3</td><td class="r">250</td><td class="r">50%</td><td class="r">45</td><td class="r">12</td><td class="r">$6,625</td><td class="r">($940)</td><td class="r">($51,270)</td></tr>
+<tr><td>4</td><td class="r">310</td><td class="r">62%</td><td class="r">56</td><td class="r">11</td><td class="r">$8,220</td><td class="r">$410</td><td class="r">($50,860)</td></tr>
+<tr><td>5</td><td class="r">370</td><td class="r">74%</td><td class="r">67</td><td class="r">11</td><td class="r">$9,810</td><td class="r">$1,720</td><td class="r">($49,140)</td></tr>
+<tr class="total"><td>6</td><td class="r">410</td><td class="r">82%</td><td class="r">75</td><td class="r">8</td><td class="r">$10,875</td><td class="r">$2,560</td><td class="r">($46,580)</td></tr>
+</tbody>
+</table>
+<p class="small">*Cash contribution = net revenue after VAT − fixed $5,900 − 3% processing − $40×new accounts − $250 surge allowance. Figures rounded. Peak base-case cumulative use ≈ <strong>BBD $51,300</strong> around month 3.</p>
+
+<h3>Downside occupancy ramp <span class="tag-assump">Template</span></h3>
+<table>
+<thead><tr><th>Case</th><th class="r">Peak cumulative cash use</th><th class="r">Month-6 cumulative</th><th>Interpretation</th></tr></thead>
+<tbody>
+<tr><td>Base ramp (table above)</td><td class="r">~$51,300</td><td class="r">~($46,600)</td><td>Monthly contribution-positive from month 4</td></tr>
+<tr><td>Low demand (M6 ≈ 250 bins / 50%)</td><td class="r">~$64,000</td><td class="r">~($64,000)</td><td>Still below break-even; stop or reprice</td></tr>
+<tr class="total"><td>Board ceiling</td><td class="r">$72,000</td><td>Hard stop</td><td>Escalate before $65k committed; reapproval if forecast &gt; $72k</td></tr>
+</tbody>
+</table>
+
+<div class="steps">
+<div class="step"><div class="tag">Gate 0</div><h4>Demand proof</h4><ul>
+<li>Publish exact offer and pricing.</li>
+<li>≥30 <strong>deposit-backed</strong> accounts.</li>
+<li>≥150 reserved bins on those accounts.</li>
+<li>Spend limited to marketing + quote fees until pass.</li>
+</ul></div>
+<div class="step"><div class="tag">Gate 1</div><h4>Limited setup</h4><ul>
+<li>Conditional premises + firm supplier quotes.</li>
+<li>Insurance binder and legal review complete.</li>
+<li>Install modular capacity (250 or 500).</li>
+<li>Contingency held, not auto-spent.</li>
+</ul></div>
+<div class="step"><div class="tag">Gate 2</div><h4>Operating pilot</h4><ul>
+<li>Geofenced service for six months.</li>
+<li>Monthly cash, occupancy, unit-cost KPIs.</li>
+<li>Stop / reprice on red thresholds.</li>
+<li>Scale only with payback-aware rule.</li>
+</ul></div>
+</div>
+</div></section>
+
+<section><div class="wrap"><div class="sec-head"><span class="num">08</span><h2>Operating design and single-crew controls</h2></div>
+<div class="two">
+<div>
+<h3>Required warehouse zones</h3>
+<ul class="clean">
+<li>Empty-bin storage and preparation.</li>
+<li>Customer intake, inspection and photography.</li>
+<li>Quarantine for damaged, wet or prohibited goods.</li>
+<li>Active racking with barcode locations.</li>
+<li>Retrieval staging by route/date.</li>
+<li>Claims / exception holding.</li>
+<li>Secure scanner/printer and admin point.</li>
+</ul>
+</div>
+<div>
+<h3>Required premises validation</h3>
+<ul class="clean">
+<li>Supplier-confirmed racking layout and safe loads.</li>
+<li>Actual bin dimensions and clearances.</li>
+<li>Aisle widths, egress and fire requirements.</li>
+<li>Manual handling and maximum reach.</li>
+<li>Hurricane restraint/bracing.</li>
+<li>Flood, roof-leak, humidity and pest assessment.</li>
+<li>Loading access and van manoeuvring (Coverley↔Wildey routing).</li>
+</ul>
+</div>
+</div>
+<div class="callout">
+<h3>One crew member is a hypothesis — with a costed backup</h3>
+<p>Base case: one dedicated FTE and one leased van. Record paid hours, overtime, CS time, stops, kilometres, warehouse touches and failed visits monthly. Recalculate profitability on actual labour. <strong>Backup plan:</strong> pre-approved contractor list; backup van rental up to BBD $2,000/year from contingency; if loaded hours exceed 85% of available for two consecutive months, present a second-crew paper rather than silently burning OT.</p>
+</div>
+</div></section>
+
+<section><div class="wrap"><div class="sec-head"><span class="num">09</span><h2>Customer journey, policies and insurance</h2></div>
+<table>
+<thead><tr><th>Stage</th><th>Required control</th><th>Evidence captured</th></tr></thead>
+<tbody>
+<tr><td>Order</td><td>Customer accepts pricing, prohibited goods, 25&nbsp;kg limit, liability and service window</td><td>Timestamped booking + T&amp;Cs version</td></tr>
+<tr><td>Empty-bin delivery</td><td>Bins scanned to account; customer confirms count/condition</td><td>Driver scan + acknowledgement</td></tr>
+<tr><td>Filled-bin collection</td><td>Weight/condition check, numbered tamper seal, bin photos</td><td>Seal number, images, scan trail</td></tr>
+<tr><td>Warehouse intake</td><td>Scan into intake, inspect exceptions, assign rack location</td><td>User, time, location audit log</td></tr>
+<tr><td>Retrieval order</td><td>Customer chooses bins; one BBD $50 fee; window confirmed</td><td>Order ID ↔ bin IDs</td></tr>
+<tr><td>Delivery</td><td>Identity/authorisation check and condition confirmation</td><td>Proof of delivery</td></tr>
+<tr><td>Recollection or withdrawal</td><td>Temporary bins resealed and returned; permanent bins closed</td><td>Final scan + inventory status</td></tr>
+</tbody>
+</table>
+
+<h3>Policy defaults before launch <span class="tag-assump">Template — counsel to confirm</span></h3>
+<div class="risks">
+<div class="risk"><h4>Maximum weight and packing</h4><p>25&nbsp;kg per bin. Customer responsible for internal packing; staff may reject unsafe or leaking bins at collection.</p></div>
+<div class="risk"><h4>Retrieval fee scope</h4><p>BBD $50 covers one order, one delivery and one recollection within 14 days. Extra or failed visits: <strong>BBD $35 per additional stop</strong>.</p></div>
+<div class="risk"><h4>Claims and declared value</h4><p>Default liability cap <strong>BBD $500 per bin</strong>. Optional enhanced cover sold at booking. Claims require photos + seal integrity; notify within 7 days of delivery.</p></div>
+<div class="risk"><h4>Non-payment</h4><p>Day 7 notice → day 14 access freeze on retrievals → day 30 late fee → day 60 termination path under counsel-approved abandonment procedure.</p></div>
+<div class="risk"><h4>Privacy (contents photos)</h4><p>Photos used only for condition/claims; access limited to named warehouse/admin roles; retain 12 months after bin closeout then delete.</p></div>
+<div class="risk"><h4>No-show / cancellation</h4><p>Cancel ≥24h before window: free. Inside 24h or no-show: BBD $35 missed-stop fee (same as extra stop).</p></div>
+</div>
+
+<h3>Insurance binder requirements before Gate 1 spend</h3>
+<table>
+<thead><tr><th>Cover</th><th class="r">Template premium</th><th>Condition</th></tr></thead>
+<tbody>
+<tr><td>Premises / property</td><td class="r">Inside $350/mo</td><td>Binder before unconditional lease</td></tr>
+<tr><td>Goods in custody / care</td><td class="r">Inside $350/mo</td><td>Must match $500/bin default + optional enhanced</td></tr>
+<tr><td>Public liability</td><td class="r">Included in quote pack</td><td>Broker confirmation in writing</td></tr>
+<tr><td>Motor (van)</td><td class="r">Inside $1,100/mo van line</td><td>Commercial use endorsed</td></tr>
+</tbody>
+</table>
+<p class="small">If broker quotes push insurance &gt; BBD $500/month combined, re-open the fixed-cost model before Gate&nbsp;1.</p>
+</div></section>
+
+<section><div class="wrap"><div class="sec-head"><span class="num">10</span><h2>Success metrics and month-six gate</h2></div>
+<p class="body">Judge the pilot on exposure-adjusted metrics. Annual retrieval frequency is hard to observe in a short ramp, so orders are measured per 100 active-account months.</p>
+<table>
+<thead><tr><th>Metric</th><th>Green</th><th>Amber</th><th>Red / stop</th></tr></thead>
+<tbody>
+<tr><td>Pre-launch confirmed accounts (hard def.)</td><td class="green">≥30</td><td class="amber">20–29</td><td class="redtxt">&lt;20</td></tr>
+<tr><td>Pre-launch reserved bins</td><td class="green">≥150</td><td class="amber">100–149</td><td class="redtxt">&lt;100</td></tr>
+<tr><td>Month-6 occupied capacity</td><td class="green">≥70%</td><td class="amber">56–69%</td><td class="redtxt">&lt;56%</td></tr>
+<tr><td>Monthly account churn</td><td class="green">≤3%</td><td class="amber">3–5%</td><td class="redtxt">&gt;5%</td></tr>
+<tr><td>Retrieval orders / 100 account-months</td><td class="green">8–25</td><td class="amber">4–8 or 25–35</td><td class="redtxt">&lt;4 or &gt;35</td></tr>
+<tr><td>Average bins per order</td><td class="green">≤3</td><td class="amber">3–5</td><td class="redtxt">&gt;5</td></tr>
+<tr><td>Fully loaded cost / completed retrieval order</td><td class="green">≤$50</td><td class="amber">$50–75</td><td class="redtxt">&gt;$75</td></tr>
+<tr><td>Cash marginal cost / retrieval order</td><td class="green">≤$35</td><td class="amber">$35–50</td><td class="redtxt">&gt;$50</td></tr>
+<tr><td>On-time service rate</td><td class="green">≥95%</td><td class="amber">90–95%</td><td class="redtxt">&lt;90%</td></tr>
+<tr><td>Failed / no-show visits</td><td class="green">≤3%</td><td class="amber">3–7%</td><td class="redtxt">&gt;7%</td></tr>
+<tr><td>Damage/loss claims per occupied bin</td><td class="green">≤0.25%</td><td class="amber">0.25–0.75%</td><td class="redtxt">&gt;0.75%</td></tr>
+<tr><td>Customer acquisition cost (cash)</td><td class="green">≤$75</td><td class="amber">$75–150</td><td class="redtxt">&gt;$150</td></tr>
+<tr><td>Peak total cash exposure</td><td class="green">≤$55k</td><td class="amber">$55–72k</td><td class="redtxt">&gt;$72k</td></tr>
+<tr><td>FTE loaded-hours utilisation</td><td class="green">≤75%</td><td class="amber">75–85%</td><td class="redtxt">&gt;85% for 2 months</td></tr>
+</tbody>
+</table>
+
+<div class="decision">
+<h3>Recommended month-six decision rule (payback-aware)</h3>
+<p><span class="pill">Scale consideration</span> Occupancy above break-even; churn and service quality green; actual contribution within 15% of base-case model; no unresolved legal/claims/safety issue; <strong>and</strong> updated forecast shows cumulative cash recovery within <strong>24 months of launch</strong>.</p>
+<p style="margin-top:10px"><span class="pill">Extend / reprice</span> Demand above break-even but order-cost, churn, utilisation or service metrics amber — with a corrective plan (including retrieval fee change if loaded cost stays &gt; fee).</p>
+<p style="margin-top:10px"><span class="pill">Stop</span> Occupancy below break-even without credible pipeline; cash forecast exceeds BBD $72,000; claims/safety unacceptable; or customer proposition cannot cover actual operating cost.</p>
+<p style="margin-top:14px" class="small" style="font-style:normal;color:#2d342f">This rule exists specifically to avoid a sunk-cost trap: green occupancy at month 6 is not enough if payback has slipped beyond two years.</p>
+</div>
+</div></section>
+
+<section><div class="wrap"><div class="sec-head"><span class="num">11</span><h2>Cannibalisation and strategic benefit</h2></div>
+<p class="body">Prior drafts asserted strategic value without sizing unit cannibalisation. Template estimate:</p>
+<table>
+<thead><tr><th>Scenario</th><th class="r">Assumption</th><th class="r">Monthly impact</th></tr></thead>
+<tbody>
+<tr><td>Steady-state valet accounts</td><td class="r">77</td><td class="r">—</td></tr>
+<tr><td>Share who would have taken a small Store All unit</td><td class="r">10%</td><td class="r">~8 accounts</td></tr>
+<tr><td>Forgone small-unit revenue <span class="tag-assump">Template</span></td><td class="r">$180 / unit</td><td class="r">($1,440)</td></tr>
+<tr><td>Valet cash contribution at 85%</td><td class="r">—</td><td class="r">$3,103</td></tr>
+<tr class="total"><td>Net incremental vs “would have rented unit”</td><td class="r">—</td><td class="r">~$1,660</td></tr>
+<tr><td>If those customers would <em>not</em> have rented a unit</td><td class="r">Cannibalisation = $0</td><td class="r">Full $3,103 is incremental</td></tr>
+</tbody>
+</table>
+<p class="body">Track at booking: “Would you otherwise have rented a Store All unit?” Force the migration conversation above 8–10 bins. Strategic learning value (ops playbook, WMS, brand proof) is real but is <strong>not</strong> assigned a dollar option value in this paper.</p>
+</div></section>
+
+<section><div class="wrap"><div class="sec-head"><span class="num">12</span><h2>Risk register and mitigations</h2></div>
+<div class="risks">
+<div class="risk"><h4>Demand below break-even</h4><p><b>Mitigation:</b> hard Gate&nbsp;0 deposits; sized catchment; modular 250-bin first install; stop if M6 occupancy &lt;56% without pipeline.</p></div>
+<div class="risk"><h4>Price resistance</h4><p><b>Mitigation:</b> test exact BBD $25/$50 before fit-out; measure conversion by bin basket and persona.</p></div>
+<div class="risk"><h4>Temporary retrievals underpriced</h4><p><b>Mitigation:</b> measure loaded cost/order; extra-stop fee $35; mid-pilot fee review if loaded cost &gt; $50 sustained.</p></div>
+<div class="risk"><h4>Large multi-bin orders</h4><p><b>Mitigation:</b> measure bins/order and van fill; reserve right to tier fees after pilot.</p></div>
+<div class="risk"><h4>Peak / single-FTE failure</h4><p><b>Mitigation:</b> $250/mo surge allowance; contractor list; $2k/yr backup van; escalate at 85% utilisation.</p></div>
+<div class="risk"><h4>Damage, theft, chain-of-custody</h4><p><b>Mitigation:</b> scans, seals, CCTV, restricted access, $500/bin cap, broker binder before Gate&nbsp;1.</p></div>
+<div class="risk"><h4>Premises unsuitable</h4><p><b>Mitigation:</b> rack, fire, flood, humidity, pest, loading assessment before unconditional lease.</p></div>
+<div class="risk"><h4>Cash ceiling breached</h4><p><b>Mitigation:</b> monthly rolling forecast; escalate before $65k committed; hard stop $72k.</p></div>
+<div class="risk"><h4>Unit cannibalisation</h4><p><b>Mitigation:</b> crossover script at 8–10 bins; report diverted unit revenue monthly.</p></div>
+<div class="risk"><h4>Insurance unavailable / too costly</h4><p><b>Mitigation:</b> binder is a Gate&nbsp;1 prerequisite; reopen model if premium &gt; $500/mo.</p></div>
+</div>
+</div></section>
+
+<section><div class="wrap"><div class="sec-head"><span class="num">13</span><h2>Recommendation and immediate actions</h2></div>
+<p class="quote">Proceed, but make every dollar conditional on evidence.</p>
+<p class="body">The revised case still supports a pilot: downside is bounded, Gate&nbsp;0 is hard, costs are complete enough to steward, and retrieval/onboarding economics are explicit rather than hidden. A larger rollout remains a separate paper.</p>
+<div class="decision">
+<h3>Recommended resolution</h3>
+<p>Approve the Coverley valet storage pilot subject to a maximum total cash exposure of <strong>BBD $72,000</strong>; demand-validation gates of <strong>30 deposit-backed accounts and 150 reserved bins</strong>; completion of premises, insurance binder, legal and safety due diligence before Gate&nbsp;1 capital; monthly reporting against the defined KPIs including loaded retrieval cost and FTE utilisation; and a formal go/extend/stop decision at month six that includes the <strong>24-month cash-recovery</strong> test. Any full-scale expansion requires a separate business case.</p>
+</div>
+<h3>First 30-day work programme</h3>
+<ol class="clean">
+<li>Replace template catchment counts with estate / GIS figures; lock product rules (25&nbsp;kg, 14-day recollection, extra-stop fee).</li>
+<li>Obtain firm quotes: bins (landed), racking, insurance binder, van lease, WMS, CCTV.</li>
+<li>Complete scaled rack and workflow layout for the actual Wildey bay.</li>
+<li>Launch pricing + reservation campaign to Coverley and Ross-linked audiences with deposit checkout.</li>
+<li>Record confirmed accounts under the hard Gate&nbsp;0 definition only.</li>
+<li>Return to management at Gate&nbsp;0 before committing fit-out, racking or bulk bin purchase.</li>
+</ol>
+</div></section>
+
+<footer class="footer"><div class="wrap"><div>Store All · Cave Shepherd Group<br><b>Coverley Valet Storage Pilot — Business Case (Revised)</b></div><div style="text-align:right">Order-based pilot financial model · template assumptions marked<br><b>Confidential · July 2026 revision</b></div></div></footer>
+</body>
+</html>
