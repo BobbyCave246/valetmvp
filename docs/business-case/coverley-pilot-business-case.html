@@ -31,10 +31,10 @@ body{font-family:Arial,Helvetica,sans-serif;background:var(--paper);color:var(--
 .lede{font-size:20px;color:rgba(255,255,255,.9);max-width:820px;margin-top:20px}
 .meta{display:flex;gap:34px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.22);margin-top:34px;padding-top:20px;font-size:13px;color:rgba(255,255,255,.78)}
 .meta b{display:block;color:#fff;font-size:15px;margin-top:3px}
-.ask{background:var(--accent);padding:25px 0;color:#17120a}
-.ask .wrap{display:flex;gap:28px;align-items:flex-start}
-.ask strong.big{font-family:Georgia,serif;font-size:22px;white-space:nowrap}
-.ask p{font-size:15px;font-weight:500}
+
+
+
+
 section{padding:52px 0;border-bottom:1px solid var(--line)}
 .sec-head{display:flex;gap:14px;align-items:baseline;margin-bottom:26px}
 .num{color:var(--accent);font-family:Georgia,serif;font-weight:bold}
@@ -85,9 +85,9 @@ td.r{font-weight:600}
 .footer{background:var(--ink);color:#cfcfcf;padding:36px 0;font-size:13px}
 .footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .footer b{color:#fff}
-.revbar{background:#323132;color:#ffc9a8;padding:14px 0;font-size:13px}
-.revbar strong{color:#fff}
-@media(max-width:850px){.grid4,.grid3,.two,.steps,.risks{grid-template-columns:1fr 1fr}.ask .wrap{display:block}.ask strong.big{display:block;margin-bottom:8px}}
+
+
+@media(max-width:850px){.grid4,.grid3,.two,.steps,.risks{grid-template-columns:1fr 1fr}}
 @media(max-width:580px){.grid4,.grid3,.two,.steps,.risks{grid-template-columns:1fr}.wrap{padding:0 18px}.sec-head h2{font-size:30px}}
 @media print{body{background:#fff}.metric,.panel,table,.step,.risk{box-shadow:none}section{page-break-inside:avoid;padding:34px 0}}
 </style>
@@ -95,13 +95,11 @@ td.r{font-weight:600}
 <body>
 <header class="hero"><div class="wrap"><div class="eyebrow">Store All · Cave Shepherd Group · Confidential</div><h1>Coverley Valet Storage <em>Pilot</em></h1><p class="lede">A contained, evidence-led test of by-the-bin pickup and delivery storage. This paper seeks approval for the pilot only, not for a full-scale rollout.</p><div class="meta"><div>Decision sought<b>Conditional pilot approval</b></div><div>Catchment<b>The Villages at Coverley</b></div><div>Storage location<b>Leased Wildey warehouse</b></div><div>Decision gate<b>Month 6</b></div></div></div></header>
 
-<div class="revbar"><div class="wrap"><strong>Revision note:</strong> §06 is one money story (spend → ramp → destination). Operating-design and cannibalisation sections removed. §02 remains the commercial model. <span class="tag-assump" style="margin:0">Template</span> figures await firm quotes.</div></div>
 
-<div class="ask"><div class="wrap"><strong class="big">The decision requested</strong><p>Approve a staged pilot with a maximum total cash exposure of <strong>BBD $72,000</strong>, including complete startup capital, launch marketing, van setup, lease-up losses and contingency. Capital is released in gates. Full fit-out proceeds only after at least <strong>30 deposit-backed customer accounts and 150 reserved bins</strong>. The retrieval fee remains <strong>BBD $50 per customer retrieval order</strong> for the pilot, with an explicit mid-pilot review if loaded retrieval cost exceeds the fee.</p></div></div>
 
 <section><div class="wrap"><div class="sec-head"><span class="num">01</span><h2>Executive decision summary</h2></div>
 <p class="quote">Approve a controlled experiment with a stop-loss, not a speculative scale-up.</p>
-<p class="body">The ask is a gated Coverley pilot of Store All Valet (business model in §02). At 85% occupancy, expected <strong>BBD $3,100 monthly cash contribution</strong>; break-even ~<strong>56% occupancy</strong>. Base-case cash peaks ~<strong>BBD $52,000</strong>; downside ~<strong>$64,000</strong>. Hard stop: <strong>BBD $72,000</strong>.</p>
+<p class="body">The ask is a gated Coverley pilot of Store All Valet. At 85% occupancy, expected <strong>BBD $3,100 monthly cash contribution</strong>; break-even ~<strong>56% occupancy</strong>. Base-case cash peaks ~<strong>BBD $52,000</strong>; downside ~<strong>$64,000</strong>. Hard stop: <strong>BBD $72,000</strong>.</p>
 <div class="grid4">
 <div class="metric gold"><div class="v">$72k</div><div class="l">Maximum total authorised cash exposure</div></div>
 <div class="metric"><div class="v">~56%</div><div class="l">Operating break-even occupancy on fixed cash cost</div></div>
@@ -215,7 +213,7 @@ td.r{font-weight:600}
 <li>No furniture, bicycles, oversized goods or loose items.</li>
 <li>Maximum weight <strong>25 kg per bin</strong> <span class="tag-assump">Template</span>.</li>
 <li>No hazardous, illegal, liquid, perishable or inadequately packed goods.</li>
-<li>Pricing, inclusions and extras: see §02.</li>
+<li>Pricing and service inclusions as stated for the pilot.</li>
 </ul>
 </div>
 </div>
@@ -237,7 +235,7 @@ td.r{font-weight:600}
 </div></section>
 
 <section><div class="wrap"><div class="sec-head"><span class="num">04</span><h2>Gate 0 and service assumptions</h2></div>
-<p class="body">Billing units and pricing live in §02. This section only locks the <strong>demand gate</strong> and the volume assumptions that drive cost and capacity.</p>
+<p class="body">This locks the <strong>demand gate</strong> and the volume assumptions that drive cost and capacity. Pricing is in the business model.</p>
 
 <h3>Base-case service assumptions <span class="tag-assump">Template</span></h3>
 <table>
@@ -261,7 +259,7 @@ td.r{font-weight:600}
 </div></section>
 
 <section><div class="wrap"><div class="sec-head"><span class="num">05</span><h2>Unit costs: onboarding, retrieval and labour</h2></div>
-<p class="body">Separates <strong>cash marginal</strong> cost (FTE already paid) from <strong>fully loaded</strong> cost (capacity / surge). Salary stays in fixed cost (§06); touch rates are not double-counted as cash.</p>
+<p class="body">Separates <strong>cash marginal</strong> cost (FTE already paid) from <strong>fully loaded</strong> cost (capacity / surge). Salary stays inside the monthly fixed cost; touch rates are not double-counted as cash.</p>
 
 <div class="grid3">
 <div class="metric"><div class="v">$48</div><div class="l">Fully loaded cost per customer stop <span class="tag-assump">Template</span></div></div>
@@ -415,7 +413,7 @@ td.r{font-weight:600}
 </table>
 
 <h3>Policy defaults before launch <span class="tag-assump">Template; counsel to confirm</span></h3>
-<p class="body">Fee schedule (retrieval, extra stops, liability cap) is in §02. Remaining launch policies:</p>
+<p class="body">Fee schedule (retrieval, extra stops, liability cap) is set in the business model. Remaining launch policies:</p>
 <div class="risks">
 <div class="risk"><h4>Claims process</h4><p>Claims require photos + seal integrity; notify within 7 days of delivery. Enhanced cover optional at booking.</p></div>
 <div class="risk"><h4>Non-payment</h4><p>Day 7 notice → day 14 freeze retrievals → day 30 late fee → day 60 termination under counsel-approved abandonment procedure.</p></div>
