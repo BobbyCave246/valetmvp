@@ -8,7 +8,7 @@ const el = (html) => {
   return t.content.firstChild;
 };
 
-const SKU_PRICES = { bin: 15, wardrobe: 25 };
+const SKU_PRICES = { bin: 30, wardrobe: 30 };
 
 function toast(msg, isErr = false) {
   const t = $('#toast');
@@ -501,7 +501,7 @@ function retrievalPanel(booking, stored) {
     <div class="fee-notice">
       <label class="check-row" style="margin:0;">
         <input type="checkbox" id="feeAck" />
-        <span>I understand a <strong>$30 delivery fee</strong> applies to this return request.</span>
+        <span>I understand a <strong>$50 retrieval fee</strong> applies to this order (not per bin). Storage billing stops on these bins until they are stored again.</span>
       </label>
     </div>`);
   card.appendChild(feeBox);
@@ -514,11 +514,11 @@ function retrievalPanel(booking, stored) {
     if (ids.length === 0) return toast('Tick at least one bin', true);
     if (!date.value) return toast('Pick a delivery-back date', true);
     if (!feeBox.querySelector('#feeAck').checked) {
-      return toast('Please acknowledge the $30 delivery fee', true);
+      return toast('Please acknowledge the $50 retrieval fee', true);
     }
     const ok = await confirmDialog({
       title: 'Request bins back?',
-      message: `Request ${ids.length} bin${ids.length === 1 ? '' : 's'} back on ${date.value}? A flat $30 delivery fee applies.`,
+      message: `Request ${ids.length} bin${ids.length === 1 ? '' : 's'} back on ${date.value}? A flat $50 per order applies. You have 7 days with the tote before a $10/bin/day hold starts.`,
       confirmLabel: 'Request delivery',
     });
     if (!ok) return;
@@ -715,7 +715,7 @@ if (ref) {
         <div class="timeline-step current"><span class="dot"></span><span>We'll assign your bins</span></div>
         <div class="timeline-step upcoming"><span class="dot"></span><span>Empty bins delivered on your chosen date</span></div>
       </div>
-      <p class="muted" style="margin:12px 0 0;">Save this reference — it's how you track your booking (no login needed). Drop-off and collection are free; a flat $30 per delivery applies when you request stored bins back.</p>
+      <p class="muted" style="margin:12px 0 0;">Save this reference — it's how you track your booking (no login needed). First month is prepaid to confirm. Drop-off and collection are free; a flat $50 per order applies when you request stored bins back. Pack within 7 days of empty drop-off.</p>
     </div>`;
   }
   loadByRef(ref);

@@ -45,13 +45,14 @@ test('booking confirmation POSTs to Resend when configured', async () => {
     return { ok: true, status: 200, text: async () => '' };
   };
   try {
-    const sent = await sendBookingConfirmation({ booking, customer, skuBreakdown: { bin: 2, wardrobe: 1 } });
+    const sent = await sendBookingConfirmation({ booking, customer, skuBreakdown: { bin: 2 } });
     assert.equal(sent, true);
     assert.equal(captured.url, 'https://api.resend.com/emails');
     const body = JSON.parse(captured.opts.body);
     assert.deepEqual(body.to, ['c@example.com']);
     assert.match(body.subject, /book_x1/);
-    assert.match(body.html, /\$55\/mo/);
+    assert.match(body.html, /\$60\/mo/);
+    assert.match(body.html, /\$50 per order/);
   } finally {
     globalThis.fetch = orig;
     delete process.env.RESEND_API_KEY;
