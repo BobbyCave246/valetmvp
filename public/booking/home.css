@@ -169,9 +169,9 @@ section { padding: 80px 0; }
 
 .price-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 24px;
-  max-width: 760px;
+  max-width: 420px;
 }
 
 .price-card {

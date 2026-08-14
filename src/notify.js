@@ -9,16 +9,16 @@ import { getBooking, getCustomer } from './db.js';
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
 const SKU_META = {
-  bin: { label: 'Standard bin', price: 15 },
-  wardrobe: { label: 'Wardrobe box', price: 25 },
-  odd: { label: 'Odd / bulky item', price: 20 },
+  bin: { label: 'Standard bin', price: 30 },
+  wardrobe: { label: 'Wardrobe box', price: 30 },
+  odd: { label: 'Odd / bulky item', price: 30 },
 };
 
 const JOB_DONE_COPY = {
   deliver_empty: {
     subject: 'Empty bins delivered',
     headline: 'Your empty bins have been delivered',
-    nextStep: 'Fill your bins and book a collection date when you are ready.',
+    nextStep: 'Fill your bins and book a collection date within 7 days. After that a $10 per bin per day hold applies until you book.',
   },
   collect_full: {
     subject: 'Bins collected',
@@ -65,7 +65,8 @@ function renderBookingHtml({ booking, customer, skuBreakdown }) {
     <p><strong>Delivery of empty bins:</strong> ${esc(booking.delivery_date)} · ${slot}</p>
     <p style="background:#faf8f5;border:1px solid #ebebeb;border-radius:10px;padding:12px 14px;">
       Drop-off of empty bins and pick-up of your filled bins are <strong>free</strong>.
-      A flat <strong>$30 per delivery</strong> applies only when you ask for stored bins back.
+      A flat <strong>$50 per order</strong> applies when you ask for stored bins back.
+      Pack within <strong>7 days</strong> of empty drop-off.
     </p>
     <p style="color:#6a6a6a;font-size:13px;">We'll be in touch about your delivery. Reply to this email if anything changes.</p>
   </div>`;

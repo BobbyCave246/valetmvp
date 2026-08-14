@@ -204,7 +204,7 @@ export function deriveCustomerNextStep(booking, bins = [], jobs = []) {
   if (has(STATUS.STORED)) {
     return {
       title: 'Safely stored',
-      message: 'Your bins are in our warehouse. Request any bin back whenever you need it ($30 delivery fee per request).',
+      message: 'Your bins are in our warehouse. Request any bin back whenever you need it ($50 per order, not per bin). Billing stops on a bin the day it is redelivered.',
       timeline: null,
     };
   }

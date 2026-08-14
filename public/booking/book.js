@@ -2,11 +2,16 @@
 // → contact → submit. Submits area + delivery window to /api/bookings.
 
 const SKUS = [
-  { key: 'bin', label: 'Standard bin', price: 15, desc: '80 L tote — books, clothes, kitchenware', emoji: '📦' },
-  { key: 'wardrobe', label: 'Wardrobe box', price: 25, desc: 'Hanging garments stay crease-free', emoji: '👕' },
+  {
+    key: 'bin',
+    label: 'Standard bin',
+    price: 30,
+    desc: '2.3 cu ft / 17.2 gal — 24″ × 19.5″ × 12.5″, max 25 kg',
+    emoji: '📦',
+  },
 ];
 
-const counts = { bin: 0, wardrobe: 0 };
+const counts = { bin: 0 };
 let chosenArea = null;
 let chosenSlot = null;
 let earliestDate = null;
@@ -246,7 +251,7 @@ $('#submitBtn').addEventListener('click', async () => {
   const btn = $('#submitBtn');
   btn.disabled = true;
   const original = btn.textContent;
-  btn.textContent = 'Creating…';
+  btn.textContent = 'Confirming…';
   try {
     const data = await api('POST', '/bookings', payload);
     location.href = `booking.html?ref=${encodeURIComponent(data.booking.id)}&new=1`;
@@ -262,8 +267,7 @@ $('#submitBtn').addEventListener('click', async () => {
 // ---- boot -------------------------------------------------------------------
 // Prefill SKU counts from ?sku= query param (landing pricing CTAs).
 const skuParam = new URLSearchParams(location.search).get('sku');
-if (skuParam === 'bin' || skuParam === 'standard') counts.bin = 1;
-if (skuParam === 'wardrobe') counts.wardrobe = 1;
+if (skuParam === 'bin' || skuParam === 'standard' || skuParam === 'wardrobe') counts.bin = 1;
 
 loadAreas().catch((e) => toast(e.message, true));
 renderSkus();
