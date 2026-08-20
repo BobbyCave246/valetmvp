@@ -200,6 +200,12 @@ td.r{font-weight:600}
 <section><div class="wrap"><div class="sec-head"><span class="num">04</span><h2>Cash</h2></div>
 <p class="body">All figures BBD. Prices include VAT. Contribution uses net ÷ 1.175. Input VAT recovery is not modelled <span class="tag-assump">Template</span>. Salary sits in the monthly fixed line, not in the per-stop rates.</p>
 
+<div class="callout"><h3>Reading these tables</h3>
+<p class="small"><strong>Stop</strong> = one driver visit to a customer address. <strong>Touch</strong> = one warehouse handling of one bin.<br>
+<strong>Cash</strong> = money that leaves the bank because the stop happened (fuel, wear). <strong>Loaded</strong> = that cash plus the share of the FTE&rsquo;s salary and vehicle fixed cost charged to the stop. Salary is paid either way, so cash answers &ldquo;what does this month cost&rdquo; and loaded answers &ldquo;is the price right at scale&rdquo;.<br>
+<strong>Gap</strong> = fee minus loaded cost on one event. Negative is deliberate: storage rent covers the FTE, not trip fees.<br>
+<strong>Borrow</strong> = bins go home for the 7-day pack window and come back &mdash; two stops, one $50. <strong>Close-out</strong> = customer keeps the contents, bins return to inventory &mdash; one stop, one $50.</p></div>
+
 <div class="grid3">
 <div class="metric"><div class="v">$48</div><div class="l">Fully loaded cost per customer stop <span class="tag-assump">Template</span></div></div>
 <div class="metric"><div class="v">$12</div><div class="l">Cash cost per stop (fuel / wear)</div></div>
@@ -235,7 +241,7 @@ td.r{font-weight:600}
 </div>
 
 <p class="body">One field FTE ($3,200 loaded) does Coverley, then the facility. Store All office owns admin, existing Plug’n Pay and the phone. Named backup sits on the $250 surge line. A second FTE is not in the $72k.</p>
-<p class="body">Open a second-FTE paper only after a green month-6 scale decision, or if loaded hours stay above 75% for four weeks, or stops stay above 1.5 per working day for a month.</p>
+<p class="body">Open a second-FTE paper only after a green month-6 scale decision (every must-hit metric in section 09 sitting in its green band at month 6), or if loaded hours stay above 75% for four weeks, or stops stay above 1.5 per working day for a month.</p>
 
 <h3>Monthly fixed cost</h3>
 <div class="two">
