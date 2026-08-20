@@ -161,3 +161,75 @@ _Avoid_: Audit trail, history, timeline
 **Legal transition**:
 A bin status change that follows the allowed path in the lifecycle table. Any move not in the table is rejected — there is no silent workaround.
 _Avoid_: Valid state change, permitted move
+
+## Money & pilot economics
+
+These terms only appear in the business case (`docs/business-case/`), not in the app. All figures are BBD and VAT-inclusive unless the term says otherwise.
+
+**Stop**:
+One visit by the driver to a customer address — an empty drop, a filled collection, or a deliver back. The unit the field cost model is priced in.
+_Avoid_: Trip, visit, run, drop
+
+**Touch**:
+One warehouse handling of a single bin — a put-away or a scan-out. Priced separately from a stop because it is per bin, not per address.
+_Avoid_: Handle, move, pick
+
+**Cash cost**:
+Money that leaves the bank because the stop or touch happened — fuel and vehicle wear. Excludes salary, which is already paid whether or not the stop happens.
+_Avoid_: Variable cost, marginal cost, out-of-pocket
+
+**Loaded cost**:
+Cash cost plus an allocated share of the FTE's salary and vehicle fixed cost, spread over expected stops. What a stop "really" costs if you charge time to it.
+_Avoid_: Fully burdened, true cost, all-in cost
+
+**Gap**:
+Revenue minus loaded cost on a single event. A negative gap is expected and deliberate in this pilot — storage rent, not trip fees, is meant to cover the FTE.
+_Avoid_: Loss, deficit, shortfall
+
+**Contribution**:
+Net revenue after VAT, minus fixed cost, processing, ramp cash and surge. What is left to repay the $72k.
+_Avoid_: Profit, margin, EBITDA
+
+**Ramp cash**:
+The $40 of cash cost spent to onboard one new account (empty drop plus filled collection). Charged in the month the account starts.
+_Avoid_: CAC, acquisition cost, setup cost
+
+**FTE**:
+One full-time field person — driver and warehouse in the same body, at $3,200/month loaded. The pilot funds exactly one.
+_Avoid_: Headcount, staff member, employee (in cost prose)
+
+**Surge line**:
+The $250/month standing allowance for the named backup person to cover absence or peaks. Not a second FTE.
+_Avoid_: Overtime, contingency, cover
+
+**Borrow**:
+An outbound where the customer takes bins home for the 7-day pack window and later re-stores them free. Costs two stops for one $50 fee.
+_Avoid_: Temporary retrieval, loan, take-out
+
+**Close-out**:
+An outbound where the customer keeps the contents and the bins come back to inventory. Ends the lifecycle; one stop for one $50 fee.
+_Avoid_: Move-out, termination, final retrieval
+
+**Position**:
+One rack slot bought in the facility fit-out. Distinct from a bin: positions are capacity, bins are inventory.
+_Avoid_: Slot count, capacity unit, space
+
+**Occupancy**:
+Occupied positions ÷ installed positions. The month-6 metric that decides scale.
+_Avoid_: Utilisation, fill rate, take-up
+
+**Gate**:
+A named go/no-go checkpoint. Gate 0 is prepaid demand before any spend; Gate 1 is legal, insurance and lease before the fit-out.
+_Avoid_: Milestone, phase, stage-gate
+
+**Green / Amber / Red**:
+The verdict of a gate or metric against its stated thresholds. **Green** means proceed as planned; **Amber** means proceed only with a written fix or reprice; **Red** means stop or extend. "A green month 6" means every must-hit metric sat in its green band at month 6 — nothing to do with cash colour.
+_Avoid_: Pass/fail, on track, healthy
+
+**Must-hit metric**:
+A metric whose red band stops the pilot. Distinct from a **watch metric**, whose red band only forces a reprice or a written fix.
+_Avoid_: KPI, target, threshold
+
+**Template figure**:
+A number carried from an industry template rather than a Barbados quote or observed cost. Tagged `Template` in the document and must be replaced before the scale paper.
+_Avoid_: Estimate, assumption, placeholder
