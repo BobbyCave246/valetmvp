@@ -152,7 +152,7 @@ td.r{font-weight:600}
 <tbody>
 <tr><td>Monthly storage</td><td class="r">$30 / bin</td><td>While the bin is in the facility. Stops the day it is redelivered.</td></tr>
 <tr><td>Empty drop and collection in</td><td class="r">Free</td><td>First pack, later add-more, and re-store.</td></tr>
-<tr><td>Retrieval or close-out</td><td class="r">$50 / order</td><td>Any trip out of the facility. Per order, not per bin.</td></tr>
+<tr><td>Retrieval or close-out</td><td class="r">$50 / outbound order</td><td>Any trip out of the facility. Priced per outbound order, not per bin.</td></tr>
 <tr><td>Borrow / pack window</td><td class="r">7 days</td><td>Then $10 / bin / day until they book inbound. Waive if we cannot offer a slot.</td></tr>
 <tr><td>No-show</td><td class="r">$35 / stop</td><td>Cancel inside 24 hours is free.</td></tr>
 <tr><td>Default liability</td><td class="r">$500 / bin</td><td>Optional extra cover at booking. $0 in this P&amp;L.</td></tr>
@@ -165,7 +165,7 @@ td.r{font-weight:600}
 <thead><tr><th>Metric</th><th class="r">Value</th><th>Basis</th></tr></thead>
 <tbody>
 <tr><td>Bins per account</td><td class="r">5.5</td><td>Locked; $165 vs $205 unit</td></tr>
-<tr><td>Gross monthly ARPU</td><td class="r">$171</td><td>$165 storage + $6.25 retrieval (1.5 orders/year)</td></tr>
+<tr><td>Gross monthly ARPU</td><td class="r">$171</td><td>$165 storage + $6.25 retrieval (1.5 outbound orders/year)</td></tr>
 <tr><td>Net monthly ARPU</td><td class="r">~$146</td><td>Gross ÷ 1.175 VAT</td></tr>
 <tr><td>Contribution / account / month</td><td class="r">~$51</td><td>~$3,965 fleet ÷ ~77 accounts</td></tr>
 <tr class="total"><td>Contribution LTV</td><td class="r">~$1,690</td><td>~$51 × 33 months, before central overhead</td></tr>
@@ -182,7 +182,7 @@ td.r{font-weight:600}
 <p style="margin-top:10px"><span class="pill">Green</span> ≥30 accounts and ≥165 bins. Then, and only then, take the bay and buy 500 positions.</p>
 <p style="margin-top:10px"><span class="pill">Amber</span> 20–29 / 110–164: extend the campaign 30 days once. Do not install 250 totes at $1,500/mo rent.</p>
 <p style="margin-top:10px"><span class="pill">Red</span> Under 20 / 110: stop. Spend no further than marketing and quotes.</p>
-<p style="margin-top:10px"><span class="pill">Month 1</span> Occupied bins ≈ 70% of reserved. Thirty prepaid accounts are not thirty stored bins on day one.</p>
+<p style="margin-top:10px"><span class="pill">Month 1</span> Occupied bins ≈ 70% of reserved. Thirty reserved bins are not thirty occupied bins on day one.</p>
 </div>
 
 <h3>Volume assumptions behind the P&amp;L</h3>
@@ -312,7 +312,7 @@ td.r{font-weight:600}
 <div class="step"><div class="tag">Gate 1</div><h4>Setup</h4><ul>
 <li>Insurance binder; facility lease with a 6-month break</li>
 <li>500 positions on green only; barcodes printed</li>
-<li>Named FTE backup; monthly invoice from stored bins</li>
+<li>Named FTE backup; monthly invoice from occupied bins</li>
 </ul></div>
 <div class="step"><div class="tag">Gate 2</div><h4>Operate</h4><ul>
 <li>Six months: cash, occupancy, FTE hours</li>
@@ -349,19 +349,20 @@ td.r{font-weight:600}
 </div></section>
 
 <section><div class="wrap"><div class="sec-head"><span class="num">05</span><h2>How it runs</h2></div>
-<p class="body">Customers never sign in. They book and look up by phone or booking ref. Staff use three screens: admin, warehouse, driver. Phone cameras read the barcodes.</p>
+<p class="body">Customers never sign in. They book and look up by phone or booking ref. &ldquo;Account&rdquo; in this paper is the billing and demand unit &mdash; one household, 5.5 bins &mdash; not a login. Staff use three screens: admin, warehouse, driver. Phone cameras read the barcodes.</p>
 <p class="body">The Valet system already runs that lifecycle. Store All already bills on Plug’n Pay. The app does not take cards, time the 7-day clocks, or capture seals and weight.</p>
-<p class="body">Occupancy at the facility is the $30 charge. Finance keys valet bookings to the existing Plug’n Pay account.</p>
+<p class="body">Occupancy at the facility is the $30 charge: an <strong>occupied bin</strong> is exactly a bin at status Stored, so the invoice and the rack must always agree. Finance keys valet bookings to the existing Plug’n Pay account.</p>
 
 <table>
 <thead><tr><th>Stage</th><th>Control</th><th>Evidence</th></tr></thead>
 <tbody>
-<tr><td>Order</td><td>T&amp;Cs, prepaid first month, card on file</td><td>Booking ref + T&amp;Cs version + Plug’n Pay ref</td></tr>
+<tr><td>Booking</td><td>T&amp;Cs, prepaid first month, card on file</td><td>Booking ref + T&amp;Cs version + Plug’n Pay ref</td></tr>
 <tr><td>Empty drop</td><td>Scan bins to the account; 7-day pack clock starts</td><td>Driver scan</td></tr>
 <tr><td>Collection in</td><td>Weight, seal, contents photo; inbound free</td><td>Seal number, photos, scan trail</td></tr>
-<tr><td>Put-away</td><td>Scan bin to a rack slot; $30 starts</td><td>User, time, location</td></tr>
-<tr><td>Retrieval / close-out</td><td>Customer picks bins; one $50 order</td><td>Order ID ↔ bin IDs; $30 stops on redelivery</td></tr>
-<tr><td>Borrow / re-store</td><td>7 days at the house; then $10/bin/day until inbound is booked. Re-store is free.</td><td>Redelivery timestamp; hold invoice if needed</td></tr>
+<tr><td>Put-away</td><td>Scan bin to a barcoded location (one of the 500 installed positions); $30 starts</td><td>Staff, time, location</td></tr>
+<tr><td>Retrieval / close-out</td><td>One retrieval request, whatever the bin count, becomes one $50 outbound order</td><td>Outbound order ID ↔ bin IDs; $30 stops on redelivery</td></tr>
+<tr><td>Borrow / re-store</td><td>7 days at the house, then $10/bin/day until inbound is booked. Re-store is free and does not close the bin.</td><td>Redelivery timestamp; hold invoice if needed</td></tr>
+<tr><td>Close-out</td><td>Customer keeps the contents and stops paying. The bin returns to inventory.</td><td>Close on the bin; $30 stops on redelivery</td></tr>
 </tbody>
 </table>
 
@@ -370,8 +371,8 @@ td.r{font-weight:600}
 <thead><tr><th>Charge</th><th>When</th><th>Who collects</th></tr></thead>
 <tbody>
 <tr><td>Prepaid first month</td><td>Before the account is confirmed</td><td>Finance, existing Plug’n Pay, keyed by booking ref</td></tr>
-<tr><td>$30 / bin / month</td><td>Bin is stored; stops on redelivery</td><td>Monthly Plug’n Pay run from the stored-bin list</td></tr>
-<tr><td>$50 outbound</td><td>Any trip out of the facility</td><td>Plug’n Pay before the return job is treated as paid</td></tr>
+<tr><td>$30 / bin / month</td><td>Bin is Stored; stops on redelivery</td><td>Monthly Plug’n Pay run from the occupied-bin list (bins at status Stored)</td></tr>
+<tr><td>$50 per outbound order</td><td>Any trip out of the facility</td><td>Plug’n Pay before the return job is treated as paid</td></tr>
 <tr><td>Hold fee / no-show</td><td>After day 7, or an empty stop</td><td>Ops-raised Plug’n Pay invoice. Not in the base P&amp;L.</td></tr>
 </tbody>
 </table>
@@ -402,7 +403,7 @@ td.r{font-weight:600}
 </div></section>
 
 <section><div class="wrap"><div class="sec-head"><span class="num">06</span><h2>Scorecard</h2></div>
-<p class="body">Must-hit metrics can stop the pilot. Watch metrics can force a reprice. Loaded trip cost above $50 is not, by itself, a stop.</p>
+<p class="body">Must-hit metrics can stop the pilot. Watch metrics can force a reprice. Loaded trip cost above $50 is not, by itself, a stop. Green / amber / red are verdicts on a metric against the bands below &mdash; they never describe cash. Cash has its own words: peak cash, exposure, payback.</p>
 <table>
 <thead><tr><th>Metric</th><th>Green</th><th>Amber</th><th>Red / stop</th></tr></thead>
 <tbody>
@@ -459,7 +460,7 @@ td.r{font-weight:600}
 <li>Maximum cash exposure <strong>BBD $72,000</strong>.</li>
 <li>Gate 0: <strong>30 prepaid accounts and 165 reserved bins</strong>, counted only after Plug’n Pay shows prepaid first month and card on file against the booking ref.</li>
 <li>Gate 1: insurance binder, counsel, Coverley access, and a <strong>6-month facility lease break</strong>, then a <strong>500-position install on green only</strong>.</li>
-<li>One field FTE (driver + warehouse). Store All office on admin and billing. Named backup. Monthly invoice from stored bins.</li>
+<li>One field FTE (driver + warehouse). Store All office on admin and billing. Named backup. Monthly invoice from occupied bins.</li>
 <li>Month-6 go / extend / stop, including the 24-month cash-recovery test.</li>
 <li>FTE #2, SiteLink and any rollout: a separate paper.</li>
 </ol>
