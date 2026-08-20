@@ -31,16 +31,11 @@ body{font-family:Arial,Helvetica,sans-serif;background:var(--paper);color:var(--
 .lede{font-size:20px;color:rgba(255,255,255,.9);max-width:820px;margin-top:20px}
 .meta{display:flex;gap:34px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.22);margin-top:34px;padding-top:20px;font-size:13px;color:rgba(255,255,255,.78)}
 .meta b{display:block;color:#fff;font-size:15px;margin-top:3px}
-
-
-
-
 section{padding:52px 0;border-bottom:1px solid var(--line)}
 .sec-head{display:flex;gap:14px;align-items:baseline;margin-bottom:26px}
 .num{color:var(--accent);font-family:Georgia,serif;font-weight:bold}
 .sec-head h2{font-family:Georgia,serif;font-size:36px;line-height:1.08}
 .body{max-width:880px;margin-bottom:15px;color:#323132}
-.quote{font-family:Georgia,serif;font-size:25px;font-style:italic;color:var(--brand);max-width:880px;margin:8px 0 20px}
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin:28px 0}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:28px 0}
 .metric{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:20px;box-shadow:var(--shadow);border-top:4px solid var(--brand)}
@@ -80,271 +75,193 @@ td.r{font-weight:600}
 .small{font-size:12.5px;color:var(--muted);font-style:italic}
 .decision{border:2px solid var(--accent);background:#fff7f3;border-radius:15px;padding:28px}
 .decision h3{margin-top:0;font-family:Georgia,serif;font-size:25px}
+.decision ol,.decision ul{margin:12px 0 0 22px}
+.decision li{margin-bottom:8px}
 .pill{display:inline-block;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:bold;background:var(--accent-soft);color:var(--brand-dark);margin-right:5px}
 .tag-assump{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#ffe8d6;color:#9a3412;margin-left:6px;vertical-align:middle}
 .tag-locked{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#e3f2e4;color:#2f7d32;margin-left:6px;vertical-align:middle}
 .footer{background:var(--ink);color:#cfcfcf;padding:36px 0;font-size:13px}
 .footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .footer b{color:#fff}
-
-
 @media(max-width:850px){.grid4,.grid3,.two,.steps,.risks{grid-template-columns:1fr 1fr}}
 @media(max-width:580px){.grid4,.grid3,.two,.steps,.risks{grid-template-columns:1fr}.wrap{padding:0 18px}.sec-head h2{font-size:30px}}
 @media print{body{background:#fff}.metric,.panel,table,.step,.risk{box-shadow:none}section{page-break-inside:avoid;padding:34px 0}}
 </style>
 </head>
 <body>
-<header class="hero"><div class="wrap"><div class="eyebrow">Store All · Cave Shepherd Group · Confidential</div><h1>Coverley Valet Storage <em>Pilot</em></h1><p class="lede">A contained, evidence-led test of by-the-bin pickup and delivery storage for Coverley households. This paper seeks approval for the pilot only, not for a full-scale rollout. Offer, meter, till and scorecard are locked to one product so a go / no-go is possible.</p><div class="meta"><div>Decision sought<b>Conditional pilot approval</b></div><div>Catchment<b>The Villages at Coverley (1,200 homes)</b></div><div>Storage location<b>Leased Wildey warehouse — $1,500/mo cash</b></div><div>Decision gate<b>Month 6</b></div></div></div></header>
+<header class="hero"><div class="wrap"><div class="eyebrow">Store All · Cave Shepherd Group · Confidential</div><h1>Coverley Valet Storage <em>Pilot</em></h1><p class="lede">A six-month test of by-the-bin storage for Coverley. This paper asks for the pilot only, not a rollout.</p><div class="meta"><div>Decision sought<b>Conditional pilot approval</b></div><div>Catchment<b>The Villages at Coverley (1,200 homes)</b></div><div>Storage location<b>Wildey warehouse, $1,500/mo cash</b></div><div>Decision gate<b>Month 6</b></div></div></div></header>
 
-
-
-<section><div class="wrap"><div class="sec-head"><span class="num">01</span><h2>Executive decision summary</h2></div>
-<p class="quote">Approve a controlled experiment with a stop-loss, not a speculative scale-up.</p>
-<p class="body">The ask is a gated Coverley pilot of Store All Valet. One SKU, BBD $30 per occupied warehouse bin, inbound trips free, outbound $50 per order. At 85% occupancy, expected <strong>BBD $4,000 monthly cash contribution</strong>; break-even ~<strong>270 occupied bins (54%)</strong>. Base-case cash peaks ~<strong>BBD $51,000</strong>; slow-ramp downside ~<strong>$57,000</strong>. Hard stop: <strong>BBD $72,000</strong>. The Valet operating system already exists; billing runs on Store All Plug’n Pay. There is no second WMS build inside this ceiling.</p>
+<section><div class="wrap"><div class="sec-head"><span class="num">01</span><h2>The ask</h2></div>
+<p class="body">One tote. $30 a month while the bin is in Wildey. Inbound free. $50 per trip back out. Break-even is ~270 occupied bins (54%). At 85% occupancy, cash contribution is ~$4,000 a month.</p>
+<p class="body">Cash peaks around $51,000 in the base case and $57,000 if ramp is slow. Hard stop is $72,000. Billing is Store All Plug’n Pay. The Valet booking system already exists.</p>
 <div class="grid4">
-<div class="metric gold"><div class="v">$72k</div><div class="l">Maximum total authorised cash exposure</div></div>
-<div class="metric"><div class="v">~54%</div><div class="l">Operating break-even occupancy (~270 bins), including surge</div></div>
+<div class="metric gold"><div class="v">$72k</div><div class="l">Maximum cash exposure</div></div>
+<div class="metric"><div class="v">~54%</div><div class="l">Break-even occupancy (~270 bins)</div></div>
 <div class="metric"><div class="v">~$4.0k</div><div class="l">Monthly cash contribution at 85% occupancy</div></div>
-<div class="metric red"><div class="v">~M17</div><div class="l">Estimated cumulative base-case cash payback after lease-up</div></div>
+<div class="metric red"><div class="v">~M17</div><div class="l">Base-case cash payback from launch</div></div>
 </div>
-<div class="callout"><h3>What approval does and does not mean</h3><p>Approval authorises demand validation, setup and a six-month operating trial within the BBD $72,000 ceiling, not a multi-site rollout or a second FTE. Month-6 scale consideration also requires a forecast path to cumulative cash recovery within 24 months of launch. A 250-position fit-out on a $1,500 bay <em>cannot</em> reach break-even — do not take the lease on a sub-scale install.</p></div>
+<div class="callout"><h3>What this approval covers</h3><p>Demand proof, setup and six months of operations inside $72,000. Not a second FTE. Not a second site. Not a 250-bin fit-out on a $1,500 bay: that cannot break even. Scale at month 6 only if cash recovers within 24 months of launch.</p></div>
 </div></section>
 
-<section><div class="wrap"><div class="sec-head"><span class="num">02</span><h2>Who it is for</h2></div>
-<p class="quote">Household overflow is the engine. Ross students are a real Coverley segment — modelled as stress, not the headline LTV.</p>
+<section><div class="wrap"><div class="sec-head"><span class="num">02</span><h2>Who and what</h2></div>
+<p class="body">Primary customer: a Coverley household, owner or renter, with a few bins of overflow who will not rent a Store All unit. Tenure: 3% monthly churn (~33 months).</p>
+<p class="body">Ross University students live on the estate. Treat them as stress: 25% of accounts, 8 bins, ~11 months, plus a May/June close-out spike. Keep them out of the 33-month LTV.</p>
 <div class="two">
-<div>
-<h3>Primary customer <span class="tag-locked">Locked</span></h3>
-<p class="body">A <strong>Coverley household (owner or renter)</strong> with about three to eight bins of household overflow who would not rent a full Store All unit, and who will pay a premium for collection, secure storage and scheduled return. Base-case tenure is household self-storage tenure: <strong>3% monthly account churn (~33 months)</strong>.</p>
-<h3>Named secondary: Ross University students</h3>
-<p class="body">Coverley houses a material number of <strong>Ross University students for the academic year</strong>. They sit <em>inside</em> the 1,200-home estate, not in a separate adjacent geofence. Treat them as a <strong>25% / ~11-month / 8-bin stress case</strong>, plus a May/June close-out spike on the single FTE. Do not blend them into the 33-month headline LTV.</p>
+<div class="panel">
+<h3>Pilot product <span class="tag-locked">Locked</span></h3>
+<ul class="clean">
+<li><b>One SKU:</b> hard-sided tote, <b>2.3 cu ft / 17.2 gal</b>, <b>24″ L × 19.5″ W × 12.5″ H</b>.</li>
+<li>Max <strong>25 kg</strong> <span class="tag-assump">Template</span>. Customer packs. No furniture, hanging garments, bikes, loose, hazardous, liquid or perishable goods.</li>
+<li>Script: <b>1–6 bins</b> valet. <b>7–8</b> show the Store All unit as well. <b>9+</b> or any furniture → unit.</li>
+</ul>
 </div>
 <div class="panel">
-<h3>Pilot product boundary <span class="tag-locked">Locked</span></h3>
-<ul class="clean">
-<li><b>One SKU only:</b> standard hard-sided tote, <b>2.3 cu ft / 17.2 gal</b>, <b>24″ L × 19.5″ W × 12.5″ H</b>.</li>
-<li>Maximum weight <strong>25 kg per bin</strong> <span class="tag-assump">Template</span>.</li>
-<li>No wardrobe, odd-size, furniture, bicycles, oversized, loose, hazardous, liquid or perishable goods.</li>
-<li>Valet for <b>1–6 bins</b>. At <b>7–8</b> show Store All unit as well. At <b>9+</b> or any furniture → unit.</li>
-</ul>
+<h3>Scale of the test</h3>
+<table>
+<thead><tr><th>Layer</th><th class="r">Count</th></tr></thead>
+<tbody>
+<tr><td>Coverley homes (includes Ross)</td><td class="r">1,200</td></tr>
+<tr><td>Gate 0 (2.5% of the estate, prepaid)</td><td class="r">30 accounts / 165 bins</td></tr>
+<tr class="total"><td>Steady state (85% of 500, 5.5 bins each)</td><td class="r">~77 accounts / 425 bins</td></tr>
+</tbody>
+</table>
+<p class="small">Gate 0 is the demand proof. It is not a TAM forecast.</p>
 </div>
 </div>
 
-<h3>Store All unit comparison <span class="tag-locked">Locked prices</span></h3>
-<p class="body">Ten of these totes are ~23 cu ft. A 5×6 is a different product (far more cube). Cannibalisation is a <em>price</em> conversation at 7–8 bins, not a volume match.</p>
+<h3>Against a Store All unit <span class="tag-locked">Confirm 5×6 $205 / 5×8 $245</span></h3>
+<p class="body">Ten totes are ~23 cu ft. A 5×6 is ~300 cu ft. At 7–8 bins, price is close; the unit wins on space. Report diverted unit enquiries monthly.</p>
 <table>
 <thead><tr><th>Offer</th><th class="r">Monthly (VAT-incl.)</th><th>What they get</th></tr></thead>
 <tbody>
-<tr><td>Valet 5.5 bins (household base)</td><td class="r">$165</td><td>~13 cu ft + doorstep inbound</td></tr>
-<tr><td>Valet 6 bins (top of “valet-only” script)</td><td class="r">$180</td><td>~14 cu ft + doorstep inbound</td></tr>
-<tr><td>Valet 7 bins</td><td class="r">$210</td><td>Price parity with 5×6; unit wins on space</td></tr>
-<tr><td>Store All 5×6</td><td class="r">$205</td><td>~300 cu ft; customer transports</td></tr>
+<tr><td>Valet 5.5 bins (household base)</td><td class="r">$165</td><td>~13 cu ft, we collect</td></tr>
+<tr><td>Valet 6 bins</td><td class="r">$180</td><td>Top of the valet-only script</td></tr>
+<tr><td>Store All 5×6</td><td class="r">$205</td><td>~300 cu ft; they transport</td></tr>
 <tr><td>Valet 8 bins (Ross stress)</td><td class="r">$240</td><td>Price fight with 5×8</td></tr>
-<tr class="total"><td>Store All 5×8</td><td class="r">$245</td><td>~320 cu ft; customer transports</td></tr>
+<tr class="total"><td>Store All 5×8</td><td class="r">$245</td><td>~320 cu ft; they transport</td></tr>
 </tbody>
 </table>
-<p class="small">Confirm 5×6 $205 / 5×8 $245 with Store All South before the board pack is issued. Script: 1–6 valet; 7–8 show both; 9+ or furniture → unit. Report diverted unit enquiries monthly.</p>
-
-<h3>Addressable market</h3>
-<table>
-<thead><tr><th>Layer</th><th class="r">Count</th><th>Basis</th></tr></thead>
-<tbody>
-<tr><td>Coverley Villages residences</td><td class="r">1,200</td><td>Estate household count (includes Ross student households)</td></tr>
-<tr><td>Gate 0 ask</td><td class="r">30 accounts / 165 bins</td><td>2.5% of the estate, prepaid — the test, not a TAM forecast</td></tr>
-<tr class="total"><td>Steady-state destination</td><td class="r">~77 accounts / 425 bins</td><td>85% of 500 positions at 5.5 bins/account</td></tr>
-</tbody>
-</table>
-<p class="small">Persona-share × conversion TAM (old 40% × 10–15%) is removed as evidence. Gate 0 deposits are the demand proof.</p>
 </div></section>
 
-<section><div class="wrap"><div class="sec-head"><span class="num">03</span><h2>Business model</h2></div>
-<p class="quote">Recurring warehouse storage is the engine. Inbound is free. Outbound is a priced trip.</p>
-<p class="body"><strong>Concept in one line:</strong> Store All Valet is doorstep by-the-bin storage for Coverley households who need a few totes, not a unit. We deliver empty bins, collect them when packed, store them on racking in Wildey, and return selected bins on request.</p>
+<section><div class="wrap"><div class="sec-head"><span class="num">03</span><h2>Prices and Gate 0</h2></div>
+<p class="body">We deliver empty bins, collect them packed, store them in Wildey, and bring selected bins back on request. Storage is the engine. Inbound is free. Outbound is a priced trip.</p>
 
-<h3>Offer and pricing <span class="tag-locked">Locked</span></h3>
+<h3>Locked offer <span class="tag-locked">VAT-incl.</span></h3>
 <table>
-<thead><tr><th>Element</th><th>Pilot price (VAT-incl.)</th><th>What the customer gets</th></tr></thead>
+<thead><tr><th>Charge</th><th class="r">Price</th><th>Rule</th></tr></thead>
 <tbody>
-<tr><td><b>Monthly storage</b></td><td class="r">BBD $30 / bin in Wildey</td><td>Secure rack storage, barcode custody. Meter <em>stops</em> the day the bin is redelivered.</td></tr>
-<tr><td><b>Empty-bin delivery</b></td><td class="r">Included</td><td>Inbound. Always free, including later add-more.</td></tr>
-<tr><td><b>Collection into storage</b></td><td class="r">Included</td><td>First pack <em>and</em> later re-store. Always free.</td></tr>
-<tr><td><b>Retrieval / close-out</b></td><td class="r">BBD $50 / order</td><td>Any trip that takes bins <em>out</em> of Wildey — borrow or final close-out. Per order, not per bin.</td></tr>
-<tr><td><b>Borrow window</b></td><td class="r">7 days</td><td>After redelivery, company tote may sit at the house for one week.</td></tr>
-<tr><td><b>Hold fee after day 7</b></td><td class="r">BBD $10 / bin / day</td><td>Until they <em>book</em> inbound collection (re-store or empty-tote return). Waive if we cannot offer a slot.</td></tr>
-<tr><td><b>Pack clock (new account)</b></td><td class="r">Same 7-day + $10/bin</td><td>After empty drop, 7 days to book filled collection.</td></tr>
-<tr><td><b>No-show</b></td><td class="r">BBD $35 / stop</td><td>Driver arrives, customer absent. Cancel inside 24 hours is free.</td></tr>
-<tr><td><b>Default liability</b></td><td class="r">BBD $500 / bin</td><td>Optional enhanced cover at booking; $0 in this P&amp;L.</td></tr>
+<tr><td>Monthly storage</td><td class="r">$30 / bin</td><td>While the bin is in Wildey. Stops the day it is redelivered.</td></tr>
+<tr><td>Empty drop and collection in</td><td class="r">Free</td><td>First pack, later add-more, and re-store.</td></tr>
+<tr><td>Retrieval or close-out</td><td class="r">$50 / order</td><td>Any trip out of Wildey. Per order, not per bin.</td></tr>
+<tr><td>Borrow / pack window</td><td class="r">7 days</td><td>Then $10 / bin / day until they book inbound. Waive if we cannot offer a slot.</td></tr>
+<tr><td>No-show</td><td class="r">$35 / stop</td><td>Cancel inside 24 hours is free.</td></tr>
+<tr><td>Default liability</td><td class="r">$500 / bin</td><td>Optional extra cover at booking. $0 in this P&amp;L.</td></tr>
 </tbody>
 </table>
-<p class="small">UK/EU box-valet pattern: free inbound, paid outbound (Express Storage return £15; BOXIE24 returns from ~€20). $50 is the trip deterrent. Hold fees and no-shows are not in the base P&amp;L.</p>
+<p class="small">Same pattern as UK/EU box valet (free in, paid out). Hold fees and no-shows are upside, not in the base P&amp;L.</p>
 
-<div class="two">
-<div class="panel">
-<h3>Revenue model</h3>
-<ul class="clean">
-<li><b>Primary (~96% of steady-state gross):</b> $30 per bin actually in the warehouse.</li>
-<li><b>Secondary (~4%):</b> $50 outbound orders at 1.5 per household per year.</li>
-<li><b>Not charged:</b> empty drop, first collection, later re-store / add-more.</li>
-<li><b>Not the model:</b> per-bin retrieval fees, furniture, or a unit disguised as valet.</li>
-</ul>
-<p style="margin-top:14px;font-size:14px;color:#3b423d">At 85% occupancy the P&amp;L is about <b>BBD $12,750 storage + $483 retrieval = $13,233</b> gross per month. Storage pays rent, crew and van. Outbound only partly covers a loaded trip — that is accepted, and is a <em>watch</em> metric, not a stop.</p>
-</div>
-<div class="panel">
-<h3>Who pays, and for what</h3>
-<ul class="clean">
-<li><b>Customer account:</b> phone + booking ref; billed on Store All <b>Plug’n Pay</b> (no in-app Stripe in the pilot).</li>
-<li><b>Bin in Wildey:</b> billing unit for storage.</li>
-<li><b>Outbound order:</b> billing unit for returns and close-outs.</li>
-<li>Household base: <b>5.5 bins</b> ($165/mo). Ross stress: <b>8 bins</b> ($240/mo).</li>
-<li><b>Confirmed (Gate 0):</b> prepaid first month on reserved bin count + card on file + empty-drop date within 45 days. Prepaid credits to the first warehouse month.</li>
-</ul>
-</div>
-</div>
-
-<h3>Customer unit economics and LTV — household base</h3>
+<h3>Household unit economics</h3>
 <table>
 <thead><tr><th>Metric</th><th class="r">Value</th><th>Basis</th></tr></thead>
 <tbody>
-<tr><td>Average bins per household account</td><td class="r">5.5</td><td>Locked; sits under the $205 5×6 unit</td></tr>
-<tr><td>Gross monthly storage ARPU</td><td class="r">$165</td><td>5.5 × $30 (warehouse bins)</td></tr>
-<tr><td>Gross monthly retrieval ARPU</td><td class="r">$6.25</td><td>1.5 orders/year × $50 ÷ 12</td></tr>
-<tr><td>Gross monthly ARPU (VAT-incl.)</td><td class="r">$171</td><td>Storage + retrieval</td></tr>
-<tr><td>Net monthly ARPU (after VAT)</td><td class="r">~$146</td><td>Gross ÷ 1.175</td></tr>
-<tr><td>Expected tenure</td><td class="r">~33 months</td><td>1 ÷ 3% monthly household churn</td></tr>
-<tr><td>Gross revenue LTV</td><td class="r">~$5,650</td><td>$171 × 33 months</td></tr>
-<tr><td>Net revenue LTV (after VAT)</td><td class="r">~$4,810</td><td>~$146 × 33 months</td></tr>
-<tr><td>Steady-state contribution / account / month</td><td class="r">~$51</td><td>~$3,965 fleet contribution ÷ ~77 accounts</td></tr>
+<tr><td>Bins per account</td><td class="r">5.5</td><td>Locked; $165 vs $205 unit</td></tr>
+<tr><td>Gross monthly ARPU</td><td class="r">$171</td><td>$165 storage + $6.25 retrieval (1.5 orders/year)</td></tr>
+<tr><td>Net monthly ARPU</td><td class="r">~$146</td><td>Gross ÷ 1.175 VAT</td></tr>
+<tr><td>Contribution / account / month</td><td class="r">~$51</td><td>~$3,965 fleet ÷ ~77 accounts</td></tr>
 <tr class="total"><td>Contribution LTV</td><td class="r">~$1,690</td><td>~$51 × 33 months, before central overhead</td></tr>
-<tr><td>Cash CAC (pilot)</td><td class="r">~$140</td><td>~$100 campaign share ($3k / 30) + ~$40 onboarding burn</td></tr>
-<tr><td>Contribution payback</td><td class="r">~3 months</td><td>CAC ÷ ~$51 / month</td></tr>
+<tr><td>Cash CAC (pilot)</td><td class="r">~$140</td><td>$3k campaign / 30 + $40 onboarding</td></tr>
+<tr><td>Contribution payback</td><td class="r">~3 months</td><td>CAC ÷ ~$51</td></tr>
 </tbody>
 </table>
-<p class="small">Ross stress (not in the headline): 25% of accounts, 8 bins, ~11 months. Blended tenure if Ross is 25% of the book ≈ 27.5 months; contribution LTV falls. Recalculate monthly from actual mix. Hold-fee and no-show income is upside, not in LTV.</p>
+<p class="small">If Ross is 25% of the book, blended tenure falls to ~27.5 months. Recalculate from the actual mix. At 85% occupancy, gross is ~$12,750 storage + $483 retrieval.</p>
 
-<h3>Sales and distribution</h3>
-<div class="two">
-<div class="panel">
-<h3>Where demand comes from</h3>
-<ul class="clean">
-<li><b>Geofence:</b> The Villages at Coverley only for the pilot (1,200 homes, including Ross students living on the estate).</li>
-<li><b>Direct digital:</b> public pricing + reservation; pay-to-confirm via Store All Plug’n Pay (no field sales team).</li>
-<li><b>Estate / community:</b> property-management and resident channels.</li>
-<li><b>Store All adjacency:</b> 1–6 bin overflow that does not justify a unit; show both at 7–8; unit at 9+ or furniture.</li>
-</ul>
-</div>
-<div class="panel">
-<h3>How a sale closes</h3>
-<ul class="clean">
-<li>Campaign / referral → pricing page (one SKU, $30 / $50, prepaid first month)</li>
-<li>Customer selects bin count + window → accepts T&amp;Cs</li>
-<li><b>Confirmed only with prepaid first month + card + date within 45 days</b></li>
-<li>Empty bins delivered → 7 days to book collection → we collect → rack in Wildey → $30 starts</li>
-<li>Later: $50 outbound via phone / booking ref; 7-day borrow then re-store free or close</li>
-</ul>
-</div>
+<div class="decision">
+<h3>Gate 0: count only paid demand</h3>
+<p><span class="pill">Confirmed account</span> Versioned T&amp;Cs, prepaid first month on the reserved bin count, card on file via Plug’n Pay, and an empty-drop date within 45 days. Prepaid credits to the first warehouse month.</p>
+<p style="margin-top:10px"><span class="pill">Does not count</span> A website form submit, a waitlist email, or a verbal yes. The site takes a reservation. Plug’n Pay makes it confirmed.</p>
+<p style="margin-top:10px"><span class="pill">Green</span> ≥30 accounts and ≥165 bins. Then, and only then, take the bay and buy 500 positions.</p>
+<p style="margin-top:10px"><span class="pill">Amber</span> 20–29 / 110–164: extend the campaign 30 days once. Do not install 250 totes at $1,500/mo rent.</p>
+<p style="margin-top:10px"><span class="pill">Red</span> Under 20 / 110: stop. Spend no further than marketing and quotes.</p>
+<p style="margin-top:10px"><span class="pill">Month 1</span> Occupied bins ≈ 70% of reserved. Thirty prepaid accounts are not thirty stored bins on day one.</p>
 </div>
 
-<div class="callout note">
-<h3>Business-model test for the pilot</h3>
-<p>The pilot succeeds as a <em>business</em> only if (1) prepaid demand hits Gate 0 before the $1,500 bay is taken, (2) household storage ARPU and tenure support ~$50 contribution per account, and (3) outbound volume does not consume the single FTE (watch hours, do not pretend loaded trip cost will be ≤ $50). Change fees only with measured conversion and loaded hours.</p>
-</div>
-</div></section>
-
-<section><div class="wrap"><div class="sec-head"><span class="num">04</span><h2>Gate 0 and service assumptions</h2></div>
-<p class="body">This locks the <strong>demand gate</strong> and the volume assumptions that drive cost and capacity.</p>
-
-<h3>Base-case service assumptions</h3>
+<h3>Volume assumptions behind the P&amp;L</h3>
 <table>
-<thead><tr><th>Input</th><th class="r">Base case</th><th>Why it matters</th></tr></thead>
+<thead><tr><th>Input</th><th class="r">Base</th><th>Used for</th></tr></thead>
 <tbody>
-<tr><td>Average bins per household account</td><td class="r">5.5</td><td>Converts bins into accounts; $165 vs $205 unit</td></tr>
-<tr><td>Ross stress bins / tenure</td><td class="r">8 bins / ~11 mo</td><td>25% mix; May/June close-out spike</td></tr>
-<tr><td>Outbound orders per household per year</td><td class="r">1.5</td><td>Van days; 2.0 is a sensitivity only</td></tr>
-<tr><td>Share of outbounds that are 7-day borrows</td><td class="r">50%</td><td>Each borrow adds a later free inbound stop</td></tr>
-<tr><td>Average bins per outbound order</td><td class="r">2.5</td><td>Labour and van fill <span class="tag-assump">Template</span></td></tr>
-<tr><td>Monthly household churn</td><td class="r">3%</td><td>Tenure / LTV; Ross not in this KPI</td></tr>
-<tr><td>Coverley ↔ Wildey round-trip</td><td class="r">~18 km / ~35 min</td><td>Route density and fuel <span class="tag-assump">Template</span></td></tr>
+<tr><td>Outbound orders / household / year</td><td class="r">1.5</td><td>Van days. 2.0 is a sensitivity only.</td></tr>
+<tr><td>Share that are 7-day borrows</td><td class="r">50%</td><td>Each borrow adds a later free inbound stop.</td></tr>
+<tr><td>Bins per outbound order</td><td class="r">2.5</td><td>Labour and van fill <span class="tag-assump">Template</span></td></tr>
+<tr><td>Coverley ↔ Wildey round-trip</td><td class="r">~18 km / ~35 min</td><td>Fuel <span class="tag-assump">Template</span></td></tr>
 </tbody>
 </table>
-
-<div class="decision" style="margin-top:28px">
-<h3>Hard Gate 0 definition</h3>
-<p><span class="pill">Confirmed account</span> Signed T&amp;Cs (versioned) <strong>and</strong> prepaid first month of storage on the reserved bin count <strong>and</strong> card on file (Store All Plug’n Pay) <strong>and</strong> a scheduled empty-bin delivery date within 45 days.</p>
-<p style="margin-top:10px"><span class="pill">Reserved bin</span> A bin count attached to a confirmed account. Waitlist emails and verbal interest do <strong>not</strong> count. Prepaid credits to the first warehouse month; refund minus hold fees if they never store.</p>
-<p style="margin-top:10px"><span class="pill">Gate 0 pass (green)</span> ≥30 confirmed accounts <strong>and</strong> ≥165 reserved bins (30 × 5.5).</p>
-<p style="margin-top:10px"><span class="pill">Amber</span> 20–29 accounts / 110–164 bins: extend the campaign 30 days once. Do <strong>not</strong> take the $1,500 bay on a 250-tote install — that capacity cannot reach ~270-bin break-even.</p>
-<p style="margin-top:10px"><span class="pill">Red</span> &lt;20 accounts / &lt;110 bins: stop before fit-out spend beyond marketing and quote fees.</p>
-<p style="margin-top:10px"><span class="pill">Ramp haircut</span> Month 1 occupied ≈ <strong>70%</strong> of Gate 0 reserved (pack delays, 7-day clock, drop-outs). 30 prepaid does not mean 30 stored on day one.</p>
-</div>
 </div></section>
 
-<section><div class="wrap"><div class="sec-head"><span class="num">05</span><h2>Unit costs: onboarding, retrieval and labour</h2></div>
-<p class="body">Separates <strong>cash marginal</strong> cost (FTE already paid) from <strong>fully loaded</strong> cost (capacity / surge). Salary stays inside monthly fixed cost; touch rates are not double-counted as cash.</p>
+<section><div class="wrap"><div class="sec-head"><span class="num">04</span><h2>Cash</h2></div>
+<p class="body">All figures BBD. Prices include VAT. Contribution uses net ÷ 1.175. Input VAT recovery is not modelled <span class="tag-assump">Template</span>. Salary sits in the monthly fixed line, not in the per-stop rates.</p>
 
 <div class="grid3">
 <div class="metric"><div class="v">$48</div><div class="l">Fully loaded cost per customer stop <span class="tag-assump">Template</span></div></div>
-<div class="metric"><div class="v">$12</div><div class="l">Cash marginal cost per stop (fuel/wear)</div></div>
-<div class="metric"><div class="v">$3</div><div class="l">Fully loaded cost per warehouse bin touch <span class="tag-assump">Template</span></div></div>
+<div class="metric"><div class="v">$12</div><div class="l">Cash cost per stop (fuel / wear)</div></div>
+<div class="metric"><div class="v">$3</div><div class="l">Fully loaded cost per warehouse touch <span class="tag-assump">Template</span></div></div>
 </div>
 
-<h3>Onboarding cost per new household (avg 5.5 bins)</h3>
+<div class="two">
+<div>
+<h3>Onboarding (5.5 bins)</h3>
 <table>
-<thead><tr><th>Component</th><th class="r">Cash marginal</th><th class="r">Fully loaded</th></tr></thead>
+<thead><tr><th>Component</th><th class="r">Cash</th><th class="r">Loaded</th></tr></thead>
 <tbody>
-<tr><td>Empty-bin delivery (1 stop, free to customer)</td><td class="r">$12</td><td class="r">$48</td></tr>
-<tr><td>Filled-bin collection (1 stop, free to customer)</td><td class="r">$12</td><td class="r">$48</td></tr>
+<tr><td>Empty drop (free to customer)</td><td class="r">$12</td><td class="r">$48</td></tr>
+<tr><td>Filled collection (free to customer)</td><td class="r">$12</td><td class="r">$48</td></tr>
 <tr><td>Warehouse intake (5.5 touches)</td><td class="r">~$0*</td><td class="r">$16.50</td></tr>
-<tr class="total"><td>Total per new account</td><td class="r">~$24–40</td><td class="r">~$112</td></tr>
+<tr class="total"><td>Per new account</td><td class="r">~$24–40</td><td class="r">~$112</td></tr>
 </tbody>
 </table>
-<p class="small">Ramp model uses <strong>BBD $40 cash onboarding burn per new account</strong>. *$0 intake cash while within paid FTE hours.</p>
-
-<h3>Outbound order economics (after the locked offer)</h3>
-<table>
-<thead><tr><th>Order type</th><th>Share</th><th class="r">Fee</th><th class="r">Cash marginal</th><th class="r">Fully loaded</th><th class="r">Loaded gap</th></tr></thead>
-<tbody>
-<tr><td>7-day borrow (out + free re-store)</td><td>50%</td><td class="r">$50</td><td class="r">~$24</td><td class="r">~$111</td><td class="r redtxt">−$61</td></tr>
-<tr><td>Permanent withdrawal / close-out</td><td>50%</td><td class="r">$50</td><td class="r">~$12</td><td class="r">~$56</td><td class="r amber">−$6</td></tr>
-<tr class="total"><td>Blended</td><td>100%</td><td class="r">$50</td><td class="r">~$18</td><td class="r">~$84</td><td class="r redtxt">−$34</td></tr>
-</tbody>
-</table>
-<div class="callout warn">
-<h3>Implication — accepted, watched, not a stop</h3>
-<p>This is the UK/EU box pattern: inbound free, outbound priced. Temporary borrows still lose ~BBD $61 loaded; the blend loses ~$34. Cash is fine while the FTE has spare capacity (~19 stops/month at steady state). Measure loaded hours. Reprice the $50 or add FTE #2 only via the hours tripwires on the scorecard. Do not mark the pilot red because loaded trip cost exceeds $50. That is the design.</p>
+<p class="small">Ramp uses <strong>$40 cash</strong> per new account. *Intake cash is $0 inside paid FTE hours.</p>
 </div>
-<p class="body"><strong>1 FTE</strong> in the cost base ($3,200 loaded). Workflow: Coverley drop/pick, then Wildey store/stack. Store All office owns admin, Plug’n Pay and inbound phone (central overhead, not a second FTE). Named Store All backup for leave/sick, paid from the <strong>BBD $250/mo surge</strong> line. FTE #2 is <em>not</em> in the $72k; hire only after a green month-6 scale decision or an explicit early board ask. Tripwire to open that ask: <strong>loaded hours &gt;75% for 4 straight weeks</strong>, or <strong>&gt;1.5 completed stops per working day for a month</strong>.</p>
-</div></section>
+<div>
+<h3>Outbound ($50 fee)</h3>
+<table>
+<thead><tr><th>Type</th><th>Share</th><th class="r">Cash</th><th class="r">Loaded</th><th class="r">Gap</th></tr></thead>
+<tbody>
+<tr><td>Borrow (out + free re-store)</td><td>50%</td><td class="r">~$24</td><td class="r">~$111</td><td class="r redtxt">−$61</td></tr>
+<tr><td>Close-out</td><td>50%</td><td class="r">~$12</td><td class="r">~$56</td><td class="r amber">−$6</td></tr>
+<tr class="total"><td>Blended</td><td>100%</td><td class="r">~$18</td><td class="r">~$84</td><td class="r redtxt">−$34</td></tr>
+</tbody>
+</table>
+<p class="small">$50 does not cover a loaded trip. That is the design. Watch hours (~19 stops/month at steady state). Reprice only if hours go amber.</p>
+</div>
+</div>
 
-<section><div class="wrap"><div class="sec-head"><span class="num">06</span><h2>Money story: spend, ramp, destination</h2></div>
-<p class="quote">First what we spend, then how cash moves for six months, then what “full” looks like if demand holds.</p>
-<p class="body">One pilot cash story: <strong>setup spend → lease-up path → steady-state destination</strong>. All figures BBD. VAT-inclusive prices; net in the contribution line is ÷ 1.175. Input VAT recovery not modelled <span class="tag-assump">Template</span>.</p>
+<p class="body">One field FTE ($3,200 loaded) does Coverley, then Wildey. Store All office owns admin, Plug’n Pay and the phone. Named backup sits on the $250 surge line. A second FTE is not in the $72k.</p>
+<p class="body">Open a second-FTE paper only after a green month-6 scale decision, or if loaded hours stay above 75% for four weeks, or stops stay above 1.5 per working day for a month.</p>
 
-<h3>A. What we spend to start</h3>
+<h3>Monthly fixed cost</h3>
 <div class="two">
 <div class="panel">
-<h3>Monthly fixed cost</h3>
 <table>
 <thead><tr><th>Line</th><th class="r">/month</th></tr></thead>
 <tbody>
 <tr><td>Crew: 1 FTE loaded</td><td class="r">$3,200</td></tr>
 <tr><td>Van lease + fuel + motor insurance</td><td class="r">$1,100</td></tr>
-<tr><td>Wildey rent + utilities (incremental cash)</td><td class="r">$1,500</td></tr>
-<tr><td>Goods-in-custody + premises + PL insurance</td><td class="r">$500</td></tr>
-<tr><td>Phones / software / Plug’n Pay ops</td><td class="r">$200</td></tr>
+<tr><td>Wildey rent + utilities (new cheque)</td><td class="r">$1,500</td></tr>
+<tr><td>Goods-in-custody + premises + PL</td><td class="r">$500</td></tr>
+<tr><td>Phones / software / Plug’n Pay</td><td class="r">$200</td></tr>
 <tr><td>Misc</td><td class="r">$150</td></tr>
 <tr class="total"><td>Total fixed</td><td class="r">$6,650</td></tr>
 </tbody>
 </table>
-<p class="small">Rent is a new cheque, not an allocation. Insurance working figure; Gate 1 binder required; reopen P&amp;L if binder &gt; $650/mo. Van line <span class="tag-assump">Template</span> pending quote.</p>
+<p class="small">Insurance is a working figure; binder required at Gate 1. Reopen if GIC + premises + PL exceed $650/mo. Van line <span class="tag-assump">Template</span>.</p>
 </div>
 <div class="panel">
-<h3>Startup capital (500-position green Gate 0)</h3>
+<h3>Startup (500 positions, green Gate 0 only)</h3>
 <table>
 <thead><tr><th>Item</th><th class="r">BBD</th></tr></thead>
 <tbody>
 <tr><td>Modular racking (500)</td><td class="r">$13,000</td></tr>
-<tr><td>500 bins (specified SKU, landed)</td><td class="r">$12,500</td></tr>
-<tr><td>Ops setup (barcodes, phones, Plug’n Pay wiring, site copy)</td><td class="r">$6,000</td></tr>
+<tr><td>500 bins, this SKU, landed</td><td class="r">$12,500</td></tr>
+<tr><td>Barcodes, phones, Plug’n Pay, site copy</td><td class="r">$6,000</td></tr>
 <tr><td>CCTV, fit-out, consumables</td><td class="r">$6,300</td></tr>
 <tr><td>Van deposit / kit</td><td class="r">$2,500</td></tr>
 <tr><td>Launch marketing</td><td class="r">$3,000</td></tr>
@@ -353,23 +270,23 @@ td.r{font-weight:600}
 <tr class="total"><td>Max startup authorisation</td><td class="r">$49,795</td></tr>
 </tbody>
 </table>
-<p class="small">Bin and rack lines pending firm quotes on this SKU. Do not buy 250 positions as a “cheap amber” — see callout below.</p>
+<p class="small">Bin and rack lines need firm quotes. The $6,000 is kit and wiring, not a new warehouse system.</p>
 </div>
 </div>
 
 <div class="callout warn">
-<h3>Do not take a $1,500 bay with 250 totes</h3>
-<p>Break-even is ~270 <em>occupied</em> bins. A 250-position install cannot get there, even at 100% fill (~$500/mo cash loss at the new fixed line). Amber Gate 0 means <strong>extend the campaign or stop</strong>, not a sub-scale fit-out. Green Gate 0 installs 500. Minimum economic module if anyone later argues a smaller buy is <strong>~320 positions</strong> (85% ≈ 272 occupied).</p>
+<h3>Do not put 250 totes in a $1,500 bay</h3>
+<p>Break-even needs ~270 occupied bins. A 250-position install cannot get there, even full. Amber Gate 0 means extend or stop. Green installs 500. Smallest later module that can still break even: ~320 positions.</p>
 </div>
 
-<h3>B. Six-month cash path (the pilot itself)</h3>
-<p class="body">After green Gate 0, commit base setup ($43,300). Fixed $6,650 runs from month 1. Onboarding burn $40 per new account. Month 1 starts at <strong>70% of 165 reserved bins</strong> (116 occupied / 21 accounts). Contribution is net after VAT − $6,650 − 3% processing − $40×new accounts − $250 surge.</p>
+<h3>Six-month cash path</h3>
+<p class="body">After green Gate 0, spend $43,300 setup. Fixed $6,650 from month 1. Month 1 starts at 70% of 165 reserved bins (116 occupied, 21 accounts). Contribution = net after VAT − $6,650 − 3% processing − $40 × new accounts − $250 surge.</p>
 <table>
 <thead>
-<tr><th>Month</th><th class="r">Occ. bins</th><th class="r">Occ. %</th><th class="r">Accts</th><th class="r">Gross rev</th><th class="r">Cash contrib</th><th class="r">Cumulative</th></tr>
+<tr><th>Month</th><th class="r">Occ. bins</th><th class="r">Occ. %</th><th class="r">Accts</th><th class="r">Gross</th><th class="r">Cash contrib</th><th class="r">Cumulative</th></tr>
 </thead>
 <tbody>
-<tr><td>0 (setup)</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">($43,300)</td><td class="r">($43,300)</td></tr>
+<tr><td>0 setup</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">($43,300)</td><td class="r">($43,300)</td></tr>
 <tr><td>1</td><td class="r">116</td><td class="r">23%</td><td class="r">21</td><td class="r">$3,611</td><td class="r">($4,775)</td><td class="r">($48,075)</td></tr>
 <tr><td>2</td><td class="r">190</td><td class="r">38%</td><td class="r">35</td><td class="r">$5,919</td><td class="r">($2,600)</td><td class="r">($50,675)</td></tr>
 <tr><td>3</td><td class="r">260</td><td class="r">52%</td><td class="r">47</td><td class="r">$8,094</td><td class="r">($735)</td><td class="r">($51,410)</td></tr>
@@ -378,255 +295,179 @@ td.r{font-weight:600}
 <tr class="total"><td>6</td><td class="r">410</td><td class="r">82%</td><td class="r">75</td><td class="r">$12,769</td><td class="r">$3,304</td><td class="r">($44,980)</td></tr>
 </tbody>
 </table>
-<p class="small">Peak base-case use ≈ <strong>$51,400</strong> around month 3. Slow-ramp downside (≈70% of this occupancy path) peaks ≈ <strong>$57,000</strong> and is only just at break-even by month 6. Board hard stop: <strong>$72,000</strong> (escalate before $65k committed). Path ignores in-month churn for simplicity.</p>
+<p class="small">Peak use ≈ $51,400 around month 3. Slow ramp (70% of this path) peaks ≈ $57,000. Escalate before $65k committed. Hard stop $72,000. Ignores in-month churn.</p>
 
 <div class="steps">
-<div class="step"><div class="tag">Gate 0</div><h4>Demand proof</h4><ul>
-<li>≥30 prepaid accounts / ≥165 bins</li>
-<li>Marketing + quotes only until pass</li>
-<li>Plug’n Pay handshake live; web submit is not a confirm</li>
+<div class="step"><div class="tag">Gate 0</div><h4>Demand</h4><ul>
+<li>30 prepaid accounts / 165 bins</li>
+<li>Marketing and quotes only until then</li>
+<li>Plug’n Pay live; a web submit is not a confirm</li>
 </ul></div>
-<div class="step"><div class="tag">Gate 1</div><h4>Setup spend</h4><ul>
-<li>Insurance binder + Wildey lease with a 6-month break</li>
-<li>500-position install on green only; barcodes printed</li>
-<li>Named FTE backup; occupancy-to-invoice worksheet</li>
+<div class="step"><div class="tag">Gate 1</div><h4>Setup</h4><ul>
+<li>Insurance binder; Wildey lease with a 6-month break</li>
+<li>500 positions on green only; barcodes printed</li>
+<li>Named FTE backup; monthly invoice from stored bins</li>
 </ul></div>
-<div class="step"><div class="tag">Gate 2</div><h4>Operate 6 months</h4><ul>
-<li>Monthly cash + occupancy + FTE hours</li>
-<li>Stop / reprice on must-hit red; scale only with payback rule</li>
+<div class="step"><div class="tag">Gate 2</div><h4>Operate</h4><ul>
+<li>Six months: cash, occupancy, FTE hours</li>
+<li>Stop or reprice on must-hit red</li>
+<li>Scale only if payback is inside 24 months</li>
 </ul></div>
 </div>
 
-<h3>C. Destination economics (if the pilot fills)</h3>
-<p class="body">Not the first six months. Shape of a working Coverley operation at 85% occupancy (425 bins, ~77 household accounts). Use it to judge whether the model is worth scaling, not as a year-1 forecast.</p>
+<h3>If the bay fills (85%, 425 bins, ~77 accounts)</h3>
+<p class="body">This is the shape of a working Coverley operation, not a year-1 forecast. Use it to judge whether the model is worth scaling.</p>
 <table>
 <thead><tr><th>Line</th><th class="r">BBD/month</th><th>Basis</th></tr></thead>
 <tbody>
-<tr><td>Storage revenue (VAT-incl.)</td><td class="r">$12,750</td><td>425 × $30</td></tr>
-<tr><td>Retrieval revenue (VAT-incl.)</td><td class="r">$483</td><td>~77 × 1.5 / 12 × $50</td></tr>
-<tr><td>Gross customer revenue</td><td class="r">$13,233</td><td></td></tr>
+<tr><td>Storage</td><td class="r">$12,750</td><td>425 × $30</td></tr>
+<tr><td>Retrieval</td><td class="r">$483</td><td>~77 × 1.5 / 12 × $50</td></tr>
+<tr><td>Gross</td><td class="r">$13,233</td><td></td></tr>
 <tr><td>Net after VAT</td><td class="r">$11,262</td><td>÷ 1.175</td></tr>
-<tr><td>Fixed operating cost</td><td class="r">($6,650)</td><td>From A above</td></tr>
+<tr><td>Fixed operating cost</td><td class="r">($6,650)</td><td></td></tr>
 <tr><td>Payment processing</td><td class="r">($397)</td><td>3% of gross</td></tr>
-<tr><td>Surge / OT / backup body</td><td class="r">($250)</td><td></td></tr>
+<tr><td>Surge / backup</td><td class="r">($250)</td><td></td></tr>
 <tr class="total"><td>Cash operating contribution</td><td class="r">$3,965</td><td>Before tax / central overhead</td></tr>
 </tbody>
 </table>
 <div class="two">
 <div class="panel">
 <h3>Break-even</h3>
-<p>About <strong>$26 contribution per occupied bin</strong> before fixed cost → <strong>~260 bins (52%)</strong> on the $6,650 line, or <strong>~270 bins (54%)</strong> including $250 surge. Month-6 red uses the surge-in number.</p>
+<p>About $26 contribution per occupied bin before fixed cost. ~260 bins (52%) on $6,650, or ~270 bins (54%) with surge. Month-6 red uses 54%.</p>
 </div>
 <div class="panel">
 <h3>Payback</h3>
-<p>Setup alone ≈ <strong>11 months</strong> at steady contribution. Including lease-up losses ≈ <strong>month 17</strong> from launch. Month-6 scale still needs a path to cash recovery within 24 months — this base case clears that test.</p>
+<p>Setup alone ≈ 11 months at steady contribution. Including lease-up ≈ month 17 from launch. That clears the 24-month scale test.</p>
 </div>
 </div>
 </div></section>
 
-<section><div class="wrap"><div class="sec-head"><span class="num">07</span><h2>Customer journey, policies and insurance</h2></div>
+<section><div class="wrap"><div class="sec-head"><span class="num">05</span><h2>How it runs</h2></div>
+<p class="body">Customers never sign in. They book and look up by phone or booking ref. Staff use three screens: admin, warehouse, driver. Phone cameras read the barcodes.</p>
+<p class="body">The Valet system already runs that lifecycle. It does not take payment, time the 7-day clocks, or capture seals and weight. Plug’n Pay is the till. Occupancy in Wildey is the $30 charge.</p>
+
 <table>
-<thead><tr><th>Stage</th><th>Required control</th><th>Evidence captured</th></tr></thead>
+<thead><tr><th>Stage</th><th>Control</th><th>Evidence</th></tr></thead>
 <tbody>
-<tr><td>Order</td><td>Accepts pricing, SKU, 25&nbsp;kg, liability, 7-day clocks, T&amp;Cs; prepaid first month + card via Plug’n Pay</td><td>Timestamped booking + T&amp;Cs version + payment ref</td></tr>
-<tr><td>Empty-bin delivery</td><td>Bins scanned to account; 7-day pack clock starts</td><td>Driver scan + acknowledgement</td></tr>
-<tr><td>Filled-bin collection</td><td>Weight/condition check, numbered tamper seal, bin photos; free inbound</td><td>Seal number, images, scan trail</td></tr>
-<tr><td>Warehouse intake</td><td>Scan in, inspect exceptions, assign rack location; $30 starts</td><td>User, time, location audit log</td></tr>
-<tr><td>Retrieval / close-out</td><td>Customer chooses bins; one BBD $50 order; window confirmed</td><td>Order ID ↔ bin IDs; $30 stops on redelivery</td></tr>
-<tr><td>7-day borrow</td><td>Tote may stay packed at the house; day 8+ = $10/bin/day until inbound is booked</td><td>Redelivery timestamp; hold invoices</td></tr>
-<tr><td>Re-store or empty return</td><td>Free inbound; $30 resumes if re-stored; close if empties collected</td><td>Final scan + inventory status</td></tr>
+<tr><td>Order</td><td>T&amp;Cs, prepaid first month, card on file</td><td>Booking ref + T&amp;Cs version + Plug’n Pay ref</td></tr>
+<tr><td>Empty drop</td><td>Scan bins to the account; 7-day pack clock starts</td><td>Driver scan</td></tr>
+<tr><td>Collection in</td><td>Weight, seal, contents photo; inbound free</td><td>Seal number, photos, scan trail</td></tr>
+<tr><td>Put-away</td><td>Scan bin to a rack slot; $30 starts</td><td>User, time, location</td></tr>
+<tr><td>Retrieval / close-out</td><td>Customer picks bins; one $50 order</td><td>Order ID ↔ bin IDs; $30 stops on redelivery</td></tr>
+<tr><td>Borrow / re-store</td><td>7 days at the house; then $10/bin/day until inbound is booked. Re-store is free.</td><td>Redelivery timestamp; hold invoice if needed</td></tr>
 </tbody>
 </table>
 
-<h3>Policy defaults before launch <span class="tag-assump">Counsel to confirm</span></h3>
-<div class="risks">
-<div class="risk"><h4>Claims process</h4><p>Claims require photos + seal integrity; notify within 7 days of delivery. Default cap $500/bin. Enhanced cover optional, not in the P&amp;L.</p></div>
-<div class="risk"><h4>Non-payment</h4><p>Day 7 notice → day 14 freeze outbound → day 30 late fee → day 60 termination under counsel-approved abandonment procedure. Billed on Plug’n Pay.</p></div>
-<div class="risk"><h4>Privacy (contents photos)</h4><p>Condition/claims only; named warehouse/admin roles; delete 12 months after bin closeout.</p></div>
-<div class="risk"><h4>Packing responsibility</h4><p>Customer packs; staff may reject unsafe or leaking bins at collection (25&nbsp;kg max).</p></div>
-</div>
-
-<h3>Insurance binder requirements before Gate 1 spend</h3>
+<h3>Who bills what</h3>
 <table>
-<thead><tr><th>Cover</th><th class="r">Working premium</th><th>Condition</th></tr></thead>
+<thead><tr><th>Charge</th><th>When</th><th>Who collects</th></tr></thead>
 <tbody>
-<tr><td>Premises / property</td><td class="r">Inside $500/mo</td><td>Binder before unconditional lease</td></tr>
-<tr><td>Goods in custody / care</td><td class="r">Inside $500/mo</td><td>Must match $500/bin default + optional enhanced</td></tr>
-<tr><td>Public liability</td><td class="r">Inside $500/mo</td><td>Broker confirmation in writing</td></tr>
-<tr><td>Motor (van)</td><td class="r">Inside $1,100/mo van line</td><td>Commercial use endorsed</td></tr>
-</tbody>
-</table>
-<p class="small">If broker quotes push GIC + premises + PL &gt; BBD $650/month combined, re-open the fixed-cost model before Gate&nbsp;1.</p>
-</div></section>
-
-<section><div class="wrap"><div class="sec-head"><span class="num">08</span><h2>Technology, billing and who runs it</h2></div>
-<p class="quote">The offer is locked. The till is Plug’n Pay. The operating system is the Store All Valet booking and staff system already built for this pilot.</p>
-<p class="body">Software was a $6,000 setup line and $200/month without saying what that buys. The commercial model only works if occupancy in Wildey is the billing meter, and if unpaid web bookings cannot count as Gate 0 demand.</p>
-
-<div class="two">
-<div class="panel">
-<h3>What already exists <span class="tag-locked">Built</span></h3>
-<ul class="clean">
-<li><b>Public booking site:</b> Coverley geofence, one SKU, locked $30 / $50 copy, lookup by phone or booking ref. Customers never sign in.</li>
-<li><b>Bin as unit of truth:</b> barcode scans at the door and the rack; legal transitions only; chain of custody on every move.</li>
-<li><b>Three staff surfaces:</b> admin (queue, assign bins, reports), warehouse (put-away / scan-out), driver (jobs board). Phone camera is the scanner.</li>
-<li><b>Hosted stack:</b> Vercel + Supabase Postgres. Occupancy and job activity already report in admin.</li>
-<li><b>Customer comms:</b> email (and optional SMS) on booking and job completion, once keys are set. 7-day pack copy is in those messages.</li>
-</ul>
-</div>
-<div class="panel">
-<h3>What this app does not do</h3>
-<ul class="clean">
-<li><b>No till:</b> it does not take the prepaid first month, store a card, or invoice $30 / $50 / hold / no-show. That is Store All Plug’n Pay, keyed by booking ref.</li>
-<li><b>No clock enforcement:</b> the 7-day pack and borrow windows are copy and ops discipline, not a blocking timer.</li>
-<li><b>No seals or weight capture:</b> 25&nbsp;kg and tamper seals stay a driver checklist until counsel and ops lock a form.</li>
-<li><b>Not in this pilot:</b> SiteLink, in-app Stripe, customer login, route optimisation, multi-site.</li>
-</ul>
-<p style="margin-top:14px;font-size:14px;color:#3b423d">The $6,000 ops-setup line is barcodes, phones, Plug’n Pay wiring and site copy. It is not a new warehouse system. The Valet build is already sunk and sits outside the $72k ceiling.</p>
-</div>
-</div>
-
-<h3>Billing architecture <span class="tag-locked">Locked: Plug’n Pay, not Stripe</span></h3>
-<table>
-<thead><tr><th>Charge</th><th>When it fires</th><th>Who collects it</th><th>Source of truth</th></tr></thead>
-<tbody>
-<tr><td>Prepaid first month</td><td>Before the account is Confirmed</td><td>Store All finance on Plug’n Pay</td><td>Booking ref + reserved bin count. Web submit alone is <em>not</em> Gate 0.</td></tr>
-<tr><td>$30 / bin / month</td><td>Bin is Stored in Wildey; stops the day it is redelivered</td><td>Monthly Plug’n Pay run</td><td>Admin occupancy / Stored bins that day. Finance invoices from that list.</td></tr>
-<tr><td>$50 outbound order</td><td>Any trip out of Wildey</td><td>Plug’n Pay before the Deliver back job is treated as paid</td><td>Order ID ↔ bin IDs. Site today only acknowledges the fee.</td></tr>
-<tr><td>$10/bin/day hold and $35 no-show</td><td>After day 7, or driver arrives to an empty stop</td><td>Ops-raised Plug’n Pay invoice</td><td>Redelivery / empty-drop timestamp + jobs board. Not in the base P&amp;L.</td></tr>
-</tbody>
-</table>
-<div class="callout note">
-<h3>Gate 0 rule for the website</h3>
-<p>A booking on the public site is a reservation. It becomes a <em>confirmed account</em> only when Plug’n Pay shows prepaid first month + card on file + T&amp;Cs version + empty-drop date within 45 days. Count those, not form submits. Until that handshake is written, do not launch the campaign.</p>
-</div>
-
-<h3>Who sits on which surface (1 FTE model)</h3>
-<p class="body">The software is three roles. The cost base is one field FTE plus existing Store All office time. One login cannot open all three surfaces, so provision accounts on purpose rather than hoping the FTE “just uses admin”.</p>
-<table>
-<thead><tr><th>Surface</th><th>Who in the pilot</th><th>In this P&amp;L?</th></tr></thead>
-<tbody>
-<tr><td>Driver</td><td>Named valet FTE, on the van</td><td>Yes: $3,200 loaded</td></tr>
-<tr><td>Warehouse</td><td>Same FTE after the Coverley run (second login)</td><td>Yes: same person, Wildey hours</td></tr>
-<tr><td>Admin</td><td>Existing Store All office: assign bins, reports, Plug’n Pay, customer phone</td><td>No: central overhead, not a second FTE</td></tr>
-<tr><td>Backup body</td><td>Named Store All person on the $250 surge line</td><td>Yes: surge, not a standing #2</td></tr>
-</tbody>
-</table>
-<p class="small">If office will not own admin + Plug’n Pay + inbound phone, the 1 FTE model is false and the $72k paper is incomplete. Confirm that split before Gate 0.</p>
-
-<h3>Must be live, by gate</h3>
-<table>
-<thead><tr><th>Before Gate 0 campaign</th><th>Before first empty drop (Gate 1)</th><th>Not required to decide the pilot</th></tr></thead>
-<tbody>
-<tr>
-<td>Public site on this offer; Plug’n Pay prepaid + card-on-file runbook keyed by booking ref; versioned T&amp;Cs; Coverley-only geofence; unpaid web bookings excluded from the count.</td>
-<td>Printed bin and rack barcodes; FTE driver + warehouse logins; office admin login; occupancy → monthly invoice worksheet; phones as scanners; email from address live; 7-day clocks as an ops checklist off redelivery / empty-drop timestamps.</td>
-<td>SiteLink; in-app payments; automatic hold-fee invoicing; dedicated scan guns; route software; a second product build.</td>
-</tr>
+<tr><td>Prepaid first month</td><td>Before the account is confirmed</td><td>Finance, Plug’n Pay, keyed by booking ref</td></tr>
+<tr><td>$30 / bin / month</td><td>Bin is stored; stops on redelivery</td><td>Monthly Plug’n Pay run from the stored-bin list</td></tr>
+<tr><td>$50 outbound</td><td>Any trip out of Wildey</td><td>Plug’n Pay before the return job is treated as paid</td></tr>
+<tr><td>Hold fee / no-show</td><td>After day 7, or an empty stop</td><td>Ops-raised Plug’n Pay invoice. Not in the base P&amp;L.</td></tr>
 </tbody>
 </table>
 
-<h3>Still open (not software)</h3>
-<p class="body">Template lines and other items a reader cannot yet treat as locked. None of these is a reason to rewrite the offer; they are reasons not to take the lease until the quote or owner is in.</p>
+<h3>One FTE, three screens</h3>
 <table>
-<thead><tr><th>Item</th><th>Status now</th><th>Needed by</th></tr></thead>
+<thead><tr><th>Screen</th><th>Who</th><th>In this P&amp;L?</th></tr></thead>
 <tbody>
-<tr><td>Landed cost of this SKU × 500</td><td>Inside $12,500 working figure</td><td>Gate 1</td></tr>
-<tr><td>Modular racking for 500, on the actual Wildey bay</td><td>Inside $13,000 working figure</td><td>Gate 1</td></tr>
-<tr><td>Van lease + commercial motor</td><td>$1,100/mo template</td><td>Gate 1</td></tr>
-<tr><td>GIC + premises + PL binder</td><td>$500/mo working; reopen if &gt; $650</td><td>Gate 1</td></tr>
-<tr><td>Store All 5×6 $205 / 5×8 $245</td><td>To confirm with Store All South</td><td>Before the board pack is issued</td></tr>
-<tr><td>Wildey lease term and 6-month break</td><td>Not in this paper</td><td>Gate 1: a red month-6 must not strand $1,500/mo</td></tr>
-<tr><td>Coverley gate / estate access for the van</td><td>Not in this paper</td><td>Before campaign (resident channel + vehicle pass)</td></tr>
-<tr><td>Counsel: T&amp;Cs, $500/bin cap, abandonment, privacy of contents photos</td><td>Policy defaults only</td><td>Gate 1</td></tr>
-<tr><td>Loaded stop $48, 18&nbsp;km / 35&nbsp;min, 25&nbsp;kg, VAT input recovery</td><td>Template</td><td>Re-quote; do not block Gate 0</td></tr>
+<tr><td>Driver</td><td>Named valet FTE, on the van</td><td>Yes: $3,200</td></tr>
+<tr><td>Warehouse</td><td>Same person after the Coverley run (second login)</td><td>Yes: same FTE</td></tr>
+<tr><td>Admin</td><td>Store All office: assign bins, reports, Plug’n Pay, inbound phone</td><td>No: central overhead</td></tr>
+<tr><td>Backup</td><td>Named Store All person</td><td>Yes: $250 surge, not a standing #2</td></tr>
+</tbody>
+</table>
+<p class="small">If office will not own admin, billing and the phone, the 1 FTE model is false. Confirm before Gate 0. SiteLink, in-app Stripe, customer login and route software are out of this pilot.</p>
+
+<h3>Insurance and policy before Gate 1 <span class="tag-assump">Counsel to confirm</span></h3>
+<table>
+<thead><tr><th>Cover / rule</th><th>Working figure</th><th>Condition</th></tr></thead>
+<tbody>
+<tr><td>Premises, goods in custody, public liability</td><td class="r">Inside $500/mo combined</td><td>Binder before the lease. GIC must match $500/bin default.</td></tr>
+<tr><td>Motor</td><td class="r">Inside $1,100 van line</td><td>Commercial use endorsed.</td></tr>
+<tr><td>Claims</td><td>Photos + seal; 7 days to notify</td><td>Cap $500/bin. Enhanced cover optional.</td></tr>
+<tr><td>Non-payment</td><td>Day 7 / 14 / 30 / 60</td><td>Notice, freeze outbound, late fee, then counsel-approved abandonment.</td></tr>
+<tr><td>Contents photos</td><td>Claims use only</td><td>Named staff. Delete 12 months after close-out.</td></tr>
 </tbody>
 </table>
 </div></section>
 
-<section><div class="wrap"><div class="sec-head"><span class="num">09</span><h2>Success metrics and month-six gate</h2></div>
-<p class="body">Must-hit metrics can stop the pilot. Watch metrics match the chosen offer (free inbound, $50 outbound) so a base-case operation can actually be green.</p>
+<section><div class="wrap"><div class="sec-head"><span class="num">06</span><h2>Scorecard</h2></div>
+<p class="body">Must-hit metrics can stop the pilot. Watch metrics can force a reprice. Loaded trip cost above $50 is not, by itself, a stop.</p>
 <table>
 <thead><tr><th>Metric</th><th>Green</th><th>Amber</th><th>Red / stop</th></tr></thead>
 <tbody>
-<tr><td>Pre-launch confirmed accounts</td><td class="green">≥30</td><td class="amber">20–29</td><td class="redtxt">&lt;20</td></tr>
-<tr><td>Pre-launch reserved bins</td><td class="green">≥165</td><td class="amber">110–164</td><td class="redtxt">&lt;110</td></tr>
-<tr><td>Month-6 occupied capacity</td><td class="green">≥70%</td><td class="amber">54–69%</td><td class="redtxt">&lt;54% (~270 bins)</td></tr>
-<tr><td>Monthly household churn</td><td class="green">≤3%</td><td class="amber">3–5%</td><td class="redtxt">&gt;5%</td></tr>
-<tr><td>On-time service rate</td><td class="green">≥95%</td><td class="amber">90–95%</td><td class="redtxt">&lt;90%</td></tr>
-<tr><td>No-show visits</td><td class="green">≤3%</td><td class="amber">3–7%</td><td class="redtxt">&gt;7%</td></tr>
-<tr><td>Damage/loss claims per occupied bin</td><td class="green">≤0.25%</td><td class="amber">0.25–0.75%</td><td class="redtxt">&gt;0.75%</td></tr>
-<tr><td>Peak total cash exposure</td><td class="green">≤$55k</td><td class="amber">$55–72k</td><td class="redtxt">&gt;$72k</td></tr>
-<tr><td>FTE loaded-hours utilisation</td><td class="green">≤75%</td><td class="amber">75% for &lt;4 weeks</td><td class="redtxt">&gt;75% for 4 weeks → board ask for FTE #2, not auto-hire</td></tr>
+<tr><td>Confirmed accounts</td><td class="green">≥30</td><td class="amber">20–29</td><td class="redtxt">&lt;20</td></tr>
+<tr><td>Reserved bins</td><td class="green">≥165</td><td class="amber">110–164</td><td class="redtxt">&lt;110</td></tr>
+<tr><td>Month-6 occupancy</td><td class="green">≥70%</td><td class="amber">54–69%</td><td class="redtxt">&lt;54% (~270 bins)</td></tr>
+<tr><td>Household churn</td><td class="green">≤3%</td><td class="amber">3–5%</td><td class="redtxt">&gt;5%</td></tr>
+<tr><td>On-time service</td><td class="green">≥95%</td><td class="amber">90–95%</td><td class="redtxt">&lt;90%</td></tr>
+<tr><td>No-shows</td><td class="green">≤3%</td><td class="amber">3–7%</td><td class="redtxt">&gt;7%</td></tr>
+<tr><td>Claims / occupied bin</td><td class="green">≤0.25%</td><td class="amber">0.25–0.75%</td><td class="redtxt">&gt;0.75%</td></tr>
+<tr><td>Peak cash</td><td class="green">≤$55k</td><td class="amber">$55–72k</td><td class="redtxt">&gt;$72k</td></tr>
+<tr><td>FTE hours</td><td class="green">≤75%</td><td class="amber">&lt;4 weeks above 75%</td><td class="redtxt">4 weeks above 75% → board ask for FTE #2</td></tr>
 </tbody>
 </table>
 
-<h3>Watch (reprice / extend — not automatic stop)</h3>
+<h3>Watch (reprice or extend, not an automatic stop)</h3>
 <table>
-<thead><tr><th>Metric</th><th>Expected / green-ish</th><th>Investigate</th><th>Action</th></tr></thead>
+<thead><tr><th>Metric</th><th>Expected</th><th>Investigate</th></tr></thead>
 <tbody>
-<tr><td>Outbound orders / 100 account-months</td><td>Household 1.5/yr ≈ 12.5</td><td>&lt;6 or &gt;20</td><td>Too few = weak return proposition; too many = crew</td></tr>
-<tr><td>Borrow share of outbounds</td><td>~50%</td><td>&gt;70%</td><td>Hold fee and 7-day cap not biting</td></tr>
-<tr><td>Fully loaded cost / outbound order</td><td>Expect ~$84 blend, above $50</td><td>Hours, not the $ gap</td><td>Reprice $50 only if FTE hours go amber</td></tr>
-<tr><td>Cash CAC</td><td>~$100–140 (pilot)</td><td>&gt;$150</td><td>Campaign efficiency; not a stop if occupancy is green</td></tr>
-<tr><td>Average bins per order</td><td>≤3</td><td>&gt;5</td><td>Van fill; still one $50</td></tr>
-<tr><td>Stops per working day</td><td>≤1.5</td><td>&gt;1.5 for a month</td><td>Open FTE #2 paper</td></tr>
+<tr><td>Outbound orders / 100 account-months</td><td>≈12.5 (1.5/year)</td><td>&lt;6 or &gt;20</td></tr>
+<tr><td>Borrow share of outbounds</td><td>~50%</td><td>&gt;70%: 7-day cap not biting</td></tr>
+<tr><td>Loaded cost / outbound</td><td>~$84 blend</td><td>Hours, not the $ gap to $50</td></tr>
+<tr><td>Cash CAC</td><td>~$100–140</td><td>&gt;$150</td></tr>
+<tr><td>Stops per working day</td><td>≤1.5</td><td>&gt;1.5 for a month → FTE #2 paper</td></tr>
 </tbody>
 </table>
 
 <div class="decision">
-<h3>Recommended month-six decision rule (payback-aware)</h3>
-<p><span class="pill">Scale consideration</span> Occupancy above break-even; household churn and must-hit service quality green; actual contribution within 15% of this model; no unresolved legal/claims/safety issue; <strong>and</strong> updated forecast shows cumulative cash recovery within <strong>24 months of launch</strong>. FTE #2 is costed in the <em>next</em> paper, not this one.</p>
-<p style="margin-top:10px"><span class="pill">Extend / reprice</span> Demand above break-even but watch metrics (hours, borrow share, CAC) amber, with a corrective plan (including $50 outbound change if hours stay red-ish).</p>
-<p style="margin-top:10px"><span class="pill">Stop</span> Occupancy below ~54% without credible pipeline; cash forecast exceeds BBD $72,000; claims/safety unacceptable; or customer proposition cannot cover actual operating cost.</p>
-<p style="margin-top:14px" class="small" style="font-style:normal;color:#2d342f">Green occupancy at month 6 is not enough if payback has slipped beyond two years. Loaded trip cost above $50 is not, by itself, a stop.</p>
+<h3>Month-6 rule</h3>
+<p><span class="pill">Scale</span> Occupancy above break-even; churn and service green; contribution within 15% of this model; no open legal, claims or safety issue; and a forecast of cash recovery within 24 months of launch. Cost FTE #2 in the next paper.</p>
+<p style="margin-top:10px"><span class="pill">Extend / reprice</span> Demand is above break-even, but hours, borrow share or CAC are amber, with a written fix.</p>
+<p style="margin-top:10px"><span class="pill">Stop</span> Occupancy below 54% with no pipeline; cash heading through $72,000; claims or safety fail; or the offer cannot cover actual cost.</p>
 </div>
 </div></section>
 
-<section><div class="wrap"><div class="sec-head"><span class="num">10</span><h2>Risk register and mitigations</h2></div>
+<section><div class="wrap"><div class="sec-head"><span class="num">07</span><h2>Risks</h2></div>
 <div class="risks">
-<div class="risk"><h4>Demand below break-even</h4><p><b>Mitigation:</b> prepaid Gate 0; 2.5% of 1,200 homes is the test; do not take the $1,500 bay on amber; stop if M6 occupancy &lt;54% without pipeline.</p></div>
-<div class="risk"><h4>Price resistance at $30 / $50</h4><p><b>Mitigation:</b> Gate 0 is the price test; 5.5-bin basket ($165) still under the $205 5×6; do not silently revert the site to $15.</p></div>
-<div class="risk"><h4>Free inbound + $50 outbound underprices borrows</h4><p><b>Mitigation:</b> 7-day cap + $10/bin/day hold; watch borrow share; reprice outbound only if FTE hours go amber.</p></div>
-<div class="risk"><h4>Company totes parked at home at $0 rent</h4><p><b>Mitigation:</b> meter stops on redelivery by design; 7-day + $10/bin/day recovers the fleet; same clock after empty drop.</p></div>
-<div class="risk"><h4>Ross May/June close-out spike</h4><p><b>Mitigation:</b> 25% stress case; named backup; do not staff 2 FTEs year-round for one peak without a board ask.</p></div>
-<div class="risk"><h4>Single-FTE failure</h4><p><b>Mitigation:</b> named Store All backup on $250 surge; tripwire at 75% hours / 1.5 stops/day; #2 not in this ceiling.</p></div>
-<div class="risk"><h4>Damage, theft, chain-of-custody</h4><p><b>Mitigation:</b> scans, seals, CCTV, $500/bin cap, binder before Gate 1.</p></div>
-<div class="risk"><h4>Premises / rent too dear for scale</h4><p><b>Mitigation:</b> $1,500 is cash; 500 positions required to clear ~270-bin BE; rack/fire/flood/humidity/pest/loading check before lease.</p></div>
-<div class="risk"><h4>Cash ceiling breached</h4><p><b>Mitigation:</b> monthly rolling forecast; escalate before $65k committed; hard stop $72k.</p></div>
-<div class="risk"><h4>Unit cannibalisation</h4><p><b>Mitigation:</b> script at 7–8 bins vs $205 / $245; report diverted unit revenue monthly. Volume of 8 totes ≠ a 5×8.</p></div>
-<div class="risk"><h4>Insurance unavailable / too costly</h4><p><b>Mitigation:</b> binder is Gate 1; reopen model if GIC+premises+PL &gt; $650/mo.</p></div>
-<div class="risk"><h4>Site/offer mismatch</h4><p><b>Mitigation:</b> public booking copy must stay on this offer (one SKU, $30 / $50, 7-day clocks, prepaid first month). Re-check the site before each Gate 0 campaign.</p></div>
-<div class="risk"><h4>Unpaid web bookings counted as demand</h4><p><b>Mitigation:</b> Gate 0 counts Plug’n Pay confirmed accounts only. Site submit is a reservation. Do not launch until the booking-ref handshake is written.</p></div>
-<div class="risk"><h4>Occupancy and the till diverge</h4><p><b>Mitigation:</b> monthly invoice worksheet from Stored bins; $30 starts on put-away and stops on redelivery. Office owns the run. App is not the card machine.</p></div>
-<div class="risk"><h4>1 FTE cannot run three logins plus the phone</h4><p><b>Mitigation:</b> FTE = driver + warehouse; Store All office = admin, Plug’n Pay, inbound phone. If office will not take that, reopen labour before Gate 0.</p></div>
-<div class="risk"><h4>Coverley estate access</h4><p><b>Mitigation:</b> vehicle pass and resident/property-management channel before the campaign. A geofence on the website is not a gate code.</p></div>
-<div class="risk"><h4>Lease with no pilot break</h4><p><b>Mitigation:</b> Gate 1 lease must include a 6-month break or assignment back to Store All so a stop decision does not leave $1,500/mo running.</p></div>
+<div class="risk"><h4>Demand misses break-even</h4><p><b>Mitigation:</b> prepaid Gate 0. Do not take the bay on amber. Stop if month-6 occupancy is under 54% with no pipeline.</p></div>
+<div class="risk"><h4>Price or unit cannibalisation</h4><p><b>Mitigation:</b> Gate 0 is the price test. 5.5 bins ($165) sit under the $205 5×6. Script at 7–8. Report diverted unit enquiries.</p></div>
+<div class="risk"><h4>Outbound hours blow the FTE</h4><p><b>Mitigation:</b> 7-day cap and $10/bin/day hold. Watch borrow share and hours. Reprice $50 only if hours go amber.</p></div>
+<div class="risk"><h4>One person, or office will not take admin</h4><p><b>Mitigation:</b> FTE = driver + warehouse. Office = admin, Plug’n Pay, phone. Named backup on $250 surge. Confirm the split before Gate 0.</p></div>
+<div class="risk"><h4>Damage, theft, claims</h4><p><b>Mitigation:</b> scans, seals, CCTV, $500/bin cap, binder before Gate 1.</p></div>
+<div class="risk"><h4>Lease, insurance, or a 250-bin bay</h4><p><b>Mitigation:</b> 6-month break or assignment. Binder; reopen if cover &gt; $650/mo. 500 positions on green only.</p></div>
+<div class="risk"><h4>Unpaid web bookings counted as demand</h4><p><b>Mitigation:</b> Gate 0 is Plug’n Pay confirmed accounts only. Do not launch the campaign until that process is written.</p></div>
+<div class="risk"><h4>No Coverley gate access</h4><p><b>Mitigation:</b> vehicle pass and a resident / property-management channel before advertising. A website dropdown is not a gate code.</p></div>
 </div>
 </div></section>
 
-<section><div class="wrap"><div class="sec-head"><span class="num">11</span><h2>Recommendation and immediate actions</h2></div>
-<p class="quote">Proceed, but make every dollar conditional on prepaid evidence, and do not occupy Wildey until Gate 0 is green.</p>
-<p class="body">The locked offer is internally consistent: household customer, one tote, $30 warehouse meter, UK-style free inbound / $50 outbound, 7-day fleet clocks, 1 FTE, $1,500 cash rent, Plug’n Pay billing on the existing Valet operating system. Base-case payback (~month 17) sits inside the 24-month scale test. Downside is still inside $72k. The plan does <em>not</em> work if Gate 0 is skipped, if a 250-tote bay is taken at this rent, or if unpaid website bookings are treated as demand.</p>
+<section><div class="wrap"><div class="sec-head"><span class="num">08</span><h2>Decision</h2></div>
+<p class="body">The offer holds together. Base-case payback (~month 17) sits inside the 24-month scale test. Downside stays inside $72,000. Skip Gate 0, take a 250-tote bay, or count unpaid website bookings, and it does not.</p>
 <div class="decision">
-<h3>Recommended resolution</h3>
-<p>Approve the Coverley valet storage pilot subject to a maximum total cash exposure of <strong>BBD $72,000</strong>; demand-validation of <strong>30 prepaid accounts and 165 reserved bins</strong> counted only after Store All Plug’n Pay shows prepaid and card-on-file against the booking ref; completion of premises, insurance binder, legal, estate access and a <strong>6-month lease break</strong> before Gate&nbsp;1 capital; <strong>500-position install only on green Gate 0</strong>; monthly occupancy-to-invoice reporting; 1 field FTE (driver + warehouse) with Store All office on admin and billing; a named backup; and a formal go/extend/stop decision at month six that includes the <strong>24-month cash-recovery</strong> test. FTE #2, SiteLink, in-app payments and any full-scale expansion require a separate paper.</p>
+<h3>Approve, subject to</h3>
+<ol>
+<li>Maximum cash exposure <strong>BBD $72,000</strong>.</li>
+<li>Gate 0: <strong>30 prepaid accounts and 165 reserved bins</strong>, counted only after Plug’n Pay shows prepaid first month and card on file against the booking ref.</li>
+<li>Gate 1: insurance binder, counsel, Coverley access, and a <strong>6-month Wildey lease break</strong>, then a <strong>500-position install on green only</strong>.</li>
+<li>One field FTE (driver + warehouse). Store All office on admin and billing. Named backup. Monthly invoice from stored bins.</li>
+<li>Month-6 go / extend / stop, including the 24-month cash-recovery test.</li>
+<li>FTE #2, SiteLink, in-app payments and any rollout: a separate paper.</li>
+</ol>
 </div>
-<h3>First 30-day work programme</h3>
+<h3>Next 30 days</h3>
 <ol class="clean">
-<li>Keep the public site on this offer (one SKU with stated dimensions, $30 / $50, 7-day clocks, prepaid first month).</li>
-<li>Write the Gate 0 handshake: Plug’n Pay prepaid first month + card on file, keyed by booking ref; unpaid web reservations do not count.</li>
-<li>Versioned T&amp;Cs on the booking path (timestamp + version stored with the reservation).</li>
-<li>Confirm Store All office will own admin, Plug’n Pay invoicing and inbound customer phone; provision driver + warehouse logins for the named FTE.</li>
-<li>Lock ops rules: 25&nbsp;kg, seals, 7-day pack/borrow, $10/bin/day hold, $35 no-show, cancel-inside-24h free, occupancy worksheet for the $30 meter.</li>
-<li>Obtain firm quotes: this SKU landed, racking, insurance binder, van lease, CCTV; confirm 5×6 $205 / 5×8 $245 with Store All South.</li>
-<li>Complete scaled rack layout for the actual Wildey bay at $1,500/mo; insist on a 6-month break or assignment; name the FTE and the Store All backup person.</li>
-<li>Secure Coverley vehicle access and the resident / property-management channel before advertising.</li>
-<li>Launch the Coverley reservation campaign; count only prepaid confirmed accounts toward Gate 0.</li>
-<li>Return to management at Gate 0 before committing the lease, racking, or bulk bin purchase.</li>
+<li>Keep the public site on this offer.</li>
+<li>Write the Plug’n Pay confirm process (booking ref, prepaid first month, card on file). Unpaid reservations do not count.</li>
+<li>Confirm office owns admin, invoicing and inbound phone. Provision driver and warehouse logins for the named FTE.</li>
+<li>Get quotes: this SKU landed, racking, insurance, van, CCTV. Confirm 5×6 $205 / 5×8 $245 with Store All South.</li>
+<li>Counsel: T&amp;Cs, $500/bin cap, abandonment, photo privacy. Insist on a 6-month lease break. Name the FTE and the backup.</li>
+<li>Secure Coverley vehicle access and the resident channel. Then launch. Return at Gate 0 before the lease, racking or bulk bin buy.</li>
 </ol>
 </div></section>
 
-<footer class="footer"><div class="wrap"><div>Store All · Cave Shepherd Group<br><b>Coverley Valet Storage Pilot: Business Case</b></div><div style="text-align:right">Offer, meter, till and scorecard locked · remaining quote lines tagged Template<br><b>Confidential · August 2026</b></div></div></footer>
+<footer class="footer"><div class="wrap"><div>Store All · Cave Shepherd Group<br><b>Coverley Valet Storage Pilot: Business Case</b></div><div style="text-align:right">Offer locked · quote lines tagged Template<br><b>Confidential · August 2026</b></div></div></footer>
 </body>
 </html>
