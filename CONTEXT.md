@@ -233,3 +233,131 @@ _Avoid_: KPI, target, threshold
 **Template figure**:
 A number carried from an industry template rather than a Barbados quote or observed cost. Tagged `Template` in the document and must be replaced before the scale paper.
 _Avoid_: Estimate, assumption, placeholder
+
+## Offer & demand
+
+**Tote**:
+The one bin SKU sold in the pilot — hard-sided, 2.3 cu ft, 24″ × 19.5″ × 12.5″, max 25 kg. In the pilot "tote" and "bin" are the same object; prefer **bin** in the app, **tote** only when contrasting with a Store All unit.
+_Avoid_: Box, crate, container
+
+**Unit**:
+A conventional self-storage space rented from Store All (5×6, 5×8). The thing valet competes with — never a synonym for a bin.
+_Avoid_: Locker, space, storage room
+
+**Script**:
+The sales rule for steering an enquiry: 1–6 bins → valet, 7–8 → show the unit too, 9+ or furniture → unit.
+_Avoid_: Playbook, sales guide, cut-off
+
+**Account**:
+The commercial relationship with one household — the billing and demand unit (5.5 bins each). A **Customer** is the person; an account is what gets counted at Gate 0 and billed monthly.
+_Avoid_: Household (in counts), subscriber, client
+
+**Confirmed account**:
+An account that has versioned T&Cs, a prepaid first month on the reserved bin count, a card on file in Plug'n Pay, and an empty-drop date within 45 days. Nothing else counts as demand.
+_Avoid_: Signup, lead, prepaid customer, booking
+
+**Reserved bin**:
+A bin count a confirmed account has prepaid for, before any physical bin exists. Distinct from an **occupied bin**, which is physically on the rack and billing $30.
+_Avoid_: Booked bin, committed bin, sold bin
+
+**Occupied bin**:
+A bin physically stored in the facility and therefore charging $30/month. Month 1 assumes occupied ≈ 70% of reserved.
+_Avoid_: Stored bin (in financial prose), active bin, filled bin
+
+**Outbound order**:
+One customer request to bring bins out of the facility, priced at $50 regardless of bin count. Realises as a borrow or a close-out. Not the same as a **Booking**.
+_Avoid_: Order (unqualified), retrieval job, trip
+
+**Pack window**:
+The 7 free days a customer holds bins at home — after an empty drop, or after a borrow. Then $10/bin/day until inbound is booked. Waived if we cannot offer a slot.
+_Avoid_: Grace period, free period, borrow window
+
+**Hold fee**:
+The $10/bin/day charged past the pack window. Upside; not in the base P&L.
+_Avoid_: Late fee, penalty, overdue charge
+
+**ARPU**:
+Average revenue per account per month. **Gross ARPU** ($171) is VAT-inclusive; **net ARPU** (~$146) is gross ÷ 1.175.
+_Avoid_: Average spend, revenue per customer
+
+**LTV**:
+Contribution per account per month × expected tenure (33 months for households), before central overhead. Ross tenure is excluded from the headline figure.
+_Avoid_: Lifetime value (unqualified — always say whether it is revenue or contribution)
+
+**CAC**:
+Cash to win one confirmed account — campaign spend ÷ accounts, plus $40 ramp cash. ~$140 in the pilot.
+_Avoid_: Acquisition spend, cost per signup
+
+**Churn**:
+Share of accounts leaving per month. 3% for households (~33 months), higher for Ross.
+_Avoid_: Attrition, drop-off, cancellation rate
+
+**Ross stress**:
+The Ross University student segment — modelled as a stress case (25% of accounts, 8 bins, ~11 months, May/June close-out spike), deliberately kept out of the headline LTV.
+_Avoid_: Student segment, secondary market
+
+## Facility & capacity
+
+**Facility**:
+The leased warehouse the bins live in, at $1,500/month. Where put-away, storage and scan-out happen.
+_Avoid_: Warehouse (in cost prose), depot, store
+
+**Bay**:
+The physical leased space being priced — used interchangeably with facility when talking about rent and fit-out size ("a 250-bin bay").
+_Avoid_: Unit, lot, premises
+
+**Fit-out**:
+The one-off build of the facility — racking, bins, barcodes, CCTV, consumables. $43,300 base, $49,795 with contingency.
+_Avoid_: Setup, install, capex (unqualified)
+
+**Steady state**:
+The modelled working shape of the operation — 85% of 500 positions, ~425 bins, ~77 accounts. A shape to judge the model by, not a year-1 forecast.
+_Avoid_: Full capacity, run rate, mature state
+
+**Break-even**:
+The occupied-bin count where contribution covers fixed cost — ~260 bins (52%) on $6,650, ~270 (54%) including surge. The pilot uses 54%.
+_Avoid_: Profitability point, cover
+
+**Peak cash**:
+The deepest point of cumulative negative cash before contribution turns it around — ~$51,400 around month 3 in the base case, ~$57,000 on slow ramp.
+_Avoid_: Burn, drawdown, funding need
+
+**Cash exposure**:
+The hard ceiling on cumulative cash out: $72,000. Escalate before $65,000 is committed.
+_Avoid_: Budget, spend cap, investment
+
+**Payback**:
+Months from launch until cumulative cash returns to zero — ~month 17 base case. The scale test requires it inside 24 months.
+_Avoid_: ROI, return, recovery (unqualified)
+
+## Governance
+
+**The ask**:
+What this paper seeks: conditional pilot approval only. Not a rollout, not a second FTE, not a second site.
+_Avoid_: Proposal, request, business case (as a synonym)
+
+**Locked**:
+A number or offer term fixed for the pilot and not to be renegotiated mid-test. Tagged `Locked` in the document.
+_Avoid_: Fixed, agreed, final
+
+**Sensitivity**:
+An alternative input run to test fragility (e.g. 2.0 outbound orders/year), never the base case.
+_Avoid_: Scenario, what-if, upside case
+
+**Month-6 rule**:
+The three-way decision at the end of the pilot: **Scale**, **Extend / reprice**, or **Stop**, each with written conditions.
+_Avoid_: Review, checkpoint, final gate
+
+**Escalate**:
+Take the pilot back to the board before spending further — triggered at $65,000 committed, or on any must-hit red.
+_Avoid_: Flag, raise, report
+
+## Flagged ambiguities
+
+- **"Order"** means two different things. In the app, a customer's request for bins is a **Booking** (never "order"). In the business case, an **outbound order** is one $50 retrieval trip. Always qualify: "outbound order", never bare "order".
+- **"Close-out" vs "Close"**. **Close** (app) ends a bin's lifecycle and returns it to inventory. **Close-out** (commercial) is the *customer-facing* event that usually causes it — the customer keeps the contents and stops paying. A borrow ends with a re-store, not a close.
+- **"Position" vs "Location"**. A **Location** (app) is a specific rack slot with a barcode. A **Position** (business case) is a unit of purchased capacity. 500 positions bought = 500 locations barcoded.
+- **"Account"**. The app avoids "account" for a **Customer** because customers never sign in. The business case uses **account** deliberately as the billing and demand unit. Both are correct in their own document; do not let "account" leak into app prose meaning a login.
+- **"Stored bin" vs "occupied bin"**. Stored is a **bin status**; occupied is the billing state derived from it. They should always agree — if they don't, the invoice is wrong.
+- **"Retrieval"**. A **retrieval request** (app) is the customer action; an **outbound order** (commercial) is the priced event it creates. One request, one order, many bins.
+- **"Green"** is a metric verdict, never a description of cash. Cash has its own words: peak cash, exposure, payback.
