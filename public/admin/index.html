@@ -24,6 +24,7 @@
     <button data-tab="explorer">Bin explorer</button>
     <button data-tab="leads">Leads</button>
     <button data-tab="reports">Reports</button>
+    <button data-tab="billing">Billing</button>
     <button data-tab="settings">Settings</button>
     <button data-tab="staff">Staff</button>
   </nav>
@@ -171,6 +172,19 @@
         <h3 class="section-title">Activity summary</h3>
         <p class="muted">Filtered by scheduled job date and movement timestamps. Jobs use scheduled date until completion timestamps exist.</p>
         <div id="reportsActivity"></div>
+      </div>
+    </section>
+
+    <section class="tab" id="tab-billing">
+      <h2>Monthly billing</h2>
+      <div class="card reports-toolbar">
+        <label>Month <input type="month" id="billingMonth" /></label>
+        <button class="btn" id="billingApply">Load</button>
+        <button class="btn ghost" id="billingExport">Export CSV</button>
+      </div>
+      <div class="card">
+        <p class="muted" id="billingRules" style="margin-top:0;"></p>
+        <div id="billingTable"></div>
       </div>
     </section>
 

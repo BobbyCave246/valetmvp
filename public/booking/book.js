@@ -51,6 +51,11 @@ async function loadAreas() {
     $('#deliveryDate').min = earliestDate;
   }
   if (data.leadDays != null) leadDays = data.leadDays;
+  // Link the terms when they're published (only http(s) links).
+  if (data.terms?.url && /^https?:\/\//i.test(data.terms.url)) {
+    $('#termsText').innerHTML =
+      `I accept the Store All valet storage <a href="${esc(data.terms.url)}" target="_blank" rel="noopener">terms &amp; conditions</a>`;
+  }
   sel.innerHTML =
     '<option value="" disabled selected>Select your area…</option>' +
     areas.map((a) => `<option value="${esc(a)}">${esc(a)}</option>`).join('') +
@@ -232,6 +237,7 @@ $('#submitBtn').addEventListener('click', async () => {
   if (!$('#email').validity.valid) return fail('Enter a valid email address', '#email');
   if (!village) return fail('Select your village', '#village');
   if (!houseNo) return fail('Enter your house / lot number', '#houseNo');
+  if (!$('#terms').checked) return fail('Please accept the terms & conditions', '#terms');
 
   const payload = {
     name: $('#name').value.trim(),
@@ -242,6 +248,7 @@ $('#submitBtn').addEventListener('click', async () => {
     deliveryDate: $('#deliveryDate').value,
     deliverySlot: chosenSlot,
     skuBreakdown,
+    termsAccepted: true,
   };
   if (!payload.name || !payload.phone) {
     return toast('Name and phone are required', true);

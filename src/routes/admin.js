@@ -5,6 +5,8 @@ import { COVERAGE_AREAS, VILLAGES } from '../coverage.js';
 import { SLOTS, LEAD_DAYS, SLOT_CAPACITY } from '../slots.js';
 import { seed } from '../seed.js';
 import { requireAuth, requireRole } from '../auth.js';
+import { STORAGE_PRICE, RETRIEVAL_FEE } from '../billing.js';
+import { TERMS_VERSION, TERMS_URL } from '../terms.js';
 
 const router = Router();
 
@@ -16,6 +18,8 @@ router.get('/config', requireAuth, requireRole('admin'), (_req, res) => {
     slots: SLOTS,
     leadDays: LEAD_DAYS,
     slotCapacity: SLOT_CAPACITY,
+    prices: { storagePerBinMonth: STORAGE_PRICE, retrievalPerOrder: RETRIEVAL_FEE },
+    terms: { version: TERMS_VERSION, url: TERMS_URL },
   });
 });
 

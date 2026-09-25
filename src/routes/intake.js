@@ -7,6 +7,7 @@ import { availabilityForDate, validateDateSlot, SLOTS, LEAD_DAYS, earliestDateIS
 import { createLead, listLeads } from '../db.js';
 import { requireAuth, requireRole } from '../auth.js';
 import { rateLimit, clientIp } from '../ratelimit.js';
+import { TERMS_VERSION, TERMS_URL } from '../terms.js';
 
 const router = Router();
 
@@ -22,6 +23,7 @@ router.get('/serviceability', (_req, res) => {
     todayDate: todayDateISO(),
     earliestDate: earliestDateISO(),
     slotCapacity: SLOT_CAPACITY,
+    terms: { version: TERMS_VERSION, url: TERMS_URL },
   });
 });
 

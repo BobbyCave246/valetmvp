@@ -318,7 +318,7 @@ export async function markBinNoShow(binId, { actor = 'admin' } = {}) {
       tx
     );
     await insertMovement(
-      { binId, fromStatus: STATUS.OUT_FOR_FILLING, toStatus: null, actor },
+      { binId, fromStatus: STATUS.OUT_FOR_FILLING, toStatus: null, actor, bookingId },
       tx
     );
 

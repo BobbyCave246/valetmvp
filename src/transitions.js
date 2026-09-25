@@ -139,6 +139,9 @@ export async function transitionBinInTx(
       locationId: toStatus === STATUS.STORED ? locationId : null,
       actor,
       jobId,
+      // The booking this step belongs to: the new one when assigning, else
+      // the one the bin held (closing clears it, so read it from before).
+      bookingId: fields.booking_id || bin.booking_id || null,
     },
     tx
   );
@@ -181,7 +184,7 @@ export async function cancelBooking(bookingId, { actor = 'admin' } = {}) {
         tx
       );
       await insertMovement(
-        { binId: bin.id, fromStatus: bin.status, toStatus: null, actor },
+        { binId: bin.id, fromStatus: bin.status, toStatus: null, actor, bookingId },
         tx
       );
     }

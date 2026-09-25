@@ -54,6 +54,7 @@ async function makeBooking() {
       phone,
       area: svc.areas[0],
       skuBreakdown: { bin: 1 },
+      termsAccepted: true,
       // Far future so this never fights other tests for window capacity.
       deliveryDate: `2998-0${1 + Math.floor(Math.random() * 9)}-1${Math.floor(Math.random() * 9)}`,
       deliverySlot: 'am',
@@ -163,7 +164,7 @@ describe('customer access', { concurrency: 1 }, () => {
     const { booking, phone } = await makeBooking();
     const svc = await (await call('GET', '/serviceability')).json();
     const r = await call('POST', '/bookings', {
-      body: { name: 'Stranger', phone, area: svc.areas[0], skuBreakdown: { bin: 1 }, deliveryDate: '2998-02-20', deliverySlot: 'pm' },
+      body: { name: 'Stranger', phone, area: svc.areas[0], skuBreakdown: { bin: 1 }, deliveryDate: '2998-02-20', deliverySlot: 'pm', termsAccepted: true },
     });
     assert.equal(r.status, 201);
     const created = await r.json();

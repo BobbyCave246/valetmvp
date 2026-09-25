@@ -15,7 +15,11 @@ import {
   listJobsForBooking,
   countDeliveriesForSlot,
   deleteBooking,
+  createPayment,
+  listPaymentsForBooking,
+  listPaidBookingIds,
 } from '../db.js';
+import { TERMS_VERSION } from '../terms.js';
 import { cancelBooking, STATUS } from '../transitions.js';
 import {
   createDeliverEmpty,
@@ -72,10 +76,14 @@ router.post('/', createByIp, async (req, res) => {
     skuBreakdown = {},
     deliveryDate,
     deliverySlot,
+    termsAccepted,
   } = req.body || {};
 
   if (!name || !phone) {
     return res.status(400).json({ error: 'name and phone are required' });
+  }
+  if (termsAccepted !== true) {
+    return res.status(400).json({ error: 'Please accept the terms & conditions to book' });
   }
   // Serviceability gate.
   if (!isCovered(area)) {
@@ -109,6 +117,7 @@ router.post('/', createByIp, async (req, res) => {
       skuBreakdown,
       deliveryDate,
       deliverySlot,
+      termsVersion: TERMS_VERSION,
     });
 
     // The deliver_empty job is created with a transactional capacity check so
@@ -146,7 +155,7 @@ router.post('/', createByIp, async (req, res) => {
 
 // GET /api/bookings — admin queue with derived bin-status summaries.
 router.get('/', requireAuth, requireRole('admin'), async (_req, res) => {
-  const rows = await listBookings();
+  const [rows, paidIds] = await Promise.all([listBookings(), listPaidBookingIds()]);
   const bookings = await Promise.all(
     rows.map(async (b) => {
       const [customer, summary, nextAction] = await Promise.all([
@@ -161,6 +170,7 @@ router.get('/', requireAuth, requireRole('admin'), async (_req, res) => {
         summary,
         assignedCount: summary.total,
         nextAction,
+        paid: paidIds.has(b.id),
       };
     })
   );
@@ -199,6 +209,51 @@ router.post('/lookup', lookupByIp, lookupByPhone, async (req, res) => {
     void sendBookingLinks({ phone, entries });
   }
   res.json({ ok: true });
+});
+
+// ----- payments (admin) ------------------------------------------------------
+// Staff take the money on Plug'n Pay, then record it here by its reference.
+
+const PAYMENT_KINDS = ['first_month', 'storage', 'retrieval', 'other'];
+
+function validatePayment({ kind, amount, reference, period, note }) {
+  if (!PAYMENT_KINDS.includes(kind)) return `kind must be one of: ${PAYMENT_KINDS.join(', ')}`;
+  const n = Number(amount);
+  if (!Number.isFinite(n) || n <= 0 || n > 100000 || Math.round(n * 100) !== n * 100) {
+    return 'amount must be a positive BDS$ amount with at most 2 decimal places';
+  }
+  if (typeof reference !== 'string' || !reference.trim() || reference.length > 100) {
+    return "reference (the Plug'n Pay transaction reference) is required";
+  }
+  if (period != null && period !== '' && !/^\d{4}-(0[1-9]|1[0-2])$/.test(String(period))) {
+    return 'period must be YYYY-MM';
+  }
+  if (note != null && String(note).length > 500) return 'note is too long';
+  return null;
+}
+
+// GET /api/bookings/:id/payments
+router.get('/:id/payments', requireAuth, requireRole('admin'), async (req, res) => {
+  res.json(await listPaymentsForBooking(req.params.id));
+});
+
+// POST /api/bookings/:id/payments { kind, amount, reference, period?, note? }
+router.post('/:id/payments', requireAuth, requireRole('admin'), async (req, res) => {
+  const booking = await getBooking(req.params.id);
+  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+  const body = req.body || {};
+  const err = validatePayment(body);
+  if (err) return res.status(400).json({ error: err });
+  const payment = await createPayment({
+    bookingId: booking.id,
+    kind: body.kind,
+    amount: Number(body.amount),
+    reference: body.reference.trim(),
+    period: body.period || null,
+    note: body.note ? String(body.note) : null,
+    recordedBy: req.user.id,
+  });
+  res.status(201).json({ payment });
 });
 
 // GET /api/bookings/:id — customer lookup + admin detail (bins + statuses).

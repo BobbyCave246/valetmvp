@@ -114,12 +114,41 @@ ALTER TABLE customers ADD COLUMN IF NOT EXISTS postcode       TEXT;
 ALTER TABLE users     ADD COLUMN IF NOT EXISTS is_active      INTEGER DEFAULT 1;
 ALTER TABLE users     ADD COLUMN IF NOT EXISTS deactivated_at TEXT;
 ALTER TABLE bookings  ADD COLUMN IF NOT EXISTS access_token   TEXT;
+ALTER TABLE bookings  ADD COLUMN IF NOT EXISTS terms_version     TEXT;
+ALTER TABLE bookings  ADD COLUMN IF NOT EXISTS terms_accepted_at TEXT;
+-- Which booking a bin belonged to at each step. A bin serves many bookings
+-- over its life, and billing needs to charge each stay to the right one.
+ALTER TABLE movements ADD COLUMN IF NOT EXISTS booking_id TEXT;
+CREATE INDEX IF NOT EXISTS movements_ts_idx ON movements (ts);
+
+-- Payments taken on Store All's Plug'n Pay and recorded here by admin. No FK
+-- to bookings: the money trail must outlive a cancelled booking.
+CREATE TABLE IF NOT EXISTS payments (
+  id           TEXT PRIMARY KEY,
+  booking_id   TEXT NOT NULL,
+  kind         TEXT NOT NULL,           -- 'first_month' | 'storage' | 'retrieval' | 'other'
+  amount       NUMERIC(10,2) NOT NULL,  -- BDS$
+  reference    TEXT NOT NULL,           -- Plug'n Pay transaction reference
+  period       TEXT,                    -- YYYY-MM the payment covers, if any
+  note         TEXT,
+  recorded_by  TEXT,
+  created_at   TEXT
+);
+CREATE INDEX IF NOT EXISTS payments_booking_idx ON payments (booking_id);
 
 -- Give bookings made before access tokens existed a random token, so their
 -- owners can get a link back through phone lookup.
 UPDATE bookings
   SET access_token = replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '')
   WHERE access_token IS NULL;
+
+-- Fill movements.booking_id for rows written before the column existed: from
+-- the job where there is one, else from the bin's current booking. Best effort
+-- for history; every new movement records it directly.
+UPDATE movements m SET booking_id = j.booking_id
+  FROM jobs j WHERE m.booking_id IS NULL AND m.job_id = j.id;
+UPDATE movements m SET booking_id = b.booking_id
+  FROM bins b WHERE m.booking_id IS NULL AND m.bin_id = b.id AND b.booking_id IS NOT NULL;
 
 -- Data-integrity constraints. Added idempotently and defensively: a constraint
 -- that already exists is silently skipped, and a constraint that pre-existing
@@ -141,6 +170,17 @@ DO $$ BEGIN
     CHECK (role IN ('admin','warehouse','driver'));
 EXCEPTION WHEN duplicate_object THEN NULL;
           WHEN others THEN RAISE WARNING 'skipped users_role_chk: %', SQLERRM;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE payments ADD CONSTRAINT payments_kind_chk
+    CHECK (kind IN ('first_month','storage','retrieval','other'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+          WHEN others THEN RAISE WARNING 'skipped payments_kind_chk: %', SQLERRM;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE payments ADD CONSTRAINT payments_amount_chk CHECK (amount > 0);
+EXCEPTION WHEN duplicate_object THEN NULL;
+          WHEN others THEN RAISE WARNING 'skipped payments_amount_chk: %', SQLERRM;
 END $$;
 DO $$ BEGIN
   ALTER TABLE locations ADD CONSTRAINT locations_occupied_chk
@@ -343,13 +383,14 @@ export async function createBooking({
   skuBreakdown,
   deliveryDate = null,
   deliverySlot = null,
+  termsVersion = null,
 }) {
   const id = newId('book');
   // Secret for customer access (see booking-access.js).
   const accessToken = randomBytes(24).toString('base64url');
   const rows = await sql`
-    INSERT INTO bookings (id, customer_id, access_token, bin_count, sku_breakdown, status, delivery_date, delivery_slot, created_at)
-    VALUES (${id}, ${customerId}, ${accessToken}, ${binCount}, ${JSON.stringify(skuBreakdown || {})}, ${'New'}, ${deliveryDate}, ${deliverySlot}, ${nowISO()})
+    INSERT INTO bookings (id, customer_id, access_token, bin_count, sku_breakdown, status, delivery_date, delivery_slot, terms_version, terms_accepted_at, created_at)
+    VALUES (${id}, ${customerId}, ${accessToken}, ${binCount}, ${JSON.stringify(skuBreakdown || {})}, ${'New'}, ${deliveryDate}, ${deliverySlot}, ${termsVersion}, ${termsVersion ? nowISO() : null}, ${nowISO()})
     RETURNING *`;
   return rows[0];
 }
@@ -471,14 +512,68 @@ export async function setJobStatus(id, status, client = sql) {
 // ----- movements -------------------------------------------------------------
 
 export async function insertMovement(
-  { binId, fromStatus, toStatus, locationId = null, actor, jobId = null },
+  { binId, fromStatus, toStatus, locationId = null, actor, jobId = null, bookingId = null },
   client = sql
 ) {
   const id = newId('mov');
   await client`
-    INSERT INTO movements (id, bin_id, from_status, to_status, location_id, actor, job_id, ts)
-    VALUES (${id}, ${binId}, ${fromStatus}, ${toStatus}, ${locationId}, ${actor}, ${jobId}, ${nowISO()})`;
+    INSERT INTO movements (id, bin_id, from_status, to_status, location_id, actor, job_id, booking_id, ts)
+    VALUES (${id}, ${binId}, ${fromStatus}, ${toStatus}, ${locationId}, ${actor}, ${jobId}, ${bookingId}, ${nowISO()})`;
   return id;
+}
+
+// Every movement up to `before`, in time order per bin, for working out how
+// long each bin was in the facility. Fine at pilot scale (thousands of rows);
+// move to a per-month rollup if this grows.
+export async function listMovementsBefore(before) {
+  return sql`
+    SELECT bin_id, booking_id, from_status, to_status, ts FROM movements
+    WHERE ts < ${before}
+    ORDER BY bin_id, ts, id`;
+}
+
+// Return deliveries (deliver_back jobs) completed in [from, to): one row per
+// job, dated by when its bins were handed back.
+export async function listReturnOrdersInRange(from, to) {
+  return sql`
+    SELECT j.id AS job_id, j.booking_id, MIN(m.ts) AS delivered_at
+    FROM movements m JOIN jobs j ON j.id = m.job_id
+    WHERE j.type = 'deliver_back' AND m.to_status = 'Returned to customer'
+    GROUP BY j.id, j.booking_id
+    HAVING MIN(m.ts) >= ${from} AND MIN(m.ts) < ${to}`;
+}
+
+// ----- payments --------------------------------------------------------------
+
+export async function createPayment({ bookingId, kind, amount, reference, period = null, note = null, recordedBy = null }) {
+  const rows = await sql`
+    INSERT INTO payments (id, booking_id, kind, amount, reference, period, note, recorded_by, created_at)
+    VALUES (${newId('pay')}, ${bookingId}, ${kind}, ${amount}, ${reference}, ${period}, ${note}, ${recordedBy}, ${nowISO()})
+    RETURNING *`;
+  return rows[0];
+}
+
+export async function listPaymentsForBooking(bookingId) {
+  return sql`SELECT * FROM payments WHERE booking_id = ${bookingId} ORDER BY created_at`;
+}
+
+export async function listPaymentsForPeriod(period) {
+  return sql`SELECT * FROM payments WHERE period = ${period}`;
+}
+
+// Bookings plus their customer's contact details, in one query.
+export async function listBookingsWithCustomers(ids) {
+  if (!ids.length) return [];
+  return sql`
+    SELECT b.id, b.delivery_date, b.bin_count, c.name, c.phone, c.email, c.address
+    FROM bookings b LEFT JOIN customers c ON c.id = b.customer_id
+    WHERE b.id IN ${sql(ids)}`;
+}
+
+// Bookings with a recorded first-month payment: the "paid demand" Gate 0 counts.
+export async function listPaidBookingIds() {
+  const rows = await sql`SELECT DISTINCT booking_id FROM payments WHERE kind = 'first_month'`;
+  return new Set(rows.map((r) => r.booking_id));
 }
 
 export async function listMovementsForBin(binId) {
@@ -542,6 +637,7 @@ export async function countMovementsByTransitionInRange(from, to) {
 export async function wipeAll() {
   // Delete in dependency order (referencing rows before referenced rows).
   await sql.unsafe(`
+    DELETE FROM payments;
     DELETE FROM movements;
     DELETE FROM bins;
     DELETE FROM jobs;

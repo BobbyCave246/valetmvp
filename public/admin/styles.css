@@ -148,6 +148,14 @@ code { font-family: ui-monospace, monospace; color: var(--accent); }
 }
 .badge.ok { color: var(--accent-2); border-color: var(--accent-2); }
 .badge.warn { color: var(--warn); border-color: var(--warn); }
+/* record-payment form on a queue card */
+.payment-link { color: var(--accent); font-size: 12px; text-decoration: none; }
+.payment-link:hover { text-decoration: underline; }
+.payment-form { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 12px; align-items: end; }
+.payment-form label { margin: 0; }
+.reports-table td.num, .reports-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.reports-table tr.total td { font-weight: 700; border-top: 2px solid var(--line); }
+.reports-table-wrap { overflow-x: auto; }
 
 /* SKU reconciliation line on the Assign tab */
 .reconcile { margin-top: 4px; font-size: 13px; color: var(--muted); }

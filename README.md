@@ -205,6 +205,41 @@ bucket can (and should) be private.
 | `LOOKUP_RATE_MAX` | `10` | Phone lookups per IP per 15 min (plus a fixed 3 per phone per hour). |
 | `PHOTO_URL_TTL_SECONDS` | `3600` | How long a signed photo link works. |
 
+## Payments & billing
+
+The app never takes a card. Store All charges on its existing **Plug'n Pay**
+till, and the app records what was charged and works out what's due.
+
+- **T&Cs:** the booking form needs the terms ticked. Each booking stores the
+  `TERMS_VERSION` accepted and when. Publish the text at `TERMS_URL` and bump
+  the version whenever it changes.
+- **Recording payments:** on a booking in the admin queue, **record payment**
+  takes the type (first month, monthly storage, return delivery, other), the
+  amount, the Plug'n Pay reference and the month it covers.
+- **Paid demand:** a booking is **Paid** once a first-month payment is
+  recorded. Only paid bookings count as paid demand for the gate (Reports →
+  "Paid bookings", with their reserved bins).
+- **Monthly bill:** the **Billing** tab lists, for a month, each booking's
+  storage charge, return fees, what's been paid for that month, and what's
+  due, with a CSV export for the office.
+  - Storage is `STORAGE_PRICE_PER_BIN` per bin per month, **pro rata** for the
+    time each bin was in the facility. The clock starts when a bin is `Stored`
+    and stops when it leaves (`In transit (outbound)` or a release).
+    `Retrieval requested` still counts, since the bin hasn't left.
+  - Each return delivery (a completed deliver_back job) is one order at
+    `RETRIEVAL_FEE`, however many bins it carried.
+  - Months follow the Barbados calendar. The current month shows charges so
+    far.
+  - Not yet charged by the app: the 7-day pack window hold ($10/bin/day) and
+    the $35 no-show fee.
+
+| Var | Default | Purpose |
+|---|---|---|
+| `STORAGE_PRICE_PER_BIN` | `30` | BDS$ per bin per month in the facility. |
+| `RETRIEVAL_FEE` | `50` | BDS$ per return delivery. |
+| `TERMS_VERSION` | `draft` | Version recorded against each booking. |
+| `TERMS_URL` | unset | Link to the published T&Cs, shown on the booking form. |
+
 ## API surface
 
 All under `/api`. Handlers are thin; the rules live in the transition module.
@@ -216,6 +251,8 @@ All under `/api`. Handlers are thin; the rules live in the transition module.
 | `/bookings/:id` | GET | Customer view (token) + admin detail |
 | `/bookings/lookup` | POST | Resend booking links to a phone (never returns data) |
 | `/bookings/:id/assign-bins` | POST | Bind scanned bins → `Assigned` |
+| `/bookings/:id/payments` | GET / POST | Admin: list or record Plug'n Pay payments |
+| `/billing?month=YYYY-MM` | GET | Admin: the month's bill per booking |
 | `/jobs` | GET | Jobs board |
 | `/jobs/:id/done` | POST | Advance the job's bins to their next state |
 | `/bins/available` | GET | Unassigned bins (for assign screen) |
@@ -231,16 +268,15 @@ All under `/api`. Handlers are thin; the rules live in the transition module.
 
 ## Deliberately deferred (not bugs)
 
-Recorded omissions, per the spec — the build does not silently paper over them:
+Recorded omissions. The build does not silently paper over them:
 
-- **Cancellation before assignment** — no path.
-- **No-show / unfilled bins** — no path.
-- **Cancel a retrieval** — once `Retrieval requested` there's no path back to
-  `Stored`. The transition table simply doesn't contain that move, so any
-  attempt fails loudly rather than being worked around.
+- **Taking cards in the app.** Payments happen on Plug'n Pay and are recorded
+  here by reference.
+- **Pack-window hold and no-show fees** are not charged by the billing tab yet.
+- **Seal numbers, weight and condition** at collection are not captured yet.
 
-Also out of scope: real payments, SiteLink integration, real camera scanning,
-customer login, SMS/email, route optimisation, multi-site.
+Also out of scope: SiteLink integration, customer login, route optimisation,
+multi-site.
 
 ## Notes
 

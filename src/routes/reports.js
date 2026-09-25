@@ -12,6 +12,7 @@ import {
   listLocations,
   listBookings,
   listJobs,
+  listPaidBookingIds,
 } from '../db.js';
 import { requireAuth, requireRole } from '../auth.js';
 
@@ -41,7 +42,7 @@ function rangeBounds(from, to) {
 }
 
 async function buildSnapshot() {
-  const [byStatus, bySku, locations, jobs, bookings, total, leadsTotal] = await Promise.all([
+  const [byStatus, bySku, locations, jobs, bookings, total, leadsTotal, paidIds] = await Promise.all([
     countBinsByStatus(),
     countBinsBySku(),
     listLocations(),
@@ -49,7 +50,10 @@ async function buildSnapshot() {
     listBookings(),
     countBins(),
     countLeads(),
+    listPaidBookingIds(),
   ]);
+  // Paid demand for Gate 0: only bookings with a recorded first-month payment.
+  const paid = bookings.filter((b) => paidIds.has(b.id));
   const occupied = locations.filter((l) => l.occupied).length;
   const slots = locations.length;
 
@@ -61,7 +65,11 @@ async function buildSnapshot() {
       free: slots - occupied,
       occupancyPct: slots ? Math.round((occupied / slots) * 100) : 0,
     },
-    bookings: { total: bookings.length },
+    bookings: {
+      total: bookings.length,
+      paid: paid.length,
+      paidReservedBins: paid.reduce((n, b) => n + (b.bin_count || 0), 0),
+    },
     jobs: {
       scheduled: jobs.filter((j) => j.status !== 'Done').length,
       done: jobs.filter((j) => j.status === 'Done').length,

@@ -16,6 +16,7 @@ import locationsRouter from './routes/locations.js';
 import adminRouter from './routes/admin.js';
 import statsRouter from './routes/stats.js';
 import reportsRouter from './routes/reports.js';
+import billingRouter from './routes/billing.js';
 import intakeRouter from './routes/intake.js';
 import authRouter from './routes/auth.js';
 import { ensureSchema, pingDb } from './db.js';
@@ -86,6 +87,7 @@ app.use('/api/locations', locationsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/billing', billingRouter);
 app.use('/api/auth', authRouter);
 app.use('/api', intakeRouter); // /serviceability, /availability, /leads
 

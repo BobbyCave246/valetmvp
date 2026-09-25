@@ -81,6 +81,7 @@ function refreshTab(tab) {
   if (tab === 'warehouse') loadWarehouse();
   if (tab === 'leads') loadLeads();
   if (tab === 'reports') loadReports();
+  if (tab === 'billing') loadBilling();
   if (tab === 'settings') loadSettings();
   if (tab === 'staff') loadStaff();
 }
@@ -225,6 +226,10 @@ function renderQueueFromCache() {
   for (const b of bookings) {
     const sku = Object.entries(b.sku_breakdown || {}).map(([k, v]) => `${v} ${k}`).join(', ');
     const assignBadge = `<span class="badge ${b.assignedCount < b.bin_count ? 'warn' : 'ok'}">${b.assignedCount} of ${b.bin_count} assigned</span>`;
+    // Paid = first month recorded from Plug'n Pay. Only paid bookings count for Gate 0.
+    const paidBadge = b.paid
+      ? '<span class="badge ok">Paid</span>'
+      : '<span class="badge warn">Unpaid</span>';
     const phoneLink = b.customer?.phone
       ? `<a href="tel:${esc(b.customer.phone)}" class="contact-link">${esc(b.customer.phone)}</a>`
       : '';
@@ -232,9 +237,9 @@ function renderQueueFromCache() {
       <div class="card" data-booking-id="${esc(b.id)}">
         <div class="row">
           <div>
-            <div><strong>${esc(b.customer?.name || 'Unknown')}</strong> · ${esc(b.bin_count)} bins <span class="muted">(${esc(sku)})</span> ${assignBadge}</div>
+            <div><strong>${esc(b.customer?.name || 'Unknown')}</strong> · ${esc(b.bin_count)} bins <span class="muted">(${esc(sku)})</span> ${assignBadge} ${paidBadge}</div>
             <div class="muted">${phoneLink}${b.customer?.address ? ` · ${esc(b.customer.address)}` : ''}</div>
-            <div class="muted">Delivery: ${esc(b.delivery_date)}${b.delivery_slot ? ' · ' + esc(slotLabel(b.delivery_slot)) : ''} · ref <code>${esc(b.id)}</code> · <a href="#" class="cancel-link">${b.assignedCount === 0 ? 'cancel unassigned booking' : 'cancel booking'}</a></div>
+            <div class="muted">Delivery: ${esc(b.delivery_date)}${b.delivery_slot ? ' · ' + esc(slotLabel(b.delivery_slot)) : ''} · ref <code>${esc(b.id)}</code> · <a href="#" class="payment-link">record payment</a> · <a href="#" class="cancel-link">${b.assignedCount === 0 ? 'cancel unassigned booking' : 'cancel booking'}</a></div>
             ${skuProgress(b)}
             <div class="summary" style="margin-top:6px;">${esc(b.summary.text)}</div>
           </div>
@@ -244,6 +249,11 @@ function renderQueueFromCache() {
       </div>
     `);
     card.querySelector('.next-action').appendChild(nextActionControl(b));
+
+    card.querySelector('.payment-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      togglePaymentForm(card, b);
+    });
 
     card.querySelector('.cancel-link').addEventListener('click', async (e) => {
       e.preventDefault();
@@ -700,6 +710,149 @@ $('#intakeSubmit').addEventListener('click', async () => {
   }
 });
 
+// ---- payments ---------------------------------------------------------------
+// Money is taken on Plug'n Pay; this records it against the booking.
+const PAYMENT_KIND_LABELS = {
+  first_month: 'First month (prepaid)',
+  storage: 'Monthly storage',
+  retrieval: 'Return delivery',
+  other: 'Other',
+};
+
+function currentMonth() {
+  // Barbados calendar month, matching the server's billing months.
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Barbados', year: 'numeric', month: '2-digit' }).format(new Date());
+}
+
+// Prices come from the server (GET /admin/config), fetched once.
+let pricesPromise = null;
+function getPrices() {
+  pricesPromise ||= api.get('/admin/config').then((c) => c.prices).catch(() => null);
+  return pricesPromise;
+}
+
+function togglePaymentForm(card, b) {
+  const existing = card.querySelector('.payment-form');
+  if (existing) return existing.remove();
+  const form = el(`
+    <div class="payment-form">
+      <label>Type
+        <select name="kind">${Object.entries(PAYMENT_KIND_LABELS)
+          .map(([k, v]) => `<option value="${k}"${k === (b.paid ? 'storage' : 'first_month') ? ' selected' : ''}>${esc(v)}</option>`)
+          .join('')}</select>
+      </label>
+      <label>Amount (BDS$) <input type="number" name="amount" min="0.01" step="0.01" inputmode="decimal" /></label>
+      <label>Plug'n Pay ref <input type="text" name="reference" maxlength="100" /></label>
+      <label>For month <input type="month" name="period" value="${currentMonth()}" /></label>
+      <div class="flex">
+        <button class="btn btn-sm" type="button" data-act="save">Save</button>
+        <button class="btn ghost btn-sm" type="button" data-act="cancel">Cancel</button>
+      </div>
+      <div class="muted payment-history" style="grid-column: 1 / -1;"></div>
+    </div>`);
+  const f = (name) => form.querySelector(`[name="${name}"]`);
+  // Prefill the first-month prepay: the storage price per reserved bin.
+  if (!b.paid) {
+    getPrices().then((p) => {
+      if (p && !f('amount').value) f('amount').value = String((b.bin_count || 0) * p.storagePerBinMonth);
+    });
+  }
+  form.querySelector('[data-act="cancel"]').addEventListener('click', () => form.remove());
+  form.querySelector('[data-act="save"]').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      await api.post(`/bookings/${b.id}/payments`, {
+        kind: f('kind').value,
+        amount: Number(f('amount').value),
+        reference: f('reference').value.trim(),
+        period: f('period').value || null,
+      });
+      toast('Payment recorded');
+      loadQueue();
+    } catch (err) {
+      toast(err.message, true);
+      btn.disabled = false;
+    }
+  });
+  card.appendChild(form);
+  f('reference').focus();
+
+  api.get(`/bookings/${b.id}/payments`).then((rows) => {
+    form.querySelector('.payment-history').innerHTML = rows.length
+      ? 'Recorded: ' + rows
+          .map((p) => `${esc(PAYMENT_KIND_LABELS[p.kind] || p.kind)} $${esc(Number(p.amount).toFixed(2))} · ${esc(p.reference)}${p.period ? ` · ${esc(p.period)}` : ''}`)
+          .join('; ')
+      : 'No payments recorded yet.';
+  }).catch(() => {});
+}
+
+// ---- billing ----------------------------------------------------------------
+let billingCache = null;
+const money = (n) => (Number(n) < 0 ? `−$${Math.abs(n).toFixed(2)} credit` : `$${Number(n).toFixed(2)}`);
+
+async function loadBilling() {
+  const monthEl = $('#billingMonth');
+  if (!monthEl.value) monthEl.value = currentMonth();
+  const box = $('#billingTable');
+  box.innerHTML = '<div class="muted">Loading…</div>';
+  try {
+    const bill = await api.get(`/billing?month=${encodeURIComponent(monthEl.value)}`);
+    billingCache = bill;
+    $('#billingRules').textContent =
+      `Storage: ${money(bill.prices.storagePerBinMonth)} per bin per month, pro rata for the days each bin was in the facility. ` +
+      `Returns: ${money(bill.prices.retrievalPerOrder)} per delivery back. Paid = payments recorded for ${bill.month}. ` +
+      'Charge "Due" on Plug\'n Pay, then record it on the booking.' +
+      (bill.month === currentMonth() ? ' This month is still running: charges so far.' : '');
+    if (!bill.lines.length) {
+      box.innerHTML = '<div class="empty">Nothing to bill for this month.</div>';
+      return;
+    }
+    const rows = bill.lines
+      .map((l) => `<tr>
+        <td>${esc(l.customer?.name || '(cancelled booking)')}<div class="muted">${esc(l.customer?.phone || '')}</div></td>
+        <td><code>${esc(l.bookingId)}</code></td>
+        <td class="num">${l.bins}</td>
+        <td class="num">${l.binDays}</td>
+        <td class="num">${money(l.storage)}</td>
+        <td class="num">${l.returnOrders}</td>
+        <td class="num">${money(l.retrieval)}</td>
+        <td class="num">${money(l.total)}</td>
+        <td class="num">${money(l.paid)}</td>
+        <td class="num"><strong>${money(l.due)}</strong></td>
+      </tr>`)
+      .join('');
+    const t = bill.totals;
+    box.innerHTML = `<div class="reports-table-wrap"><table class="reports-table">
+      <thead><tr><th>Customer</th><th>Booking</th><th class="num">Bins</th><th class="num">Bin-days</th><th class="num">Storage</th>
+        <th class="num">Returns</th><th class="num">Return fees</th><th class="num">Total</th><th class="num">Paid</th><th class="num">Due</th></tr></thead>
+      <tbody>${rows}
+        <tr class="total"><td colspan="4">Total</td><td class="num">${money(t.storage)}</td><td></td><td class="num">${money(t.retrieval)}</td>
+          <td class="num">${money(t.total)}</td><td class="num">${money(t.paid)}</td><td class="num">${money(t.due)}</td></tr>
+      </tbody></table></div>`;
+  } catch (e) {
+    box.innerHTML = `<div class="muted">${esc(e.message)}</div>`;
+  }
+}
+
+$('#billingApply')?.addEventListener('click', () => loadBilling());
+
+$('#billingExport')?.addEventListener('click', () => {
+  if (!billingCache) return toast('Load a month first', true);
+  const header = ['month', 'booking', 'customer', 'phone', 'email', 'bins', 'bin_days', 'storage', 'return_orders', 'return_fees', 'total', 'paid', 'due'];
+  const rows = [header, ...billingCache.lines.map((l) => [
+    billingCache.month, l.bookingId, l.customer?.name || '(cancelled)', l.customer?.phone || '', l.customer?.email || '',
+    l.bins, l.binDays, l.storage.toFixed(2), l.returnOrders, l.retrieval.toFixed(2), l.total.toFixed(2), l.paid.toFixed(2), l.due.toFixed(2),
+  ])];
+  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `billing-${billingCache.month}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
 // ---- leads ------------------------------------------------------------------
 let leadsCache = [];
 
@@ -748,6 +901,8 @@ async function loadSettings() {
         <dt>Delivery windows</dt><dd>${esc(cfg.slots.map((s) => s.label).join(' · '))}</dd>
         <dt>Slot capacity</dt><dd>${esc(String(cfg.slotCapacity))} deliveries per window per day</dd>
         <dt>Lead days</dt><dd>${esc(String(cfg.leadDays))} day(s) minimum before first delivery</dd>
+        <dt>Prices</dt><dd>$${esc(String(cfg.prices?.storagePerBinMonth))} per bin per month · $${esc(String(cfg.prices?.retrievalPerOrder))} per return delivery</dd>
+        <dt>Terms version</dt><dd>${esc(cfg.terms?.version || '')}${cfg.terms?.url ? ` · <a href="${esc(cfg.terms.url)}" target="_blank" rel="noopener">view</a>` : ' · <span class="muted">no TERMS_URL set</span>'}</dd>
       </dl>`;
   } catch (e) {
     box.innerHTML = `<div class="muted">${esc(e.message)}</div>`;
@@ -923,6 +1078,7 @@ function renderReportSnapshot(snapshot) {
     ['With customer', withCustomer],
     ['Rack', `${snapshot.locations.occupied}/${snapshot.locations.total} · ${snapshot.locations.occupancyPct}%`],
     ['Bookings', snapshot.bookings.total],
+    ['Paid bookings', `${snapshot.bookings.paid} · ${snapshot.bookings.paidReservedBins} bins`],
     ['Jobs scheduled', snapshot.jobs.scheduled],
     ['Jobs done', snapshot.jobs.done],
     ['Leads', snapshot.leads.total],

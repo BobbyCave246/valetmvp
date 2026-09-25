@@ -162,6 +162,28 @@ _Avoid_: Audit trail, history, timeline
 A bin status change that follows the allowed path in the lifecycle table. Any move not in the table is rejected — there is no silent workaround.
 _Avoid_: Valid state change, permitted move
 
+## Payments & billing
+
+**Payment**:
+Money Store All took on its Plug'n Pay till, recorded against a booking with its Plug'n Pay reference, a type (first month, storage, retrieval, other) and the month it covers. The app never takes the card itself.
+_Avoid_: Transaction, charge, invoice
+
+**Paid booking**:
+A booking with a recorded first-month payment. Only paid bookings count as demand for the pilot gate.
+_Avoid_: Confirmed booking, deposit-backed booking
+
+**Terms version**:
+The version of the T&Cs a customer accepted when booking, stored on the booking so later changes never rewrite what they agreed to.
+_Avoid_: Consent flag, agreement
+
+**Stay**:
+The time a bin spends in the facility: from the movement that makes it Stored until the one that takes it out. Retrieval requested is still part of the stay.
+_Avoid_: Storage period, occupancy
+
+**Monthly bill**:
+For one Barbados calendar month, each booking's storage (pro rata over its bins' stays) plus return fees, less payments recorded for that month.
+_Avoid_: Invoice, statement
+
 ## Money & pilot economics
 
 These terms only appear in the business case (`docs/business-case/`), not in the app. All figures are BBD and VAT-inclusive unless the term says otherwise.
