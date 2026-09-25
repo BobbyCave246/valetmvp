@@ -321,27 +321,27 @@ _Avoid_: Student segment, secondary market
 ## Facility & capacity
 
 **Facility**:
-The leased warehouse the bins live in, at $1,500/month. Where put-away, storage and scan-out happen.
+The leased warehouse the bins live in: ~3,000 sq ft at a ~$6,000/month working target ($8,000 ceiling). Where put-away, storage and scan-out happen.
 _Avoid_: Warehouse (in cost prose), depot, store
 
 **Bay**:
-The physical leased space being priced — used interchangeably with facility when talking about rent and fit-out size ("a 250-bin bay").
+The physical leased space being priced — used interchangeably with facility when talking about rent and fit-out size ("a 700-position bay").
 _Avoid_: Unit, lot, premises
 
 **Fit-out**:
-The one-off build of the facility — racking, bins, barcodes, CCTV, consumables. $43,300 base, $49,795 with contingency.
+The one-off build of the facility — racking, bins, barcodes, CCTV, consumables. $53,500 base for 700 positions, $61,525 with contingency.
 _Avoid_: Setup, install, capex (unqualified)
 
 **Steady state**:
-The modelled working shape of the operation — 85% of 500 positions, ~425 bins, ~77 accounts. A shape to judge the model by, not a year-1 forecast.
+The modelled working shape of the operation — 85% of 700 positions, ~595 bins, ~108 accounts (about one Coverley home in three). A shape to judge the model by, not a year-1 forecast.
 _Avoid_: Full capacity, run rate, mature state
 
 **Break-even**:
-The occupied-bin count where contribution covers fixed cost — ~260 bins (52%) on $6,650, ~270 (54%) including surge. The pilot uses 54%.
+The occupied-bin count where contribution covers fixed cost — ~436 bins on $11,150, ~446 (64% of 700) including surge, about 81 households. The pilot uses 64%.
 _Avoid_: Profitability point, cover
 
 **Peak cash**:
-The deepest point of cumulative negative cash before contribution turns it around — ~$51,400 around month 3 in the base case, ~$57,000 on slow ramp.
+The deepest point of cumulative negative cash before contribution turns it around — ~$70,600 around month 4 in the base case. A slow ramp breaks the $72,000 cash exposure in month 3.
 _Avoid_: Burn, drawdown, funding need
 
 **Cash exposure**:
@@ -378,7 +378,7 @@ _Avoid_: Flag, raise, report
 
 - **"Order"** means two different things. In the app, a customer's request for bins is a **Booking** (never "order"). In the business case, an **outbound order** is one $50 retrieval trip. Always qualify: "outbound order", never bare "order".
 - **"Close-out" vs "Close"**. **Close** (app) ends a bin's lifecycle and returns it to inventory. **Close-out** (commercial) is the *customer-facing* event that usually causes it — the customer keeps the contents and stops paying. A borrow ends with a re-store, not a close.
-- **"Position" vs "Location"**. A **Location** (app) is a specific rack slot with a barcode. A **Position** (business case) is a unit of purchased capacity. 500 positions bought = 500 locations barcoded.
+- **"Position" vs "Location"**. A **Location** (app) is a specific rack slot with a barcode. A **Position** (business case) is a unit of purchased capacity. 700 positions bought = 700 locations barcoded.
 - **"Account"**. The app avoids "account" for a **Customer** because customers never sign in. The business case uses **account** deliberately as the billing and demand unit. Both are correct in their own document; do not let "account" leak into app prose meaning a login.
 - **"Stored bin" vs "occupied bin"**. Stored is a **bin status**; occupied is the billing state derived from it. They should always agree — if they don't, the invoice is wrong.
 - **"Retrieval"**. A **retrieval request** (app) is the customer action; an **outbound order** (commercial) is the priced event it creates. One request, one order, many bins.
