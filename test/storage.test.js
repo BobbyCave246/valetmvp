@@ -22,7 +22,8 @@ afterEach(() => {
 
 const {
   parsePhotoDataUrl,
-  resolvePhotoUrl,
+  parseStorageRef,
+  signPhotoUrls,
   uploadContentsPhoto,
   isStorageConfigured,
   enrichBin,
@@ -44,21 +45,53 @@ test('parsePhotoDataUrl decodes a data URL', () => {
   assert.ok(parsed.buffer.length > 0);
 });
 
-test('resolvePhotoUrl builds public object URL for storage refs', () => {
-  const url = resolvePhotoUrl('storage:contents-photos/bin_x1/123.jpg');
+test('parseStorageRef splits bucket and path', () => {
+  assert.deepEqual(parseStorageRef('storage:contents-photos/bin_x1/123.jpg'), {
+    bucket: 'contents-photos',
+    path: 'bin_x1/123.jpg',
+  });
+  assert.equal(parseStorageRef('https://example.com/x.jpg'), null);
+});
+
+test('signPhotoUrls batch-signs storage refs per bucket', async () => {
+  let captured;
+  globalThis.fetch = async (url, opts) => {
+    captured = { url, opts };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => [{ path: 'bin_x1/123.jpg', signedURL: '/object/sign/contents-photos/bin_x1/123.jpg?token=abc', error: null }],
+    };
+  };
+  const urls = await signPhotoUrls(['storage:contents-photos/bin_x1/123.jpg', null]);
+  assert.equal(captured.url, 'https://abc123.supabase.co/storage/v1/object/sign/contents-photos');
+  assert.deepEqual(JSON.parse(captured.opts.body).paths, ['bin_x1/123.jpg']);
   assert.equal(
-    url,
-    'https://abc123.supabase.co/storage/v1/object/public/contents-photos/bin_x1/123.jpg'
+    urls.get('storage:contents-photos/bin_x1/123.jpg'),
+    'https://abc123.supabase.co/storage/v1/object/sign/contents-photos/bin_x1/123.jpg?token=abc'
   );
 });
 
-test('resolvePhotoUrl passes through legacy data URLs', () => {
-  assert.equal(resolvePhotoUrl(tinyPng), tinyPng);
+test('signPhotoUrls passes through legacy data URLs without a request', async () => {
+  globalThis.fetch = async () => assert.fail('should not fetch');
+  const urls = await signPhotoUrls([tinyPng]);
+  assert.equal(urls.get(tinyPng), tinyPng);
 });
 
-test('enrichBin adds photoUrl when resolvable', () => {
-  const bin = enrichBin({ id: 'b1', photo_ref: 'storage:contents-photos/b1/x.jpg' });
-  assert.ok(bin.photoUrl.includes('/storage/v1/object/public/'));
+test('enrichBin leaves photoUrl off when signing fails', async () => {
+  globalThis.fetch = async () => ({ ok: false, status: 500, text: async () => 'boom' });
+  const bin = await enrichBin({ id: 'b1', photo_ref: 'storage:contents-photos/b1/x.jpg' });
+  assert.equal(bin.photoUrl, undefined);
+});
+
+test('enrichBin adds a signed photoUrl', async () => {
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => [{ path: 'b1/x.jpg', signedURL: '/object/sign/contents-photos/b1/x.jpg?token=t' }],
+  });
+  const bin = await enrichBin({ id: 'b1', photo_ref: 'storage:contents-photos/b1/x.jpg' });
+  assert.match(bin.photoUrl, /\/storage\/v1\/object\/sign\/contents-photos\/b1\/x\.jpg\?token=t$/);
 });
 
 test('uploadContentsPhoto POSTs to Supabase Storage', async () => {

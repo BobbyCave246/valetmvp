@@ -3,7 +3,7 @@
 import { Router } from 'express';
 import {
   createCustomer,
-  findCustomerByPhone,
+  findMatchingCustomer,
   createBooking,
   getBooking,
   listBookings,
@@ -12,7 +12,7 @@ import {
   getBinByBarcode,
   listBinsForBooking,
   listAvailableBins,
-  listJobs,
+  listJobsForBooking,
   countDeliveriesForSlot,
   deleteBooking,
 } from '../db.js';
@@ -25,20 +25,15 @@ import {
   cancelUnassignedBooking,
   assignBinsToBooking,
 } from '../jobs-lifecycle.js';
-import { requireAuth, requireRole, verifyToken, readCookie } from '../auth.js';
+import { requireAuth, requireRole } from '../auth.js';
+import { loadBookingFor, publicBaseUrl, bookingLink } from '../booking-access.js';
+import { rateLimit, clientIp } from '../ratelimit.js';
 import { deriveBookingSummary, deriveNextAction, deriveCustomerNextStep } from '../summary.js';
 import { isCovered } from '../coverage.js';
 import { validateDateSlot, validateFutureDate, SLOT_CAPACITY, SLOTS } from '../slots.js';
 import { safeParse, VALID_SKUS } from '../util.js';
-import { sendBookingConfirmation } from '../notify.js';
+import { sendBookingConfirmation, sendBookingLinks } from '../notify.js';
 import { enrichBins } from '../storage.js';
-
-const COOKIE_NAME = 'valet_session';
-
-function staffActor(req) {
-  const claims = verifyToken(readCookie(req, COOKIE_NAME));
-  return claims?.role === 'admin' ? 'admin' : 'customer';
-}
 
 const router = Router();
 
@@ -95,11 +90,10 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ error: 'That delivery window is full — please pick another' });
     }
 
-    // Reuse an existing customer (matched by phone) or create a new one.
-    let customer = await findCustomerByPhone(phone);
-    if (!customer) {
-      customer = await createCustomer({ name, phone, email, address, postcode: area });
-    }
+    // Reuse an existing customer only on an exact match, else create one.
+    const details = { name, phone, email: email || null, address: address || null, postcode: area };
+    let customer = await findMatchingCustomer(details);
+    if (!customer) customer = await createCustomer(details);
 
     const booking = await createBooking({
       customerId: customer.id,
@@ -127,11 +121,18 @@ router.post('/', async (req, res) => {
     // Fire the confirmation email without blocking the response. notify is
     // self-contained: it no-ops if email isn't configured and never throws, so
     // a mail problem can't fail an otherwise-successful booking.
-    void sendBookingConfirmation({ booking, customer, skuBreakdown });
+    void sendBookingConfirmation({
+      booking,
+      customer,
+      skuBreakdown,
+      link: bookingLink(publicBaseUrl(req), booking),
+    });
 
-    res.status(201).json({ booking, customer, job });
+    // Only the id: the caller already knows the details they sent.
+    res.status(201).json({ booking, customer: { id: customer.id }, job });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
@@ -158,18 +159,38 @@ router.get('/', requireAuth, requireRole('admin'), async (_req, res) => {
   res.json(bookings);
 });
 
-// GET /api/bookings/by-phone/:phone — customer lookup by phone (no login).
-// Defined before /:id so the literal segment isn't shadowed.
-router.get('/by-phone/:phone', async (req, res) => {
-  const rows = await findBookingByPhone(req.params.phone);
-  const bookings = await Promise.all(
-    rows.map(async (b) => ({
-      ...b,
-      sku_breakdown: safeParse(b.sku_breakdown),
-      summary: await deriveBookingSummary(b.id),
-    }))
-  );
-  res.json(bookings);
+// POST /api/bookings/lookup { phone } — customer lost their link. We send the
+// booking links to the phone (SMS) and email on file, and never say in the
+// response whether the number matched, so it can't be used to find customers.
+// Throttled per IP and per phone so it can't be used to spam someone.
+const lookupByIp = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.LOOKUP_RATE_MAX || 10),
+  keyFn: (req) => `lookup-ip|${clientIp(req)}`,
+});
+const lookupByPhone = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  keyFn: (req) => `lookup-phone|${String(req.body?.phone || '').trim()}`,
+});
+
+router.post('/lookup', lookupByIp, lookupByPhone, async (req, res) => {
+  const phone = String(req.body?.phone || '').trim();
+  if (!phone) return res.status(400).json({ error: 'phone is required' });
+
+  const bookings = await findBookingByPhone(phone);
+  if (bookings.length) {
+    const base = publicBaseUrl(req);
+    const entries = await Promise.all(
+      bookings.map(async (b) => ({
+        booking: b,
+        link: bookingLink(base, b),
+        email: (await getCustomer(b.customer_id))?.email || null,
+      }))
+    );
+    void sendBookingLinks({ phone, entries });
+  }
+  res.json({ ok: true });
 });
 
 // GET /api/bookings/:id — customer lookup + admin detail (bins + statuses).
@@ -182,7 +203,8 @@ router.post('/:id/cancel-unassigned', requireAuth, requireRole('admin'), async (
     const result = await cancelUnassignedBooking(req.params.id);
     res.json(result);
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
@@ -191,15 +213,15 @@ router.post('/:id/cancel', requireAuth, requireRole('admin'), async (req, res) =
     const result = await cancelBooking(req.params.id, { actor: 'admin' });
     res.json({ ok: true, ...result });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
 // POST /api/bookings/:id/cancel-retrieval — customer or admin cancels retrieval
 // for one or more bins in Retrieval requested. Body: { binIds: string[] }.
 router.post('/:id/cancel-retrieval', async (req, res) => {
-  const booking = await getBooking(req.params.id);
-  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+  const { booking, actor } = await loadBookingFor(req, req.params.id);
 
   const { binIds } = req.body || {};
   if (!Array.isArray(binIds) || binIds.length === 0) {
@@ -209,31 +231,26 @@ router.post('/:id/cancel-retrieval', async (req, res) => {
     return res.status(400).json({ error: 'Duplicate binIds in request' });
   }
 
-  // Actor is admin when signed-in staff calls; otherwise customer.
-  const actor = staffActor(req);
-
   try {
     const result = await cancelRetrieval(booking.id, { binIds, actor });
     res.json({ ...result, summary: await deriveBookingSummary(booking.id) });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
 router.get('/:id', async (req, res) => {
-  const booking = await getBooking(req.params.id);
-  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+  const { booking } = await loadBookingFor(req, req.params.id);
 
-  const [customer, rawBins, summary, allJobs] = await Promise.all([
+  const [customer, rawBins, summary, rawJobs] = await Promise.all([
     getCustomer(booking.customer_id),
     listBinsForBooking(booking.id),
     deriveBookingSummary(booking.id),
-    listJobs(),
+    listJobsForBooking(booking.id),
   ]);
-  const bins = enrichBins(rawBins);
-  const jobs = allJobs
-    .filter((j) => j.booking_id === booking.id)
-    .map((j) => ({ ...j, bin_ids: safeParse(j.bin_ids) || [] }));
+  const bins = await enrichBins(rawBins);
+  const jobs = rawJobs.map((j) => ({ ...j, bin_ids: safeParse(j.bin_ids) || [] }));
   res.json({
     ...booking,
     sku_breakdown: safeParse(booking.sku_breakdown),
@@ -281,7 +298,8 @@ router.post('/:id/assign-bins', requireAuth, requireRole('admin'), async (req, r
     );
     res.json({ assigned, summary: await deriveBookingSummary(booking.id) });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
@@ -335,7 +353,8 @@ router.post('/:id/auto-assign', requireAuth, requireRole('admin'), async (req, r
       summary: await deriveBookingSummary(booking.id),
     });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
@@ -344,8 +363,7 @@ router.post('/:id/auto-assign', requireAuth, requireRole('admin'), async (req, r
 // the booking's "Out for filling" bins on the chosen date.
 // Body: { collectionDate, collectionSlot? }.
 router.post('/:id/book-collection', async (req, res) => {
-  const booking = await getBooking(req.params.id);
-  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+  const { booking } = await loadBookingFor(req, req.params.id);
 
   const { collectionDate, collectionSlot } = req.body || {};
   const dateErr = validateFutureDate(collectionDate);
@@ -370,7 +388,8 @@ router.post('/:id/book-collection', async (req, res) => {
 
     res.json({ job, summary: await deriveBookingSummary(booking.id) });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
@@ -379,8 +398,7 @@ router.post('/:id/book-collection', async (req, res) => {
 // and share a single deliver_back job (mirrors book-collection).
 // Body: { binIds: string[], deliveryBackDate, deliveryBackSlot? }.
 router.post('/:id/request-return', async (req, res) => {
-  const booking = await getBooking(req.params.id);
-  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+  const { booking } = await loadBookingFor(req, req.params.id);
 
   const { binIds, deliveryBackDate, deliveryBackSlot } = req.body || {};
   const dateErr = validateFutureDate(deliveryBackDate);
@@ -403,7 +421,8 @@ router.post('/:id/request-return', async (req, res) => {
     });
     res.json({ job, summary: await deriveBookingSummary(booking.id) });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 

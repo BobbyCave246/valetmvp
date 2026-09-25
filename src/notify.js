@@ -5,6 +5,7 @@
 
 import { slotLabel } from './slots.js';
 import { getBooking, getCustomer } from './db.js';
+import { publicBaseUrl, bookingLink } from './booking-access.js';
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
@@ -41,7 +42,13 @@ function esc(s) {
   ));
 }
 
-function renderBookingHtml({ booking, customer, skuBreakdown }) {
+function linkButton(link, label) {
+  if (!link) return '';
+  return `<p><a href="${esc(link)}" style="display:inline-block;background:#222;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;">${esc(label)}</a></p>
+    <p style="color:#6a6a6a;font-size:13px;">This link is private to you. Anyone who has it can manage your booking, so don't share it.</p>`;
+}
+
+function renderBookingHtml({ booking, customer, skuBreakdown, link }) {
   const lines = Object.entries(skuBreakdown || {})
     .filter(([, n]) => n > 0)
     .map(([sku, n]) => {
@@ -59,7 +66,8 @@ function renderBookingHtml({ booking, customer, skuBreakdown }) {
   <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#222;max-width:560px;margin:0 auto;">
     <h2 style="margin:0 0 8px;">📦 Booking confirmed</h2>
     <p style="color:#6a6a6a;margin:0 0 16px;">Thanks${customer.name ? `, ${esc(customer.name)}` : ''} — your bins are booked.</p>
-    <p>Your booking reference is <strong>${esc(booking.id)}</strong>. Keep it to look up your booking any time.</p>
+    <p>Your booking reference is <strong>${esc(booking.id)}</strong>.</p>
+    ${linkButton(link, 'View your booking')}
     <ul>${lines}</ul>
     <p><strong>Estimated monthly storage:</strong> $${monthly}/mo</p>
     <p><strong>Delivery of empty bins:</strong> ${esc(booking.delivery_date)} · ${slot}</p>
@@ -72,19 +80,19 @@ function renderBookingHtml({ booking, customer, skuBreakdown }) {
   </div>`;
 }
 
-function renderJobDoneHtml({ booking, customer, job, copy }) {
+function renderJobDoneHtml({ booking, customer, job, copy, link }) {
   return `
   <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#222;max-width:560px;margin:0 auto;">
     <h2 style="margin:0 0 8px;">📦 ${esc(copy.headline)}</h2>
     <p style="color:#6a6a6a;margin:0 0 16px;">Hi${customer.name ? ` ${esc(customer.name)}` : ''},</p>
     <p>Booking reference: <strong>${esc(booking.id)}</strong></p>
     <p>${esc(copy.nextStep)}</p>
-    <p style="color:#6a6a6a;font-size:13px;">Track your bins any time at My booking using your reference or phone number.</p>
+    ${link ? linkButton(link, 'Track your bins') : '<p style="color:#6a6a6a;font-size:13px;">Track your bins any time from the link in your confirmation email, or look up your phone number at My booking and we will send it again.</p>'}
   </div>`;
 }
 
-function jobDoneSmsText({ booking, copy }) {
-  return `${copy.headline} — ref ${booking.id}. ${copy.nextStep}`;
+function jobDoneSmsText({ booking, copy, link }) {
+  return `${copy.headline} — ref ${booking.id}. ${copy.nextStep}${link ? ` ${link}` : ''}`;
 }
 
 async function sendResendEmail({ to, subject, html }) {
@@ -147,13 +155,13 @@ async function sendTwilioSms({ to, body }) {
 }
 
 // Send a booking confirmation. Never throws.
-export async function sendBookingConfirmation({ booking, customer, skuBreakdown }) {
+export async function sendBookingConfirmation({ booking, customer, skuBreakdown, link = null }) {
   try {
     if (!customer?.email) return false;
     return await sendResendEmail({
       to: customer.email,
       subject: `Booking confirmed — ${booking.id}`,
-      html: renderBookingHtml({ booking, customer, skuBreakdown }),
+      html: renderBookingHtml({ booking, customer, skuBreakdown, link }),
     });
   } catch (err) {
     console.error('[notify] booking confirmation email error:', err);
@@ -162,7 +170,7 @@ export async function sendBookingConfirmation({ booking, customer, skuBreakdown 
 }
 
 // Email on Job Done. Never throws.
-export async function sendJobDoneEmail({ booking, customer, job }) {
+export async function sendJobDoneEmail({ booking, customer, job, link = null }) {
   try {
     if (!customer?.email) return false;
     const copy = JOB_DONE_COPY[job.type];
@@ -170,7 +178,7 @@ export async function sendJobDoneEmail({ booking, customer, job }) {
     return await sendResendEmail({
       to: customer.email,
       subject: `${copy.subject} — ${booking.id}`,
-      html: renderJobDoneHtml({ booking, customer, job, copy }),
+      html: renderJobDoneHtml({ booking, customer, job, copy, link }),
     });
   } catch (err) {
     console.error('[notify] job done email error:', err);
@@ -179,14 +187,14 @@ export async function sendJobDoneEmail({ booking, customer, job }) {
 }
 
 // SMS on Job Done. Never throws.
-export async function sendJobDoneSms({ booking, customer, job }) {
+export async function sendJobDoneSms({ booking, customer, job, link = null }) {
   try {
     if (!customer?.phone) return false;
     const copy = JOB_DONE_COPY[job.type];
     if (!copy) return false;
     return await sendTwilioSms({
       to: customer.phone,
-      body: jobDoneSmsText({ booking, copy }),
+      body: jobDoneSmsText({ booking, copy, link }),
     });
   } catch (err) {
     console.error('[notify] job done SMS error:', err);
@@ -201,10 +209,54 @@ export async function sendJobDoneNotifications({ job, bookingId }) {
     if (!booking) return;
     const customer = await getCustomer(booking.customer_id);
     if (!customer) return;
-    const payload = { booking, customer, job };
+    // Only when PUBLIC_BASE_URL (or Vercel's production URL) is set: there's
+    // no request here to fall back on.
+    const payload = { booking, customer, job, link: bookingLink(publicBaseUrl(), booking) };
     await Promise.all([sendJobDoneEmail(payload), sendJobDoneSms(payload)]);
   } catch (err) {
     console.error('[notify] job done dispatch error:', err);
+  }
+}
+
+// Phone lookup: text every booking link on this phone to it, and email each
+// booking's link only to that booking's own customer. Never throws.
+export async function sendBookingLinks({ phone, entries }) {
+  try {
+    const usable = entries.filter((e) => e.link);
+    if (usable.length === 0) {
+      console.warn('[notify] booking links not sent: no PUBLIC_BASE_URL set');
+      return false;
+    }
+    const line = (e) => `${e.booking.id} (delivery ${e.booking.delivery_date}): ${e.link}`;
+    const tasks = [sendTwilioSms({ to: phone, body: `Your Store All Valet bookings:\n${usable.map(line).join('\n')}` })];
+
+    const byEmail = new Map();
+    for (const e of usable) {
+      if (e.email) byEmail.set(e.email, [...(byEmail.get(e.email) || []), e]);
+    }
+    for (const [to, list] of byEmail) {
+      const items = list
+        .map((e) => `<li><strong>${esc(e.booking.id)}</strong> · delivery ${esc(e.booking.delivery_date)}<br>${linkButton(e.link, 'Open booking')}</li>`)
+        .join('');
+      tasks.push(sendResendEmail({
+        to,
+        subject: 'Your booking links',
+        html: `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#222;max-width:560px;margin:0 auto;">
+          <h2 style="margin:0 0 8px;">📦 Your bookings</h2>
+          <p>Someone asked for the links to your bookings. If that wasn't you, you can ignore this.</p>
+          <ul>${items}</ul></div>`,
+      }));
+    }
+
+    const sent = (await Promise.all(tasks)).some(Boolean);
+    // Local dev has no SMS/email, so print the links to keep lookup testable.
+    if (!sent && !process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+      console.log(`[notify] (dev) booking links for ${phone}:\n  ${usable.map(line).join('\n  ')}`);
+    }
+    return sent;
+  } catch (err) {
+    console.error('[notify] booking links error:', err);
+    return false;
   }
 }
 

@@ -25,7 +25,8 @@ router.post('/reset', requireAuth, requireRole('admin'), async (_req, res) => {
     const result = await seed();
     res.json({ ok: true, seeded: result });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 

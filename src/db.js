@@ -4,7 +4,7 @@
 
 import 'dotenv/config';
 import postgres from 'postgres';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes } from 'node:crypto';
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -113,6 +113,13 @@ ALTER TABLE jobs      ADD COLUMN IF NOT EXISTS scheduled_slot TEXT;
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS postcode       TEXT;
 ALTER TABLE users     ADD COLUMN IF NOT EXISTS is_active      INTEGER DEFAULT 1;
 ALTER TABLE users     ADD COLUMN IF NOT EXISTS deactivated_at TEXT;
+ALTER TABLE bookings  ADD COLUMN IF NOT EXISTS access_token   TEXT;
+
+-- Give bookings made before access tokens existed a random token, so their
+-- owners can get a link back through phone lookup.
+UPDATE bookings
+  SET access_token = replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '')
+  WHERE access_token IS NULL;
 
 -- Data-integrity constraints. Added idempotently and defensively: a constraint
 -- that already exists is silently skipped, and a constraint that pre-existing
@@ -184,8 +191,19 @@ export async function getCustomer(id) {
   return rows[0];
 }
 
-export async function findCustomerByPhone(phone) {
-  const rows = await sql`SELECT * FROM customers WHERE phone = ${phone}`;
+// Reuse a customer only when every detail matches. Matching on phone alone
+// would let anyone who knows a phone number attach a booking to that person
+// and read back their email and address.
+export async function findMatchingCustomer({ name = null, phone, email = null, address = null, postcode = null }) {
+  const rows = await sql`
+    SELECT * FROM customers
+    WHERE phone = ${phone}
+      AND name IS NOT DISTINCT FROM ${name}
+      AND email IS NOT DISTINCT FROM ${email}
+      AND address IS NOT DISTINCT FROM ${address}
+      AND postcode IS NOT DISTINCT FROM ${postcode}
+    ORDER BY created_at
+    LIMIT 1`;
   return rows[0];
 }
 
@@ -327,9 +345,11 @@ export async function createBooking({
   deliverySlot = null,
 }) {
   const id = newId('book');
+  // Secret for customer access (see booking-access.js).
+  const accessToken = randomBytes(24).toString('base64url');
   const rows = await sql`
-    INSERT INTO bookings (id, customer_id, bin_count, sku_breakdown, status, delivery_date, delivery_slot, created_at)
-    VALUES (${id}, ${customerId}, ${binCount}, ${JSON.stringify(skuBreakdown || {})}, ${'New'}, ${deliveryDate}, ${deliverySlot}, ${nowISO()})
+    INSERT INTO bookings (id, customer_id, access_token, bin_count, sku_breakdown, status, delivery_date, delivery_slot, created_at)
+    VALUES (${id}, ${customerId}, ${accessToken}, ${binCount}, ${JSON.stringify(skuBreakdown || {})}, ${'New'}, ${deliveryDate}, ${deliverySlot}, ${nowISO()})
     RETURNING *`;
   return rows[0];
 }

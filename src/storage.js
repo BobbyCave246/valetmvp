@@ -32,31 +32,78 @@ export function parsePhotoDataUrl(dataUrl) {
   return { contentType: m[1] === 'image/jpg' ? 'image/jpeg' : m[1], buffer };
 }
 
-/** Turn a stored photo_ref into a browser-loadable URL (public bucket). */
-export function resolvePhotoUrl(photoRef) {
-  if (!photoRef) return null;
-  if (photoRef.startsWith('data:image/')) return photoRef;
-  if (!photoRef.startsWith(REF_PREFIX)) return null;
+// How long a signed photo link stays valid. Pages refresh far more often.
+const SIGNED_URL_TTL_SECONDS = Number(process.env.PHOTO_URL_TTL_SECONDS || 60 * 60);
 
-  const base = getSupabaseUrl();
-  if (!base) return null;
-
+/** Split storage:bucket/path into its parts, or null. */
+export function parseStorageRef(photoRef) {
+  if (typeof photoRef !== 'string' || !photoRef.startsWith(REF_PREFIX)) return null;
   const rest = photoRef.slice(REF_PREFIX.length);
   const slash = rest.indexOf('/');
-  if (slash === -1) return null;
-  const bucket = rest.slice(0, slash);
-  const path = rest.slice(slash + 1);
-  return `${base}/storage/v1/object/public/${bucket}/${encodeURI(path)}`;
+  if (slash <= 0) return null;
+  return { bucket: rest.slice(0, slash), path: rest.slice(slash + 1) };
 }
 
-export function enrichBin(bin) {
+/**
+ * Turn stored photo_refs into short-lived signed URLs, so photos of what's in
+ * a customer's bins work in a private bucket and a leaked link soon expires.
+ * Legacy inline data URLs pass through. Returns a Map of photo_ref to URL; a
+ * ref that can't be signed is left out (the bin just shows no photo).
+ */
+export async function signPhotoUrls(photoRefs) {
+  const out = new Map();
+  const byBucket = new Map();
+  for (const ref of new Set(photoRefs.filter(Boolean))) {
+    if (ref.startsWith('data:image/')) {
+      out.set(ref, ref);
+      continue;
+    }
+    const parsed = parseStorageRef(ref);
+    if (!parsed) continue;
+    if (!byBucket.has(parsed.bucket)) byBucket.set(parsed.bucket, new Map());
+    byBucket.get(parsed.bucket).set(parsed.path, ref);
+  }
+  if (byBucket.size === 0 || !isStorageConfigured()) return out;
+
+  const base = getSupabaseUrl();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  await Promise.all(
+    [...byBucket].map(async ([bucket, paths]) => {
+      try {
+        const resp = await fetch(`${base}/storage/v1/object/sign/${bucket}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${key}`, apikey: key, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ expiresIn: SIGNED_URL_TTL_SECONDS, paths: [...paths.keys()] }),
+        });
+        if (!resp.ok) {
+          const detail = await resp.text().catch(() => '');
+          console.error(`[storage] sign failed (${resp.status}): ${detail}`);
+          return;
+        }
+        for (const item of await resp.json()) {
+          const ref = paths.get(item.path);
+          if (ref && item.signedURL && !item.error) out.set(ref, `${base}/storage/v1${item.signedURL}`);
+        }
+      } catch (err) {
+        console.error('[storage] sign error:', err);
+      }
+    })
+  );
+  return out;
+}
+
+export async function enrichBins(bins) {
+  const list = bins || [];
+  const urls = await signPhotoUrls(list.map((b) => b?.photo_ref));
+  return list.map((bin) => {
+    const photoUrl = bin && urls.get(bin.photo_ref);
+    return photoUrl ? { ...bin, photoUrl } : bin;
+  });
+}
+
+export async function enrichBin(bin) {
   if (!bin) return bin;
-  const photoUrl = resolvePhotoUrl(bin.photo_ref);
-  return photoUrl ? { ...bin, photoUrl } : bin;
-}
-
-export function enrichBins(bins) {
-  return (bins || []).map(enrichBin);
+  return (await enrichBins([bin]))[0];
 }
 
 /**

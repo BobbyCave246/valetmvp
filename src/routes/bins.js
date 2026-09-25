@@ -19,6 +19,7 @@ import { scheduleCollection, requestRetrieval, markBinNoShow } from '../jobs-lif
 import { validateFutureDate, SLOTS } from '../slots.js';
 import { VALID_SKUS } from '../util.js';
 import { requireAuth, requireRole } from '../auth.js';
+import { binActor } from '../booking-access.js';
 import {
   parsePhotoDataUrl,
   uploadContentsPhoto,
@@ -28,8 +29,9 @@ import {
 
 const router = Router();
 
-// Warehouse-only guard, applied per-route below (this router also carries
-// public customer actions — photo, request-*, close, movements — which stay open).
+// Warehouse-only guard, applied per-route below. The customer actions on this
+// router (photo, request-*, close, movements) need the booking's access token
+// or a staff session instead; see booking-access.js.
 const warehouse = [requireAuth, requireRole('warehouse', 'admin')];
 
 // GET /api/bins/available — unassigned bins for the assign-bins screen.
@@ -63,7 +65,8 @@ router.post('/', warehouse, async (req, res) => {
     const [total, byStatus] = await Promise.all([countBins(), countBinsByStatus()]);
     res.status(201).json({ bin, pool: { total, available: byStatus.unassigned || 0 } });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
@@ -71,7 +74,7 @@ router.post('/', warehouse, async (req, res) => {
 // for filling. Image is stored in Supabase Storage when configured.
 router.post('/:barcode/photo', async (req, res) => {
   const bin = await getBinByBarcode(req.params.barcode);
-  if (!bin) return res.status(404).json({ error: 'Bin not found' });
+  await binActor(req, bin);
   if (bin.status !== STATUS.OUT_FOR_FILLING) {
     return res
       .status(409)
@@ -98,9 +101,10 @@ router.post('/:barcode/photo', async (req, res) => {
       contentType: parsed.contentType,
     });
     await setBinFields(bin.id, { photo_ref: storedRef });
-    res.json({ bin: enrichBin(await getBin(bin.id)) });
+    res.json({ bin: await enrichBin(await getBin(bin.id)) });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
@@ -126,7 +130,8 @@ router.post('/:barcode/store', warehouse, async (req, res) => {
     });
     res.json({ bin: updated, location: await getLocation(location.id) });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
@@ -140,7 +145,8 @@ router.post('/:barcode/scan-out', warehouse, async (req, res) => {
     const updated = await transitionBin(bin.id, STATUS.IN_TRANSIT_OUTBOUND, { actor: 'admin' });
     res.json({ bin: updated, freedLocation: freedLocationId ? await getLocation(freedLocationId) : null });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
@@ -150,7 +156,7 @@ router.post('/:barcode/scan-out', warehouse, async (req, res) => {
 // Accepts a bin id or barcode. Body: { deliveryBackDate, deliveryBackSlot? }.
 router.post('/:id/request-return', async (req, res) => {
   const bin = (await getBin(req.params.id)) || (await getBinByBarcode(req.params.id));
-  if (!bin) return res.status(404).json({ error: 'Bin not found' });
+  await binActor(req, bin);
   if (!bin.booking_id) {
     return res.status(409).json({ error: 'Bin is not linked to a booking' });
   }
@@ -171,7 +177,8 @@ router.post('/:id/request-return', async (req, res) => {
     const updated = await getBin(bin.id);
     res.json({ bin: updated, job });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
@@ -182,7 +189,7 @@ router.post('/:id/request-return', async (req, res) => {
 // spec §3.1 / §4 tail). The warehouse then scans it back to Stored.
 router.post('/:id/request-restore', async (req, res) => {
   const bin = (await getBin(req.params.id)) || (await getBinByBarcode(req.params.id));
-  if (!bin) return res.status(404).json({ error: 'Bin not found' });
+  await binActor(req, bin);
   if (bin.status !== STATUS.RETURNED_TO_CUSTOMER) {
     return res
       .status(409)
@@ -208,7 +215,8 @@ router.post('/:id/request-restore', async (req, res) => {
     });
     res.json({ bin, job });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
@@ -222,27 +230,30 @@ router.post('/:id/no-show', requireAuth, requireRole('admin'), async (req, res) 
     const result = await markBinNoShow(bin.id, { actor: 'admin' });
     res.json(result);
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
 // POST /api/bins/:id/close — lifecycle complete: Returned to customer → Returned / closed.
 router.post('/:id/close', async (req, res) => {
   const bin = (await getBin(req.params.id)) || (await getBinByBarcode(req.params.id));
-  if (!bin) return res.status(404).json({ error: 'Bin not found' });
+  const actor = await binActor(req, bin);
 
   try {
-    const updated = await transitionBin(bin.id, STATUS.RETURNED_CLOSED, { actor: 'customer' });
+    const updated = await transitionBin(bin.id, STATUS.RETURNED_CLOSED, { actor });
     res.json({ bin: updated });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 
 // GET /api/bins/:barcode/movements — chain of custody.
 router.get('/:barcode/movements', async (req, res) => {
   const bin = (await getBinByBarcode(req.params.barcode)) || (await getBin(req.params.barcode));
-  if (!bin) return res.status(404).json({ error: 'Bin not found' });
+  // Any staff role may read the custody trail; customers only for their own bins.
+  await binActor(req, bin, { staffRoles: ['admin', 'warehouse', 'driver'] });
 
   const rows = await listMovementsForBin(bin.id);
   const movements = await Promise.all(
@@ -251,7 +262,7 @@ router.get('/:barcode/movements', async (req, res) => {
       location: m.location_id ? await getLocation(m.location_id) : null,
     }))
   );
-  res.json({ bin: enrichBin(bin), movements });
+  res.json({ bin: await enrichBin(bin), movements });
 });
 
 export default router;

@@ -61,7 +61,8 @@ app.get('/api/health', async (_req, res) => {
     await pingDb();
     res.json({ ok: true, db: 'up' });
   } catch (err) {
-    res.status(503).json({ ok: false, db: 'down', error: err.message });
+    console.error('[health] db ping failed:', err);
+    res.status(503).json({ ok: false, db: 'down' });
   }
 });
 
@@ -107,9 +108,13 @@ app.get('/start', (_req, res) => res.redirect('/login/'));
 app.get('/start/', (_req, res) => res.redirect('/login/'));
 
 // --- Error fallback ----------------------------------------------------------
+// Express 5 sends a rejected async handler here too. Errors we raised on
+// purpose carry a 4xx status and a message meant for the user; anything else
+// (DB, network, bugs) is logged and hidden behind a generic message.
 app.use((err, _req, res, _next) => {
-  console.error(err);
-  res.status(err.status || 500).json({ error: err.message || 'Internal error' });
+  const status = err.status || err.statusCode || 500;
+  if (status >= 500) console.error(err);
+  res.status(status).json({ error: status < 500 && err.message ? err.message : 'Internal error' });
 });
 
 export default app;
