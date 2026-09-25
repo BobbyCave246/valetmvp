@@ -5,7 +5,7 @@ A valet storage service where customers book empty bins for delivery, fill them 
 ## People & access
 
 **Customer**:
-A person who books storage and tracks their bins by phone or booking reference. Customers never sign in.
+A person who books storage and tracks their bins through the private link sent with their booking (phone lookup resends it). Customers never sign in.
 _Avoid_: User, tenant, account
 
 **Staff**:

@@ -103,7 +103,8 @@ router.post('/users', requireAuth, requireRole('admin'), async (req, res) => {
     if (err.code === '23505') {
       return res.status(409).json({ error: `A user with email ${email} already exists` });
     }
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 

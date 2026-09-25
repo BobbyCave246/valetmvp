@@ -43,7 +43,8 @@ router.post('/leads', async (req, res) => {
     const lead = await createLead({ email, area });
     res.status(201).json({ ok: true, lead });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 

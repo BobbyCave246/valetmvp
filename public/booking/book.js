@@ -254,7 +254,8 @@ $('#submitBtn').addEventListener('click', async () => {
   btn.textContent = 'Confirming…';
   try {
     const data = await api('POST', '/bookings', payload);
-    location.href = `booking.html?ref=${encodeURIComponent(data.booking.id)}&new=1`;
+    // The access token rides in the fragment, which never reaches the server.
+    location.href = `booking.html?ref=${encodeURIComponent(data.booking.id)}&new=1#t=${encodeURIComponent(data.booking.access_token)}`;
   } catch (e) {
     toast(e.message, true);
     btn.disabled = false;

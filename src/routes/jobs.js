@@ -6,6 +6,7 @@ import { listJobs, getJob, getBooking, getCustomer, getBin } from '../db.js';
 import { completeJob } from '../jobs-lifecycle.js';
 import { safeParse } from '../util.js';
 import { requireAuth, requireRole } from '../auth.js';
+import { withoutToken } from '../booking-access.js';
 
 const router = Router();
 
@@ -32,7 +33,7 @@ router.get('/', async (_req, res) => {
         const c = await getCustomer(booking.customer_id);
         if (c) customer = { name: c.name, phone: c.phone, address: c.address, postcode: c.postcode };
       }
-      return { ...j, bin_ids: binIds, bins, booking: booking ? { ...booking, customer } : booking };
+      return { ...j, bin_ids: binIds, bins, booking: booking ? { ...withoutToken(booking), customer } : booking };
     })
   );
   res.json(jobs);
@@ -44,7 +45,8 @@ router.post('/:id/done', async (req, res) => {
     const result = await completeJob(req.params.id, { actor: 'admin' });
     res.json({ job: await getJob(req.params.id), advanced: result.advanced });
   } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
+    if (!err.status) throw err;
+    res.status(err.status).json({ error: err.message });
   }
 });
 

@@ -66,10 +66,16 @@ function confirmDialog({ title, message, confirmLabel = 'Confirm', cancelLabel =
   });
 }
 
+// The open booking's private access token (from the confirmation link). Sent
+// on every call so the API knows this visitor may see and change the booking.
+let currentToken = null;
+
 async function api(method, path, body) {
+  const headers = body ? { 'Content-Type': 'application/json' } : {};
+  if (currentToken) headers['X-Booking-Token'] = currentToken;
   const r = await fetch(`/api${path}`, {
     method,
-    headers: body ? { 'Content-Type': 'application/json' } : {},
+    headers,
     credentials: 'same-origin',
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -80,7 +86,28 @@ async function api(method, path, body) {
 
 // Earliest pickable service date (from API — Barbados calendar).
 let SERVICE_TODAY_ISO = new Date().toISOString().slice(0, 10);
-const SAVED_REF_KEY = 'savBookingRef';
+// Remembers { ref, token } for this tab so a refresh keeps the booking open.
+const SAVED_KEY = 'savBooking';
+
+function loadSaved() {
+  try { return JSON.parse(sessionStorage.getItem(SAVED_KEY)) || null; } catch { return null; }
+}
+
+function saveCurrent(ref, token) {
+  try { sessionStorage.setItem(SAVED_KEY, JSON.stringify({ ref, token })); } catch { /* private mode */ }
+}
+
+// Pull { ref, token } out of a booking link: ...booking.html?ref=book_x#t=TOKEN
+function parseBookingLink(text) {
+  try {
+    const u = new URL(text, location.href);
+    const ref = u.searchParams.get('ref');
+    const token = new URLSearchParams(u.hash.slice(1)).get('t');
+    return ref && token ? { ref, token } : null;
+  } catch {
+    return null;
+  }
+}
 
 // Delivery-window labels. Fallback values; refreshed from the API at boot so
 // the backend stays the single source of truth.
@@ -385,6 +412,7 @@ function renderBooking(booking) {
       const thumbSrc = binPhotoSrc(bin);
       const block = document.createElement('div');
       block.className = 'bin-block';
+      block.dataset.barcode = bin.barcode;
 
       const row = document.createElement('div');
       row.className = 'bin-row';
@@ -582,8 +610,9 @@ let currentRef = null;
 let loadSeq = 0;
 let isRefreshing = false;
 
-async function loadByRef(ref, { saveRef = true } = {}) {
+async function loadByRef(ref, token) {
   const seq = ++loadSeq;
+  currentToken = token;
   isRefreshing = true;
   const lookupBtn = $('#lookupBtn');
   if (lookupBtn) lookupBtn.disabled = true;
@@ -591,9 +620,7 @@ async function loadByRef(ref, { saveRef = true } = {}) {
     const booking = await api('GET', `/bookings/${encodeURIComponent(ref)}`);
     if (seq !== loadSeq) return;
     currentRef = ref;
-    if (saveRef) {
-      try { sessionStorage.setItem(SAVED_REF_KEY, ref); } catch { /* private mode */ }
-    }
+    saveCurrent(ref, token);
     renderBooking(booking);
   } catch (e) {
     if (seq !== loadSeq) return;
@@ -606,48 +633,21 @@ async function loadByRef(ref, { saveRef = true } = {}) {
   }
 }
 
-function renderBookingPicker(list) {
-  const box = $('#result');
-  box.innerHTML = '';
-  const card = document.createElement('div');
-  card.className = 'card';
-  card.innerHTML = `<h2 style="margin-top:0;">Multiple bookings found</h2>
-    <p class="muted">Choose which booking to open:</p>`;
-  list.forEach((b) => {
-    const row = el(`<button type="button" class="picker-row">
-      <strong><code>${esc(b.id)}</code></strong>
-      <span class="muted">Delivery ${esc(b.delivery_date)} · ${esc(b.summary?.text || '')}</span>
-    </button>`);
-    row.addEventListener('click', () => {
-      $('#lookup').value = b.id;
-      loadByRef(b.id);
-    });
-    card.appendChild(row);
-  });
-  box.appendChild(card);
+function showNotice(html) {
+  $('#result').innerHTML = `<div class="card muted">${html}</div>`;
 }
 
-async function loadByPhone(phone) {
-  const list = await api('GET', `/bookings/by-phone/${encodeURIComponent(phone)}`);
-  if (list.length === 0) {
-    $('#result').innerHTML = `<div class="card muted">No bookings found for that phone.</div>`;
-    return;
-  }
-  let savedRef = null;
-  try { savedRef = sessionStorage.getItem(SAVED_REF_KEY); } catch { /* private mode */ }
-  if (savedRef && list.some((b) => b.id === savedRef)) {
-    await loadByRef(savedRef);
-    return;
-  }
-  if (list.length === 1) {
-    await loadByRef(list[0].id);
-    return;
-  }
-  renderBookingPicker(list);
+async function lookupByPhone(phone) {
+  await api('POST', '/bookings/lookup', { phone });
+  showNotice(`If we have bookings for <strong>${esc(phone)}</strong>, we've sent the links to that phone and to the email on file. Open the link to see your booking.`);
+}
+
+function needLink() {
+  showNotice("For your privacy, a booking opens only from the private link in your confirmation email. Lost it? Enter the phone number you booked with and we'll send it again.");
 }
 
 function reloadCurrent() {
-  if (currentRef) loadByRef(currentRef);
+  if (currentRef) loadByRef(currentRef, currentToken);
 }
 
 $('#lookupBtn').addEventListener('click', async () => {
@@ -656,8 +656,12 @@ $('#lookupBtn').addEventListener('click', async () => {
   const btn = $('#lookupBtn');
   btn.disabled = true;
   try {
-    if (v.startsWith('book_')) await loadByRef(v);
-    else await loadByPhone(v);
+    const link = parseBookingLink(v);
+    const saved = loadSaved();
+    if (link) await loadByRef(link.ref, link.token);
+    else if (v.startsWith('book_') && saved?.ref === v) await loadByRef(v, saved.token);
+    else if (v.startsWith('book_')) needLink();
+    else await lookupByPhone(v);
   } catch (e) {
     toast(e.message, true);
   } finally {
@@ -666,19 +670,16 @@ $('#lookupBtn').addEventListener('click', async () => {
 });
 $('#lookup').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#lookupBtn').click(); });
 
-// Scan a bin's barcode (e.g. the bin sitting in front of you) to open the
-// booking it belongs to.
+// Scan a bin's barcode (e.g. the bin sitting in front of you) to jump to it in
+// the open booking. A scan alone doesn't prove who you are, so it can't open
+// a booking by itself.
 $('#scanLookupBtn').addEventListener('click', async () => {
+  if (!currentToken) return needLink();
   const code = await Scanner.scan({ title: 'Scan a bin barcode' });
   if (!code) return;
-  try {
-    const { bin } = await api('GET', `/bins/${encodeURIComponent(code)}/movements`);
-    if (!bin.booking_id) return toast(`${code} isn't linked to a booking yet`, true);
-    $('#lookup').value = bin.booking_id;
-    await loadByRef(bin.booking_id);
-  } catch (e) {
-    toast(e.message, true);
-  }
+  const block = $(`#result .bin-block[data-barcode="${CSS.escape(code.trim().toUpperCase())}"]`);
+  if (!block) return toast(`${code} isn't part of this booking`, true);
+  block.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
 // Keep the loaded booking fresh so customer-visible status changes appear
@@ -705,6 +706,9 @@ $('#result').addEventListener('input', (e) => {
 // Auto-load from ?ref=, and show a confirmation banner if ?new=1.
 const params = new URLSearchParams(location.search);
 const ref = params.get('ref');
+const linkToken = new URLSearchParams(location.hash.slice(1)).get('t');
+const savedBooking = loadSaved();
+const startToken = linkToken || (savedBooking?.ref === ref ? savedBooking.token : null);
 if (ref) {
   $('#lookup').value = ref;
   if (params.get('new') === '1') {
@@ -715,12 +719,12 @@ if (ref) {
         <div class="timeline-step current"><span class="dot"></span><span>We'll assign your bins</span></div>
         <div class="timeline-step upcoming"><span class="dot"></span><span>Empty bins delivered on your chosen date</span></div>
       </div>
-      <p class="muted" style="margin:12px 0 0;">Save this reference — it's how you track your booking (no login needed). First month is prepaid to confirm. Drop-off and collection are free; a flat $50 per order applies when you request stored bins back. Pack within 7 days of empty drop-off.</p>
+      <p class="muted" style="margin:12px 0 0;">Bookmark this page or keep your confirmation email: its private link is how you get back to your booking (no login needed). Don't share it. First month is prepaid to confirm. Drop-off and collection are free; a flat $50 per order applies when you request stored bins back. Pack within 7 days of empty drop-off.</p>
     </div>`;
   }
-  loadByRef(ref);
-} else {
-  let saved = null;
-  try { saved = sessionStorage.getItem(SAVED_REF_KEY); } catch { /* private mode */ }
-  if (saved) $('#lookup').value = saved;
+  if (startToken) loadByRef(ref, startToken);
+  else needLink();
+} else if (savedBooking?.ref && savedBooking.token) {
+  $('#lookup').value = savedBooking.ref;
+  loadByRef(savedBooking.ref, savedBooking.token);
 }

@@ -54,8 +54,9 @@ via `GET /api/serviceability` so labels have a single source of truth.
 
 ## Sign-in & roles
 
-Staff sign in at **`/login`**; customers never log in (they book and look up by
-phone/booking reference as before). There are three staff roles, and a person
+Staff sign in at **`/login`**; customers never log in. Instead each booking has
+a private **access token**, sent in the confirmation link (see
+[Customer access](#customer-access)). There are three staff roles, and a person
 only ever sees their own surface:
 
 | Role | Surface | Can do |
@@ -167,6 +168,37 @@ chain of custody across lifecycles.
 The transition module rejects any move not in this table (try storing an
 already-`Stored` bin and you get a 422).
 
+## Customer access
+
+Customers never log in, so the booking id alone (`book_…`) is only a
+reference, not a key. Every customer route on a booking or bin needs either:
+
+- the booking's **access token** in an `X-Booking-Token` header, or
+- a signed-in staff session (admin; any staff role for a bin's movements).
+
+The token is made when the booking is created and reaches the customer only
+through the confirmation page and email link,
+`/booking/booking.html?ref=<id>#t=<token>`. It sits in the URL fragment, which
+browsers never send to the server, so it stays out of logs. A bin is reached
+through the booking it belongs to, so a token for one booking can't touch
+another booking's bins. With no credential the API answers 401; with a wrong
+token, or for a booking or bin that doesn't exist, it answers the same 404.
+
+Lost the link? `POST /api/bookings/lookup { phone }` sends the links for every
+booking on that phone by SMS and to the email on file. The response is always
+`{ ok: true }`, so it can't be used to find out who is a customer, and it is
+throttled per IP and per phone. In local dev, when SMS and email aren't set up,
+the links are printed to the server log instead.
+
+Contents photos are served as short-lived **signed URLs**, so the storage
+bucket can (and should) be private.
+
+| Var | Default | Purpose |
+|---|---|---|
+| `PUBLIC_BASE_URL` | Vercel production URL | Site origin used in the links we email and text, e.g. `https://valet.example.com`. Taken from config, never the request `Host`, so a forged header can't point links elsewhere. |
+| `LOOKUP_RATE_MAX` | `10` | Phone lookups per IP per 15 min (plus a fixed 3 per phone per hour). |
+| `PHOTO_URL_TTL_SECONDS` | `3600` | How long a signed photo link works. |
+
 ## API surface
 
 All under `/api`. Handlers are thin; the rules live in the transition module.
@@ -175,8 +207,8 @@ All under `/api`. Handlers are thin; the rules live in the transition module.
 |---|---|---|
 | `/bookings` | POST | Create booking (+customer +deliver_empty job) |
 | `/bookings` | GET | Admin queue (with derived summaries) |
-| `/bookings/:id` | GET | Customer lookup + admin detail |
-| `/bookings/by-phone/:phone` | GET | Customer lookup by phone (no login) |
+| `/bookings/:id` | GET | Customer view (token) + admin detail |
+| `/bookings/lookup` | POST | Resend booking links to a phone (never returns data) |
 | `/bookings/:id/assign-bins` | POST | Bind scanned bins → `Assigned` |
 | `/jobs` | GET | Jobs board |
 | `/jobs/:id/done` | POST | Advance the job's bins to their next state |

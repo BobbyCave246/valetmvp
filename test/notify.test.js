@@ -13,6 +13,7 @@ const {
   sendBookingConfirmation,
   sendJobDoneEmail,
   sendJobDoneSms,
+  sendBookingLinks,
   JOB_DONE_COPY,
 } = await import('../src/notify.js');
 
@@ -119,6 +120,33 @@ test('never throws — a fetch failure resolves to false', async () => {
     assert.equal(await sendJobDoneEmail({ booking, customer, job }), false);
   } finally {
     globalThis.fetch = orig;
+    delete process.env.RESEND_API_KEY;
+  }
+});
+
+test('sendBookingLinks emails each booking only to its own customer', async () => {
+  process.env.RESEND_API_KEY = 're_test';
+  const origFetch = globalThis.fetch;
+  const sent = [];
+  globalThis.fetch = async (url, opts) => {
+    sent.push(JSON.parse(opts.body));
+    return { ok: true, status: 200, text: async () => '' };
+  };
+  try {
+    const b = (id) => ({ id, delivery_date: '2026-07-01' });
+    await sendBookingLinks({
+      phone: '+15550123',
+      entries: [
+        { booking: b('book_a'), link: 'https://x/a', email: 'a@example.com' },
+        { booking: b('book_b'), link: 'https://x/b', email: 'b@example.com' },
+      ],
+    });
+    assert.equal(sent.length, 2);
+    const toA = sent.find((m) => m.to[0] === 'a@example.com');
+    assert.match(toA.html, /book_a/);
+    assert.doesNotMatch(toA.html, /book_b/);
+  } finally {
+    globalThis.fetch = origFetch;
     delete process.env.RESEND_API_KEY;
   }
 });
