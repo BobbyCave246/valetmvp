@@ -53,8 +53,16 @@ function validateSkuBreakdown(skuBreakdown) {
   return null;
 }
 
+// Public and unauthenticated, so cap bookings per IP to stop someone filling
+// every delivery window with junk.
+const createByIp = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: Number(process.env.BOOKING_RATE_MAX || 10),
+  keyFn: (req) => `booking-ip|${clientIp(req)}`,
+});
+
 // POST /api/bookings — create customer (if new) + booking + a deliver_empty job.
-router.post('/', async (req, res) => {
+router.post('/', createByIp, async (req, res) => {
   const {
     name,
     phone,

@@ -82,6 +82,12 @@ Starter accounts are seeded on first boot (idempotent; they survive `POST /api/a
 | `SESSION_TTL_SECONDS` | `43200` (12h) | Session/cookie lifetime. |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | `admin@valet.local` / `admin1234` | Starter admin. **Change the password immediately.** |
 | `SEED_DRIVER_*`, `SEED_WAREHOUSE_*` | `driver@valet.local` / `warehouse@valet.local` (…`1234`) | Starter driver & warehouse accounts. |
+| `LOGIN_RATE_MAX` / `LOGIN_IP_RATE_MAX` | `10` / `30` | Login attempts per 15 min (`LOGIN_RATE_WINDOW_MS`), per IP + email and per IP alone. |
+| `BOOKING_RATE_MAX` / `LEADS_RATE_MAX` | `10` / `10` | Public bookings and waitlist sign-ups per IP per hour. |
+| `TRUST_PROXY` | unset | Set to `1` only behind a proxy that sets `X-Forwarded-For`. On Vercel it's trusted automatically; anywhere else the header is ignored so clients can't fake their IP to dodge limits. |
+
+Rate limits are in memory, so on Vercel each instance counts on its own. They
+slow abuse down; they are not a hard global cap.
 
 > Set `AUTH_SECRET` (and ideally non-default seed credentials) on Vercel and
 > **redeploy** — env changes only take effect on a new deployment.

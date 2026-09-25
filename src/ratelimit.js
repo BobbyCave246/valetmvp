@@ -18,12 +18,20 @@ function sweep(now) {
   }
 }
 
-// Best-effort client IP behind Vercel's proxy. x-forwarded-for is a comma-
-// separated list (client, proxy1, ...); the first entry is the original client.
+// Only trust x-forwarded-for behind a proxy that sets it. Vercel overwrites
+// the header with the real client IP, so it's safe there. Anywhere else a
+// client can send any value and get a fresh rate-limit budget per request,
+// so we use the socket address unless TRUST_PROXY=1 says a proxy is in front.
+export function trustsProxy() {
+  return !!process.env.VERCEL || process.env.TRUST_PROXY === '1';
+}
+
 export function clientIp(req) {
-  const fwd = req.headers['x-forwarded-for'];
-  if (typeof fwd === 'string' && fwd.length) return fwd.split(',')[0].trim();
-  return req.ip || req.socket?.remoteAddress || 'unknown';
+  if (trustsProxy()) {
+    const fwd = req.headers['x-forwarded-for'];
+    if (typeof fwd === 'string' && fwd.length) return fwd.split(',')[0].trim();
+  }
+  return req.socket?.remoteAddress || req.ip || 'unknown';
 }
 
 // rateLimit({ windowMs, max, keyFn }) -> express middleware.

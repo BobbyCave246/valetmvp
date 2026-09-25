@@ -44,7 +44,23 @@ test('the window resets after it expires', async () => {
   assert.ok(run(mw, req).passed, 'should pass again after the window resets');
 });
 
-test('clientIp prefers the first x-forwarded-for hop, falls back to req.ip', () => {
-  assert.equal(clientIp({ headers: { 'x-forwarded-for': '9.9.9.9, 10.0.0.1' } }), '9.9.9.9');
-  assert.equal(clientIp({ headers: {}, ip: '2.2.2.2' }), '2.2.2.2');
+test('clientIp ignores x-forwarded-for unless a proxy is trusted', () => {
+  delete process.env.VERCEL;
+  delete process.env.TRUST_PROXY;
+  const req = { headers: { 'x-forwarded-for': '9.9.9.9' }, socket: { remoteAddress: '2.2.2.2' } };
+  assert.equal(clientIp(req), '2.2.2.2', 'a faked header must not change the key');
+});
+
+test('clientIp uses the first x-forwarded-for hop behind Vercel or TRUST_PROXY', () => {
+  const req = { headers: { 'x-forwarded-for': '9.9.9.9, 10.0.0.1' }, socket: { remoteAddress: '2.2.2.2' } };
+  try {
+    process.env.VERCEL = '1';
+    assert.equal(clientIp(req), '9.9.9.9');
+    delete process.env.VERCEL;
+    process.env.TRUST_PROXY = '1';
+    assert.equal(clientIp(req), '9.9.9.9');
+  } finally {
+    delete process.env.VERCEL;
+    delete process.env.TRUST_PROXY;
+  }
 });

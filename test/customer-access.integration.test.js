@@ -6,6 +6,8 @@ import { createServer } from 'node:http';
 
 const RUN = process.env.RUN_DB_TESTS === '1';
 process.env.AUTH_SECRET ??= 'test-secret';
+// This file makes many bookings from one IP; the per-IP cap has its own test.
+process.env.BOOKING_RATE_MAX ??= '1000';
 
 let db, sql, app, server, baseUrl;
 

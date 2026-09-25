@@ -6,6 +6,7 @@ import { listAreas, listVillages } from '../coverage.js';
 import { availabilityForDate, validateDateSlot, SLOTS, LEAD_DAYS, earliestDateISO, todayDateISO, SERVICE_TZ, SLOT_CAPACITY } from '../slots.js';
 import { createLead, listLeads } from '../db.js';
 import { requireAuth, requireRole } from '../auth.js';
+import { rateLimit, clientIp } from '../ratelimit.js';
 
 const router = Router();
 
@@ -33,8 +34,15 @@ router.get('/availability', async (req, res) => {
   res.json({ date, slots: await availabilityForDate(date) });
 });
 
-// POST /api/leads { email, area } — out-of-area waitlist capture.
-router.post('/leads', async (req, res) => {
+// POST /api/leads { email, area } — out-of-area waitlist capture. Public, so
+// capped per IP to keep the waitlist free of spam.
+const leadsByIp = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: Number(process.env.LEADS_RATE_MAX || 10),
+  keyFn: (req) => `leads-ip|${clientIp(req)}`,
+});
+
+router.post('/leads', leadsByIp, async (req, res) => {
   const { email, area } = req.body || {};
   if (!email || typeof email !== 'string' || !/^\S+@\S+\.\S+$/.test(email.trim())) {
     return res.status(400).json({ error: 'A valid email is required' });

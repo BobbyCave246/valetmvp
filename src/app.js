@@ -21,6 +21,7 @@ import authRouter from './routes/auth.js';
 import { ensureSchema, pingDb } from './db.js';
 import { seedIfEmpty } from './seed.js';
 import { seedStarterUsers } from './auth.js';
+import { trustsProxy } from './ratelimit.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -38,8 +39,9 @@ const dbReady = ensureSchema()
 dbReady.catch(() => {});
 
 const app = express();
-// Behind Vercel's proxy — trust X-Forwarded-* so req.ip and protocol are right.
-app.set('trust proxy', true);
+// Behind Vercel's proxy, trust X-Forwarded-* so req.ip and protocol are right.
+// Not elsewhere, where a client could fake them (see ratelimit.js).
+app.set('trust proxy', trustsProxy());
 // Raised from the ~100kb default so contents-photo data URLs fit (the client
 // downscales to a small thumbnail, so payloads stay well under this).
 app.use(express.json({ limit: '5mb' }));
